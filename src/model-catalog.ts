@@ -26,7 +26,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: false,
+    supportsTools: true,
     supportsVision: false,
   },
   {
@@ -50,7 +50,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 196608,
     maxOutput: 65536,
-    supportsTools: false,
+    supportsTools: true,
     supportsVision: false,
   },
   {
@@ -206,7 +206,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: false,
+    supportsTools: true,
     supportsVision: false,
   },
   {
@@ -231,7 +231,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: false,
+    supportsTools: true,
     supportsVision: false,
   },
   {
@@ -243,7 +243,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: false,
+    supportsTools: true,
     supportsVision: false,
   },
   {
