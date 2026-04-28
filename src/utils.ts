@@ -1,9 +1,3 @@
-export {
-  convertMessagesToAnthropic,
-  convertToolsToAnthropic,
-  tryParseJSONObject,
-  validateRequest,
-} from "./anthropic-conversion";
 export { getDataPartTextValue, getTextPartValue, type LegacyPart } from "./message-parts";
 export {
   applyReasoningContentWorkaround,

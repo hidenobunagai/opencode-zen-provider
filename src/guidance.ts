@@ -1,6 +1,7 @@
 // guidance.ts — system prompt sanitization, identity & tool-use grounding guidance
-import { OcGoChatMessage, OcGoModelInfo } from "./types";
+import { ZenChatMessage } from "./types";
 import { ProvideLanguageModelChatResponseOptions } from "vscode";
+import type { ZenModelInfo } from "./model-catalog";
 
 export function sanitizeSystemPromptForModel(
   system: string | undefined,
@@ -16,7 +17,7 @@ export function sanitizeSystemPromptForModel(
 
 export function buildProviderIdentityGuidance(
   modelId: string,
-  fallbackModels: readonly OcGoModelInfo[],
+  fallbackModels: readonly ZenModelInfo[],
 ): string {
   const modelInfo = fallbackModels.find((m) => m.id === modelId);
   const displayName = modelInfo?.displayName ?? modelId;
@@ -51,11 +52,11 @@ export function buildToolUseGroundingGuidance(
 }
 
 export function applyOpenAiSystemPromptGuidance(
-  apiMessages: OcGoChatMessage[],
+  apiMessages: ZenChatMessage[],
   modelId: string,
   options: ProvideLanguageModelChatResponseOptions,
-  openCodeGoModelInfo?: readonly OcGoModelInfo[],
-): OcGoChatMessage[] {
+  zenModels?: readonly ZenModelInfo[],
+): ZenChatMessage[] {
   const hasTools = (options.tools?.length ?? 0) > 0;
   if (!hasTools && !modelId.startsWith("deepseek-")) {
     return apiMessages;
@@ -63,7 +64,7 @@ export function applyOpenAiSystemPromptGuidance(
 
   const guidance = [
     modelId.startsWith("deepseek-")
-      ? buildProviderIdentityGuidance(modelId, openCodeGoModelInfo ?? [])
+      ? buildProviderIdentityGuidance(modelId, zenModels ?? [])
       : undefined,
     hasTools ? buildToolUseGroundingGuidance(options) : undefined,
   ]
@@ -104,7 +105,7 @@ export function applyOpenAiSystemPromptGuidance(
 
 export function calculateMaxToolResultChars(
   modelId: string,
-  fallbackModels: readonly OcGoModelInfo[],
+  fallbackModels: readonly ZenModelInfo[],
 ): number {
   const modelInfo = fallbackModels.find((m) => m.id === modelId);
   const contextWindow = modelInfo?.contextWindow ?? 262144;

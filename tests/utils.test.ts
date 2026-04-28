@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { OcGoChatMessage } from "../src/types";
+import { ZenChatMessage } from "../src/types";
 import {
   convertMessages,
   convertTools,
@@ -16,7 +16,7 @@ describe("convertMessages", () => {
       },
     ];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([{ role: "user", content: "Hello" }]);
+    expect(result).toEqual<ZenChatMessage[]>([{ role: "user", content: "Hello" }]);
   });
 
   it("converts assistant text message", () => {
@@ -27,7 +27,7 @@ describe("convertMessages", () => {
       },
     ];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([{ role: "assistant", content: "Hi there" }]);
+    expect(result).toEqual<ZenChatMessage[]>([{ role: "assistant", content: "Hi there" }]);
   });
 
   it("converts system text message", () => {
@@ -38,13 +38,13 @@ describe("convertMessages", () => {
       },
     ];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([{ role: "system", content: "Be helpful" }]);
+    expect(result).toEqual<ZenChatMessage[]>([{ role: "system", content: "Be helpful" }]);
   });
 
   it("handles empty messages", () => {
     const messages = [{ role: vscode.LanguageModelChatMessageRole.User, content: [] }];
     const result = convertMessages(messages as any);
-    expect(result).toEqual<OcGoChatMessage[]>([{ role: "user", content: "" }]);
+    expect(result).toEqual<ZenChatMessage[]>([{ role: "user", content: "" }]);
   });
 
   it("converts image parts to base64", () => {
@@ -313,21 +313,21 @@ describe("convertMessages with tools", () => {
 describe("applyReasoningContentWorkaround", () => {
   it("adds reasoning_content for Kimi K2.6", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
-    const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
+    const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
     expect(result[0].reasoning_content).toBe(" ");
   });
 
   it("does not add reasoning_content for other models", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
-    const messages: OcGoChatMessage[] = [{ role: "assistant", content: "Hello" }];
+    const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
     const result = applyReasoningContentWorkaround(messages, "glm-5");
     expect(result[0].reasoning_content).toBeUndefined();
   });
 
   it("preserves existing reasoning_content", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
-    const messages: OcGoChatMessage[] = [
+    const messages: ZenChatMessage[] = [
       { role: "assistant", content: "Hello", reasoning_content: "existing" },
     ];
     const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");

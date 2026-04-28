@@ -45,7 +45,6 @@ V1 uses a checked-in static catalog. The initial catalog includes:
 - Ling 2.6 Flash Free
 - Nemotron 3 Super Free
 - Qwen3.6 Plus
-- Trinity Large Preview
 
 ## Current V1 Scope
 

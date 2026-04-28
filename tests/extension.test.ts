@@ -17,7 +17,7 @@ const mockRegisterCommand = jest.fn(
 const mockRegisterLanguageModelChatProvider = jest.fn(() => ({ dispose: jest.fn() }));
 
 jest.mock("../src/provider", () => ({
-  OcGoChatModelProvider: jest.fn().mockImplementation(() => ({
+  ZenChatModelProvider: jest.fn().mockImplementation(() => ({
     fireModelInfoChanged: jest.fn(),
   })),
 }));

@@ -258,16 +258,4 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
   },
-  {
-    id: "trinity-large-preview",
-    requestModelId: "trinity-large-preview",
-    name: "Trinity Large Preview",
-    displayName: "Trinity Large Preview",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
-    supportsTools: false,
-    supportsVision: false,
-  },
 ];

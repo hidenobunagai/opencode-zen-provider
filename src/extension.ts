@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
-import { OcGoChatModelProvider } from "./provider";
+import { ZenChatModelProvider } from "./provider";
 
-let _provider: OcGoChatModelProvider | null = null;
+let _provider: ZenChatModelProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   const ua = `opencode-zen-provider/${EXTENSION_VERSION} VSCode/${vscode.version}`;
@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
     "activate",
     `Extension activated. Debug logging ${debugEnabled ? "enabled" : "disabled"}.`,
   );
-  const provider = new OcGoChatModelProvider(context.secrets, ua);
+  const provider = new ZenChatModelProvider(context.secrets, ua);
   _provider = provider;
 
   context.subscriptions.push(

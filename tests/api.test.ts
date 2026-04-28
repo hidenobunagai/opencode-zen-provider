@@ -1,6 +1,6 @@
 import { fetchWithRetry, streamChatCompletion } from "../src/api";
 import { BASE_URL } from "../src/constants";
-import { OcGoStreamResponse } from "../src/types";
+import { ZenStreamResponse } from "../src/types";
 
 describe("fetchWithRetry", () => {
   afterEach(() => {
@@ -50,7 +50,7 @@ describe("streamChatCompletion", () => {
   });
 
   it("yields parsed SSE chunks", async () => {
-    const chunk: OcGoStreamResponse = {
+    const chunk: ZenStreamResponse = {
       id: "1",
       object: "chat.completion.chunk",
       created: 1,
@@ -71,8 +71,13 @@ describe("streamChatCompletion", () => {
       body: stream,
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    const results: OcGoStreamResponse[] = [];
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
+    const results: ZenStreamResponse[] = [];
     for await (const item of gen) {
       results.push(item);
     }
@@ -89,7 +94,12 @@ describe("streamChatCompletion", () => {
       text: async () => "Server error",
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
     await expect(gen.next()).rejects.toThrow("OpenCode Zen API error: 500 Internal Server Error");
   });
 
@@ -101,7 +111,12 @@ describe("streamChatCompletion", () => {
       text: async () => "Invalid key",
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
     await expect(gen.next()).rejects.toThrow(
       "Authentication failed. Your API key may be invalid or expired.",
     );
@@ -120,7 +135,12 @@ describe("streamChatCompletion", () => {
     } as any);
 
     try {
-      const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
+      const endpoint = `${BASE_URL}/chat/completions`;
+      const gen = streamChatCompletion(
+        "key",
+        { model: "kimi-k2.6", messages: [], stream: true },
+        endpoint,
+      );
       await expect(gen.next()).rejects.toThrow("HTTP 429");
       expect(fetch).toHaveBeenCalledTimes(5);
     } finally {
@@ -209,7 +229,7 @@ describe("streamChatCompletion", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("handles partial lines across chunks", async () => {
-    const chunk: OcGoStreamResponse = {
+    const chunk: ZenStreamResponse = {
       id: "1",
       object: "chat.completion.chunk",
       created: 1,
@@ -235,8 +255,13 @@ describe("streamChatCompletion", () => {
       body: stream,
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    const results: OcGoStreamResponse[] = [];
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
+    const results: ZenStreamResponse[] = [];
     for await (const item of gen) {
       results.push(item);
     }
@@ -260,8 +285,13 @@ describe("streamChatCompletion", () => {
       body: stream,
     } as any);
 
-    const gen = streamChatCompletion("key", { model: "kimi-k2.6", messages: [], stream: true });
-    const results: OcGoStreamResponse[] = [];
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
+    const results: ZenStreamResponse[] = [];
     for await (const item of gen) {
       results.push(item);
     }

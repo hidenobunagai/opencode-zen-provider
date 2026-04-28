@@ -1,6 +1,6 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
-import { streamChatCompletion } from "../api";
+import { resolveApiEndpoint, streamChatCompletion } from "../api";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
@@ -15,8 +15,8 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import type { OcGoModelInfo } from "../types";
-import { OcGoChatRequest } from "../types";
+import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
+import { ZenChatRequest } from "../types";
 import {
   applyReasoningContentWorkaround,
   convertMessages,
@@ -25,9 +25,10 @@ import {
 
 export interface OpenAIModelInfo {
   id: string;
-  modelInfo?: OcGoModelInfo;
+  modelInfo?: ZenModelInfo;
   maxOutputTokens: number;
   reasoningEffort?: string;
+  routeKind?: ZenRouteKind;
 }
 
 function normalizeReasoningEffort(reasoningEffort: string | undefined): string | undefined {
@@ -44,7 +45,7 @@ export async function processOpenAIStream(
   apiKey: string,
   requestedMaxTokens: number,
   temperatureVal: number,
-  openCodeGoModelInfo: readonly OcGoModelInfo[],
+  zenModels: readonly ZenModelInfo[],
   userAgent: string,
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   token: vscode.CancellationToken,
@@ -55,7 +56,8 @@ export async function processOpenAIStream(
     apiMessages as readonly vscode.LanguageModelChatMessage[],
   );
 
-  const maxToolResultChars = calculateMaxToolResultChars(model.id, openCodeGoModelInfo);
+  const maxToolResultChars = calculateMaxToolResultChars(model.id, zenModels);
+  const endpoint = resolveApiEndpoint(model.routeKind, model.id);
 
   let convertedMessages = convertMessages(apiMessages, { maxToolResultChars });
   convertedMessages = applyReasoningContentWorkaround(convertedMessages, model.id);
@@ -63,11 +65,11 @@ export async function processOpenAIStream(
     convertedMessages,
     model.id,
     options,
-    openCodeGoModelInfo,
+    zenModels,
   );
 
   const toolConfig = convertTools(options);
-  const requestBody: OcGoChatRequest = {
+  const requestBody: ZenChatRequest = {
     model: model.id,
     messages: convertedMessages,
     stream: true,
@@ -163,6 +165,7 @@ export async function processOpenAIStream(
     for await (const chunk of streamChatCompletion(
       apiKey,
       requestBody,
+      endpoint,
       abortController.signal,
       userAgent,
     )) {

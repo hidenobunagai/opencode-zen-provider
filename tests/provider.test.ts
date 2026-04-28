@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import { streamChatCompletion } from "../src/api";
-import { OcGoChatModelProvider } from "../src/provider";
+import { ZenChatModelProvider } from "../src/provider";
 
 jest.mock("../src/api", () => ({
   streamChatCompletion: jest.fn(),
   fetchWithRetry: jest.fn(),
+  resolveApiEndpoint: jest.fn(() => "https://opencode.ai/zen/v1/chat/completions"),
 }));
 
 jest.mock("vscode", () => ({
@@ -51,9 +52,9 @@ jest.mock("vscode", () => ({
   Memento: class {},
 }));
 
-describe("OcGoChatModelProvider", () => {
+describe("ZenChatModelProvider", () => {
   let secrets: vscode.SecretStorage;
-  let provider: OcGoChatModelProvider;
+  let provider: ZenChatModelProvider;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -63,7 +64,7 @@ describe("OcGoChatModelProvider", () => {
       delete: jest.fn(),
       onDidChange: jest.fn(),
     } as unknown as vscode.SecretStorage;
-    provider = new OcGoChatModelProvider(secrets, "test-ua");
+    provider = new ZenChatModelProvider(secrets, "test-ua");
     ((vscode as any).window.showInputBox as jest.Mock).mockResolvedValue(undefined);
   });
 
@@ -165,6 +166,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledWith(
       "test-key",
       expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(String),
       expect.any(AbortSignal),
       "test-ua",
     );
@@ -225,6 +227,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledWith(
       "new-api-key",
       expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(String),
       expect.any(AbortSignal),
       "test-ua",
     );
@@ -260,6 +263,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledWith(
       "configured-api-key",
       expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(String),
       expect.any(AbortSignal),
       "test-ua",
     );
@@ -295,6 +299,7 @@ describe("OcGoChatModelProvider", () => {
     expect(streamChatCompletion).toHaveBeenCalledWith(
       "provider-api-key",
       expect.objectContaining({ model: "kimi-k2.6", stream: true }),
+      expect.any(String),
       expect.any(AbortSignal),
       "test-ua",
     );

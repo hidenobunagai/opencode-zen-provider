@@ -20,10 +20,6 @@ describe("ZEN_MODEL_CATALOG", () => {
           id: "gemini-3-flash",
           routeKind: "model_specific",
         }),
-        expect.objectContaining({
-          id: "trinity-large-preview",
-          routeKind: "chat_completions",
-        }),
       ]),
     );
   });

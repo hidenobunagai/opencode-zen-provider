@@ -1,7 +1,6 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
-import { fetchWithRetry } from "../api";
-import { BASE_URL } from "../constants";
+import { fetchWithRetry, resolveApiEndpoint } from "../api";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
@@ -16,7 +15,8 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import { AnthropicMessage, AnthropicSSEEvent, OcGoModelInfo, type Json } from "../types";
+import { AnthropicMessage, AnthropicSSEEvent, type Json } from "../types";
+import type { ZenModelInfo } from "../model-catalog";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { convertTools } from "../openai-conversion";
 
@@ -30,7 +30,7 @@ export interface AnthropicRequestParams {
   progress: vscode.Progress<vscode.LanguageModelResponsePart>;
   token: vscode.CancellationToken;
   abortController: AbortController;
-  fallbackModels: readonly OcGoModelInfo[];
+  fallbackModels: readonly ZenModelInfo[];
   userAgent: string;
 }
 
@@ -120,8 +120,9 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     tool_choice: requestBody.tool_choice,
   });
 
+  const endpoint = resolveApiEndpoint("messages");
   const response = await fetchWithRetry(
-    `${BASE_URL}/messages`,
+    endpoint,
     {
       method: "POST",
       headers: {

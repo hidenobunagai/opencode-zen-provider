@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import { streamChatCompletion } from "../src/api";
-import { OcGoChatModelProvider } from "../src/provider";
+import { ZenChatModelProvider } from "../src/provider";
 
 jest.mock("../src/api", () => ({
   streamChatCompletion: jest.fn(),
   fetchWithRetry: jest.fn(),
+  resolveApiEndpoint: jest.fn(() => "https://opencode.ai/zen/v1/chat/completions"),
 }));
 
 jest.mock("vscode", () => ({
@@ -35,7 +36,7 @@ describe("OpenCode Zen V1 image policy", () => {
       delete: jest.fn(),
       onDidChange: jest.fn(),
     } as unknown as vscode.SecretStorage;
-    const provider = new OcGoChatModelProvider(secrets, "test-ua");
+    const provider = new ZenChatModelProvider(secrets, "test-ua");
     const progress = { report: jest.fn() };
     const token = {
       isCancellationRequested: false,

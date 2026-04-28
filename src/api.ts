@@ -1,6 +1,7 @@
 import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
 import { debugLog } from "./output-channel";
-import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
+import type { ZenRouteKind } from "./model-catalog";
+import { ZenChatCompletionResponse, ZenChatRequest, ZenStreamResponse } from "./types";
 
 /**
  * Determine whether an HTTP status code is safe to retry.
@@ -90,14 +91,31 @@ function buildChatCompletionHeaders(apiKey: string, userAgent?: string): Record<
   };
 }
 
+/**
+ * Resolve the API endpoint URL from route kind and model ID.
+ */
+export function resolveApiEndpoint(routeKind: ZenRouteKind | undefined, modelId?: string): string {
+  switch (routeKind) {
+    case "responses":
+      return `${BASE_URL}/responses`;
+    case "messages":
+      return `${BASE_URL}/messages`;
+    case "model_specific":
+      return `${BASE_URL}/models/${modelId ?? ""}`;
+    default:
+      return `${BASE_URL}/chat/completions`;
+  }
+}
+
 async function createChatCompletionResponse(
   apiKey: string,
-  requestBody: OcGoChatRequest,
+  requestBody: ZenChatRequest,
+  endpoint: string,
   signal?: AbortSignal,
   userAgent?: string,
 ): Promise<Response> {
   return fetchWithRetry(
-    `${BASE_URL}/chat/completions`,
+    endpoint,
     {
       method: "POST",
       headers: buildChatCompletionHeaders(apiKey, userAgent),
@@ -124,24 +142,38 @@ async function throwChatCompletionError(response: Response): Promise<never> {
 
 export async function requestChatCompletion(
   apiKey: string,
-  requestBody: OcGoChatRequest,
+  requestBody: ZenChatRequest,
+  endpoint: string,
   signal?: AbortSignal,
   userAgent?: string,
-): Promise<OcGoChatCompletionResponse> {
-  const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
+): Promise<ZenChatCompletionResponse> {
+  const response = await createChatCompletionResponse(
+    apiKey,
+    requestBody,
+    endpoint,
+    signal,
+    userAgent,
+  );
   if (!response.ok) {
     await throwChatCompletionError(response);
   }
-  return (await response.json()) as OcGoChatCompletionResponse;
+  return (await response.json()) as ZenChatCompletionResponse;
 }
 
 export async function* streamChatCompletion(
   apiKey: string,
-  requestBody: OcGoChatRequest,
+  requestBody: ZenChatRequest,
+  endpoint: string,
   signal?: AbortSignal,
   userAgent?: string,
-): AsyncGenerator<OcGoStreamResponse, void, unknown> {
-  const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
+): AsyncGenerator<ZenStreamResponse, void, unknown> {
+  const response = await createChatCompletionResponse(
+    apiKey,
+    requestBody,
+    endpoint,
+    signal,
+    userAgent,
+  );
 
   if (!response.ok) {
     await throwChatCompletionError(response);
@@ -172,7 +204,7 @@ export async function* streamChatCompletion(
         const data = trimmed.slice(6);
         if (data === "[DONE]") continue;
         try {
-          const parsed = JSON.parse(data) as OcGoStreamResponse;
+          const parsed = JSON.parse(data) as ZenStreamResponse;
           yield parsed;
         } catch {
           malformedSseCount++;
@@ -191,7 +223,7 @@ export async function* streamChatCompletion(
       const data = trimmed.slice(6);
       if (data === "[DONE]") continue;
       try {
-        const parsed = JSON.parse(data) as OcGoStreamResponse;
+        const parsed = JSON.parse(data) as ZenStreamResponse;
         yield parsed;
       } catch {
         malformedSseCount++;

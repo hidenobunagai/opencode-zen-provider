@@ -9,7 +9,7 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { debugLog } from "./output-channel";
-import { JsonObject, OcGoChatMessage, OcGoContentPart, OcGoTool } from "./types";
+import { JsonObject, ZenChatMessage, ZenContentPart, ZenTool } from "./types";
 
 function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -72,8 +72,8 @@ function buildToolDescription(
 export function convertMessages(
   messages: readonly vscode.LanguageModelChatMessage[],
   options?: { maxToolResultChars?: number },
-): OcGoChatMessage[] {
-  const result: OcGoChatMessage[] = [];
+): ZenChatMessage[] {
+  const result: ZenChatMessage[] = [];
 
   for (const message of messages) {
     const role =
@@ -84,7 +84,7 @@ export function convertMessages(
           : "system";
 
     const textParts: string[] = [];
-    const imageParts: OcGoContentPart[] = [];
+    const imageParts: ZenContentPart[] = [];
 
     for (const part of message.content) {
       if (
@@ -150,7 +150,7 @@ export function convertMessages(
 
     if (hasTextOrImage && !isAssistantWithToolCalls) {
       if (imageParts.length > 0) {
-        const contentParts: OcGoContentPart[] = [];
+        const contentParts: ZenContentPart[] = [];
         const text = textParts.join("");
         if (text) contentParts.push({ type: "text", text });
         contentParts.push(...imageParts);
@@ -167,9 +167,9 @@ export function convertMessages(
 }
 
 export function applyReasoningContentWorkaround(
-  messages: OcGoChatMessage[],
+  messages: ZenChatMessage[],
   modelId: string,
-): OcGoChatMessage[] {
+): ZenChatMessage[] {
   if (!REASONING_CONTENT_WORKAROUND_MODELS.has(modelId)) {
     return messages;
   }
@@ -182,7 +182,7 @@ export function applyReasoningContentWorkaround(
 }
 
 export function convertTools(options: vscode.ProvideLanguageModelChatResponseOptions): {
-  tools?: OcGoTool[];
+  tools?: ZenTool[];
   tool_choice?: "auto" | "required" | { type: "function"; function: { name: string } };
 } {
   const toolsInput = options.tools ?? [];
@@ -190,7 +190,7 @@ export function convertTools(options: vscode.ProvideLanguageModelChatResponseOpt
     return {};
   }
 
-  const tools: OcGoTool[] = toolsInput.map((tool) => ({
+  const tools: ZenTool[] = toolsInput.map((tool) => ({
     type: "function",
     function: {
       name: tool.name,

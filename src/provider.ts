@@ -18,7 +18,7 @@ import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
 
-export class OcGoChatModelProvider implements LanguageModelChatProvider {
+export class ZenChatModelProvider implements LanguageModelChatProvider {
   private readonly _onDidChangeLanguageModelChatInformation = new EventEmitter<void>();
   readonly onDidChangeLanguageModelChatInformation: Event<void> =
     this._onDidChangeLanguageModelChatInformation.event;
@@ -234,6 +234,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
         modelInfo,
         maxOutputTokens: model.maxOutputTokens,
         reasoningEffort,
+        routeKind: modelInfo?.routeKind,
       };
 
       await processOpenAIStream(
