@@ -371,3 +371,122 @@ describe("streamResponses", () => {
     ]);
   });
 });
+
+describe("streamGeminiContent", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("posts Gemini model-specific stream requests and normalizes text/function-call SSE events", async () => {
+    const { streamGeminiContent } = require("../src/api") as {
+      streamGeminiContent?: (
+        apiKey: string,
+        modelId: string,
+        requestBody: Record<string, unknown>,
+        signal?: AbortSignal,
+        userAgent?: string,
+      ) => AsyncGenerator<OcGoStreamResponse, void, unknown>;
+    };
+
+    expect(typeof streamGeminiContent).toBe("function");
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Hello"}]},"index":0}],"usageMetadata":{"promptTokenCount":4,"candidatesTokenCount":1,"totalTokenCount":5},"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            'data: {"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"call_1","name":"get_weather","args":{"city":"Tokyo"}}}]},"index":0}],"usageMetadata":{"promptTokenCount":4,"candidatesTokenCount":3,"totalTokenCount":7},"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const requestBody = {
+      contents: [{ role: "user", parts: [{ text: "What's the weather in Tokyo?" }] }],
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: "get_weather",
+              description: "Get weather",
+              parameters: {
+                type: "object",
+                properties: {
+                  city: { type: "string" },
+                },
+                required: ["city"],
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 256,
+      },
+    };
+
+    const gen = streamGeminiContent!("key", "gemini-3-flash", requestBody);
+    const results: OcGoStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    const [url, init] = (fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe(`${BASE_URL}/models/gemini-3-flash:streamGenerateContent?alt=sse`);
+    expect(init).toEqual(
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(requestBody),
+      }),
+    );
+    expect(init.headers).toMatchObject({
+      "x-goog-api-key": "key",
+      "Content-Type": "application/json",
+    });
+    expect(init.headers.Authorization).toBeUndefined();
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toMatchObject({
+      id: "resp_1",
+      model: "gemini-3-flash",
+      choices: [{ index: 0, delta: { content: "Hello" }, finish_reason: null }],
+      usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 },
+    });
+    expect(results[1]).toMatchObject({
+      id: "resp_1",
+      model: "gemini-3-flash",
+      choices: [
+        {
+          index: 0,
+          delta: {
+            tool_calls: [
+              {
+                id: "call_1",
+                index: 0,
+                type: "function",
+                function: {
+                  name: "get_weather",
+                  arguments: '{"city":"Tokyo"}',
+                },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+      usage: { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
+    });
+  });
+});

@@ -5,6 +5,7 @@ import { OcGoChatModelProvider } from "../src/provider";
 jest.mock("../src/api", () => ({
   streamChatCompletion: jest.fn(),
   streamResponses: jest.fn(),
+  streamGeminiContent: jest.fn(),
   fetchWithRetry: jest.fn(),
 }));
 
@@ -244,31 +245,173 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
-  it.each(["gemini-3-flash", "gemini-3.1-pro"])(
-    "rejects %s until model-specific routing is implemented",
-    async (modelId) => {
-      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+  it("routes Gemini models through the model-specific endpoint with converted contents/tools", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const { streamGeminiContent } = jest.requireMock("../src/api") as {
+      streamGeminiContent: jest.Mock;
+    };
 
-      const progress = { report: jest.fn() };
-      const token = {
-        isCancellationRequested: false,
-        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    const mockStream = async function* () {
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 1,
+        model: "gemini-3-flash",
+        choices: [{ index: 0, delta: { content: "Checking weather..." }, finish_reason: null }],
       };
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 2,
+        model: "gemini-3-flash",
+        choices: [
+          {
+            index: 0,
+            delta: {
+              tool_calls: [
+                {
+                  id: "call_live_1",
+                  index: 0,
+                  type: "function",
+                  function: {
+                    name: "get_weather",
+                    arguments: '{"city":"Tokyo"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: null,
+          },
+        ],
+      };
+    };
+    streamGeminiContent.mockReturnValue(mockStream());
 
-      await expect(
-        provider.provideLanguageModelChatResponse(
-          { id: modelId, maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
-          [{ role: 1, content: [{ value: "Hi" }] }] as any,
-          { modelOptions: {} } as any,
-          progress,
-          token as any,
-        ),
-      ).rejects.toThrow(/model-specific routing.*not implemented/i);
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
 
-      expect(streamResponses).not.toHaveBeenCalled();
-      expect(streamChatCompletion).not.toHaveBeenCalled();
-    },
-  );
+    await provider.provideLanguageModelChatResponse(
+      { id: "gemini-3-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 1,
+          content: [new (vscode as any).LanguageModelTextPart("What's the weather in Tokyo?")],
+        },
+        {
+          role: 2,
+          content: [
+            new (vscode as any).LanguageModelTextPart("Let me check"),
+            new (vscode as any).LanguageModelToolCallPart("call_1", "get_weather", {
+              city: "Tokyo",
+            }),
+          ],
+        },
+        {
+          role: 1,
+          content: [
+            new (vscode as any).LanguageModelToolResultPart("call_1", [
+              new (vscode as any).LanguageModelTextPart("Sunny, 25C"),
+            ]),
+          ],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "get_weather",
+            description: "Get weather",
+            inputSchema: {
+              type: "object",
+              properties: {
+                city: { type: "string", description: "City name" },
+              },
+              required: ["city"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamGeminiContent).toHaveBeenCalledWith(
+      "test-key",
+      "gemini-3-flash",
+      expect.objectContaining({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: "What's the weather in Tokyo?" }],
+          },
+          {
+            role: "model",
+            parts: [
+              { text: "Let me check" },
+              {
+                functionCall: {
+                  id: "call_1",
+                  name: "get_weather",
+                  args: { city: "Tokyo" },
+                },
+              },
+            ],
+          },
+          {
+            role: "user",
+            parts: [
+              {
+                functionResponse: {
+                  id: "call_1",
+                  name: "get_weather",
+                  response: { content: "Sunny, 25C" },
+                },
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            functionDeclarations: [
+              expect.objectContaining({
+                name: "get_weather",
+                description: expect.stringContaining("Get weather"),
+                parameters: expect.objectContaining({
+                  type: "object",
+                  properties: expect.objectContaining({
+                    city: expect.objectContaining({ type: "string" }),
+                  }),
+                }),
+              }),
+            ],
+          },
+        ],
+        generationConfig: expect.objectContaining({
+          temperature: 0.7,
+          maxOutputTokens: 65536,
+        }),
+      }),
+      expect.any(AbortSignal),
+      "test-ua",
+    );
+    expect(streamResponses).not.toHaveBeenCalled();
+    expect(streamChatCompletion).not.toHaveBeenCalled();
+    expect(progress.report).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ value: "Checking weather..." }),
+    );
+    expect(progress.report).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        callId: "call_live_1",
+        name: "get_weather",
+        input: { city: "Tokyo" },
+      }),
+    );
+  });
 
   it("throws when message exceeds token limit", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
