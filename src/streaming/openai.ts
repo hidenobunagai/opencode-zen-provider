@@ -54,6 +54,12 @@ export async function processOpenAIStream(
   token: vscode.CancellationToken,
   abortController: AbortController,
 ): Promise<void> {
+  if (model.routeKind === "model_specific") {
+    throw new Error(
+      `OpenCode Zen model-specific routing is not implemented in V1 for ${model.id}. Gemini models are not supported yet.`,
+    );
+  }
+
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(
     apiMessages as readonly vscode.LanguageModelChatMessage[],

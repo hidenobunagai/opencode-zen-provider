@@ -244,6 +244,32 @@ describe("OcGoChatModelProvider", () => {
     );
   });
 
+  it.each(["gemini-3-flash", "gemini-3.1-pro"])(
+    "rejects %s until model-specific routing is implemented",
+    async (modelId) => {
+      (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+      const progress = { report: jest.fn() };
+      const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+      };
+
+      await expect(
+        provider.provideLanguageModelChatResponse(
+          { id: modelId, maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+          [{ role: 1, content: [{ value: "Hi" }] }] as any,
+          { modelOptions: {} } as any,
+          progress,
+          token as any,
+        ),
+      ).rejects.toThrow(/model-specific routing.*not implemented/i);
+
+      expect(streamResponses).not.toHaveBeenCalled();
+      expect(streamChatCompletion).not.toHaveBeenCalled();
+    },
+  );
+
   it("throws when message exceeds token limit", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
