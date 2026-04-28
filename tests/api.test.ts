@@ -489,4 +489,81 @@ describe("streamGeminiContent", () => {
       usage: { prompt_tokens: 4, completion_tokens: 3, total_tokens: 7 },
     });
   });
+
+  it("preserves Gemini finish reasons on normalized chunks", async () => {
+    const { streamGeminiContent } = require("../src/api") as {
+      streamGeminiContent: (
+        apiKey: string,
+        modelId: string,
+        requestBody: Record<string, unknown>,
+        signal?: AbortSignal,
+        userAgent?: string,
+      ) => AsyncGenerator<OcGoStreamResponse, void, unknown>;
+    };
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Hello"}]},"finishReason":"STOP","index":0}],"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamGeminiContent("key", "gemini-3-flash", {
+      contents: [{ role: "user", parts: [{ text: "Hi" }] }],
+    });
+    const results: OcGoStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0].choices[0].finish_reason).toBe("STOP");
+  });
+
+  it("throws when Gemini blocks a prompt without emitting content", async () => {
+    const { streamGeminiContent } = require("../src/api") as {
+      streamGeminiContent: (
+        apiKey: string,
+        modelId: string,
+        requestBody: Record<string, unknown>,
+        signal?: AbortSignal,
+        userAgent?: string,
+      ) => AsyncGenerator<OcGoStreamResponse, void, unknown>;
+    };
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"promptFeedback":{"blockReason":"SAFETY","blockReasonMessage":"Prompt blocked"},"candidates":[{"finishReason":"SAFETY","index":0}],"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamGeminiContent("key", "gemini-3-flash", {
+      contents: [{ role: "user", parts: [{ text: "Hi" }] }],
+    });
+
+    await expect(gen.next()).rejects.toThrow(
+      "OpenCode Zen Gemini blocked the prompt: SAFETY (Prompt blocked)",
+    );
+  });
 });

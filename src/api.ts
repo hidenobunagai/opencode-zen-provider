@@ -449,6 +449,39 @@ function normalizeGeminiUsage(payload: Record<string, unknown>) {
   };
 }
 
+function formatGeminiBlockError(payload: Record<string, unknown>): string | undefined {
+  const promptFeedback = asObjectRecord(payload.promptFeedback);
+  const promptBlockReason =
+    typeof promptFeedback?.blockReason === "string" ? promptFeedback.blockReason : undefined;
+  const promptBlockMessage =
+    typeof promptFeedback?.blockReasonMessage === "string"
+      ? promptFeedback.blockReasonMessage
+      : undefined;
+
+  if (promptBlockReason) {
+    return `OpenCode Zen Gemini blocked the prompt: ${promptBlockReason}${promptBlockMessage ? ` (${promptBlockMessage})` : ""}`;
+  }
+
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+  for (const candidateValue of candidates) {
+    const candidate = asObjectRecord(candidateValue);
+    if (!candidate) {
+      continue;
+    }
+
+    const finishReason =
+      typeof candidate.finishReason === "string" ? candidate.finishReason : undefined;
+    if (
+      finishReason &&
+      ["SAFETY", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "RECITATION"].includes(finishReason)
+    ) {
+      return `OpenCode Zen Gemini blocked the response: ${finishReason}`;
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeGeminiPayload(
   payload: Record<string, unknown>,
   fallbackModel: string,
@@ -466,6 +499,7 @@ function normalizeGeminiPayload(
     }
 
     const index = typeof candidate.index === "number" ? candidate.index : candidateIndex;
+    const finishReason = typeof candidate.finishReason === "string" ? candidate.finishReason : null;
     const content = asObjectRecord(candidate.content);
     const parts = Array.isArray(content?.parts) ? content.parts : [];
     const textSegments: string[] = [];
@@ -516,7 +550,7 @@ function normalizeGeminiPayload(
             ...(textSegments.length > 0 ? { content: textSegments.join("") } : {}),
             ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
           },
-          finish_reason: null,
+          finish_reason: finishReason,
         },
       ],
       ...(usage ? { usage } : {}),
@@ -597,10 +631,20 @@ export async function* streamGeminiContent(
 
     try {
       const payload = JSON.parse(event.data) as Record<string, unknown>;
-      for (const normalized of normalizeGeminiPayload(payload, modelId)) {
+      const normalizedEvents = normalizeGeminiPayload(payload, modelId);
+      if (normalizedEvents.length === 0) {
+        const blockError = formatGeminiBlockError(payload);
+        if (blockError) {
+          throw new Error(blockError);
+        }
+      }
+      for (const normalized of normalizedEvents) {
         yield normalized;
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("OpenCode Zen Gemini blocked ")) {
+        throw error;
+      }
       malformedSseCount++;
       debugLog("streamGeminiContent", `Malformed SSE payload: ${event.data.slice(0, 200)}`);
     }
