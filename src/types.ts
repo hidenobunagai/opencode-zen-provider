@@ -42,6 +42,55 @@ export interface OcGoChatRequest {
   reasoning_effort?: string;
 }
 
+export type OcGoResponsesContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "output_text"; text: string }
+  | { type: "input_image"; image_url: string };
+
+export interface OcGoResponsesMessageInput {
+  type: "message";
+  role: "system" | "user" | "assistant";
+  content: OcGoResponsesContentPart[];
+}
+
+export interface OcGoResponsesFunctionCallInput {
+  type: "function_call";
+  call_id: string;
+  name: string;
+  arguments: string;
+}
+
+export interface OcGoResponsesFunctionCallOutputInput {
+  type: "function_call_output";
+  call_id: string;
+  output: string;
+}
+
+export type OcGoResponsesInputItem =
+  | OcGoResponsesMessageInput
+  | OcGoResponsesFunctionCallInput
+  | OcGoResponsesFunctionCallOutputInput;
+
+export interface OcGoResponsesTool {
+  type: "function";
+  name: string;
+  description?: string;
+  parameters?: JsonObject;
+}
+
+export interface OcGoResponsesRequest {
+  model: string;
+  input: OcGoResponsesInputItem[];
+  temperature?: number;
+  max_output_tokens?: number;
+  stream?: boolean;
+  tools?: OcGoResponsesTool[];
+  tool_choice?: "auto" | "none" | "required" | { type: "function"; name: string };
+  reasoning?: {
+    effort?: string;
+  };
+}
+
 export interface OcGoStreamChoice {
   index: number;
   delta: {
@@ -71,6 +120,23 @@ export interface OcGoChatCompletionResponse {
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+export interface OcGoResponsesResponse {
+  id?: string;
+  output?: Array<{
+    type?: string;
+    role?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
     total_tokens?: number;
   };
 }

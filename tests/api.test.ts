@@ -1,6 +1,6 @@
-import { fetchWithRetry, streamChatCompletion } from "../src/api";
+import { fetchWithRetry, requestResponse, streamChatCompletion, streamResponses } from "../src/api";
 import { BASE_URL } from "../src/constants";
-import { OcGoStreamResponse } from "../src/types";
+import { OcGoResponsesRequest, OcGoStreamResponse } from "../src/types";
 
 describe("fetchWithRetry", () => {
   afterEach(() => {
@@ -267,5 +267,107 @@ describe("streamChatCompletion", () => {
     }
 
     expect(results).toHaveLength(0);
+  });
+});
+
+describe("requestResponse", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("posts Responses API requests to /responses", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "resp_1", output: [] }),
+    } as any);
+
+    const requestBody: OcGoResponsesRequest = {
+      model: "gpt-5.4",
+      input: [
+        {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "Hi" }],
+        },
+      ],
+      max_output_tokens: 256,
+    };
+
+    await requestResponse("key", requestBody);
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE_URL}/responses`,
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer key",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify(requestBody),
+      }),
+    );
+  });
+});
+
+describe("streamResponses", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("yields text and tool-call chunks from Responses SSE events", async () => {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            "event: response.output_text.delta\n" +
+              'data: {"type":"response.output_text.delta","response_id":"resp_1","output_index":0,"delta":"Hello"}\n\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            "event: response.function_call_arguments.done\n" +
+              'data: {"type":"response.function_call_arguments.done","response_id":"resp_1","output_index":1,"call_id":"call_1","name":"get_weather","arguments":"{\\"city\\":\\"Tokyo\\"}"}\n\n',
+          ),
+        );
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamResponses("key", {
+      model: "gpt-5.4",
+      input: [],
+      stream: true,
+    });
+    const results: OcGoStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(fetch).toHaveBeenCalledWith(
+      `${BASE_URL}/responses`,
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(results).toHaveLength(2);
+    expect(results[0].choices[0].delta.content).toBe("Hello");
+    expect(results[1].choices[0].delta.tool_calls).toEqual([
+      {
+        id: "call_1",
+        index: 1,
+        type: "function",
+        function: {
+          name: "get_weather",
+          arguments: '{"city":"Tokyo"}',
+        },
+      },
+    ]);
   });
 });

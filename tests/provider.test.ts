@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
-import { streamChatCompletion } from "../src/api";
+import { streamChatCompletion, streamResponses } from "../src/api";
 import { OcGoChatModelProvider } from "../src/provider";
 
 jest.mock("../src/api", () => ({
   streamChatCompletion: jest.fn(),
+  streamResponses: jest.fn(),
   fetchWithRetry: jest.fn(),
 }));
 
@@ -170,6 +171,77 @@ describe("OcGoChatModelProvider", () => {
     );
     expect(progress.report).toHaveBeenCalledTimes(1);
     expect(progress.report).toHaveBeenCalledWith(expect.objectContaining({ value: "Hello world" }));
+  });
+
+  it("routes GPT-family models through Responses API transport", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 1,
+        model: "gpt-5.4",
+        choices: [{ index: 0, delta: { content: "Hello from Responses" }, finish_reason: null }],
+      };
+    };
+    (streamResponses as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "gpt-5.4", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "Hi" }] }] as any,
+      {
+        modelOptions: { max_tokens: 1234 },
+        tools: [
+          {
+            name: "get_weather",
+            description: "Get weather",
+            inputSchema: {
+              type: "object",
+              properties: { city: { type: "string" } },
+              required: ["city"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    expect(streamResponses).toHaveBeenCalledWith(
+      "test-key",
+      expect.objectContaining({
+        model: "gpt-5.4",
+        stream: true,
+        max_output_tokens: 1234,
+        tool_choice: "auto",
+        tools: [
+          expect.objectContaining({
+            type: "function",
+            name: "get_weather",
+          }),
+        ],
+        input: expect.arrayContaining([
+          expect.objectContaining({
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: "Hi" }],
+          }),
+        ]),
+      }),
+      expect.any(AbortSignal),
+      "test-ua",
+    );
+    expect(streamChatCompletion).not.toHaveBeenCalled();
+    expect(progress.report).toHaveBeenCalledWith(
+      expect.objectContaining({ value: "Hello from Responses" }),
+    );
   });
 
   it("throws when message exceeds token limit", async () => {
