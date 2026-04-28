@@ -232,6 +232,7 @@ export class OcGoChatModelProvider implements LanguageModelChatProvider {
       const openAIModel: OpenAIModelInfo = {
         id: effectiveModelId,
         modelInfo,
+        routeKind: modelInfo?.routeKind,
         maxOutputTokens: model.maxOutputTokens,
         reasoningEffort,
       };

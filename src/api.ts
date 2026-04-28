@@ -1,6 +1,12 @@
 import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
 import { debugLog } from "./output-channel";
-import { OcGoChatCompletionResponse, OcGoChatRequest, OcGoStreamResponse } from "./types";
+import {
+  OcGoChatCompletionResponse,
+  OcGoChatRequest,
+  OcGoResponsesRequest,
+  OcGoResponsesResponse,
+  OcGoStreamResponse,
+} from "./types";
 
 /**
  * Determine whether an HTTP status code is safe to retry.
@@ -82,7 +88,7 @@ export async function fetchWithRetry(
   throw lastError ?? new Error("Network request failed after retries");
 }
 
-function buildChatCompletionHeaders(apiKey: string, userAgent?: string): Record<string, string> {
+function buildRequestHeaders(apiKey: string, userAgent?: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
@@ -100,7 +106,7 @@ async function createChatCompletionResponse(
     `${BASE_URL}/chat/completions`,
     {
       method: "POST",
-      headers: buildChatCompletionHeaders(apiKey, userAgent),
+      headers: buildRequestHeaders(apiKey, userAgent),
       body: JSON.stringify(requestBody),
       signal,
     },
@@ -108,7 +114,25 @@ async function createChatCompletionResponse(
   );
 }
 
-async function throwChatCompletionError(response: Response): Promise<never> {
+async function createResponsesResponse(
+  apiKey: string,
+  requestBody: OcGoResponsesRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<Response> {
+  return fetchWithRetry(
+    `${BASE_URL}/responses`,
+    {
+      method: "POST",
+      headers: buildRequestHeaders(apiKey, userAgent),
+      body: JSON.stringify(requestBody),
+      signal,
+    },
+    5,
+  );
+}
+
+async function throwApiError(response: Response): Promise<never> {
   const text = await response.text();
   let message = `OpenCode Zen API error: ${response.status} ${response.statusText}`;
   if (response.status === 401 || response.status === 403) {
@@ -130,9 +154,22 @@ export async function requestChatCompletion(
 ): Promise<OcGoChatCompletionResponse> {
   const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
   if (!response.ok) {
-    await throwChatCompletionError(response);
+    await throwApiError(response);
   }
   return (await response.json()) as OcGoChatCompletionResponse;
+}
+
+export async function requestResponse(
+  apiKey: string,
+  requestBody: OcGoResponsesRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<OcGoResponsesResponse> {
+  const response = await createResponsesResponse(apiKey, requestBody, signal, userAgent);
+  if (!response.ok) {
+    await throwApiError(response);
+  }
+  return (await response.json()) as OcGoResponsesResponse;
 }
 
 export async function* streamChatCompletion(
@@ -144,7 +181,7 @@ export async function* streamChatCompletion(
   const response = await createChatCompletionResponse(apiKey, requestBody, signal, userAgent);
 
   if (!response.ok) {
-    await throwChatCompletionError(response);
+    await throwApiError(response);
   }
 
   if (!response.body) {
@@ -207,5 +244,190 @@ export async function* streamChatCompletion(
     }
   } finally {
     reader.releaseLock();
+  }
+}
+
+interface SseEvent {
+  event?: string;
+  data: string;
+}
+
+function parseSseEventBlock(block: string): SseEvent | undefined {
+  const dataLines: string[] = [];
+  let event: string | undefined;
+
+  for (const line of block.split(/\r?\n/)) {
+    if (line.startsWith("event:")) {
+      event = line.slice(6).trim();
+      continue;
+    }
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+
+  if (dataLines.length === 0) {
+    return undefined;
+  }
+
+  return {
+    event,
+    data: dataLines.join("\n"),
+  };
+}
+
+async function* readSseEvents(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<SseEvent, void, unknown> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let separatorIndex = buffer.search(/\r?\n\r?\n/);
+      while (separatorIndex !== -1) {
+        const separator = buffer.startsWith("\r\n\r\n", separatorIndex) ? 4 : 2;
+        const block = buffer.slice(0, separatorIndex);
+        buffer = buffer.slice(separatorIndex + separator);
+        const parsed = parseSseEventBlock(block);
+        if (parsed) {
+          yield parsed;
+        }
+        separatorIndex = buffer.search(/\r?\n\r?\n/);
+      }
+    }
+
+    buffer += decoder.decode();
+    const parsed = parseSseEventBlock(buffer);
+    if (parsed) {
+      yield parsed;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function normalizeResponsesEvent(
+  eventType: string | undefined,
+  payload: Record<string, unknown>,
+  fallbackModel: string,
+): OcGoStreamResponse | undefined {
+  const type = typeof payload.type === "string" ? payload.type : eventType;
+  const outputIndex = typeof payload.output_index === "number" ? payload.output_index : 0;
+  const responseId = typeof payload.response_id === "string" ? payload.response_id : "response";
+  const model = typeof payload.model === "string" ? payload.model : fallbackModel;
+
+  if (
+    (type === "response.output_text.delta" || type === "response.text.delta") &&
+    typeof payload.delta === "string"
+  ) {
+    return {
+      id: responseId,
+      object: "response.chunk",
+      created: Date.now(),
+      model,
+      choices: [{ index: outputIndex, delta: { content: payload.delta }, finish_reason: null }],
+    };
+  }
+
+  if (
+    (type === "response.reasoning_text.delta" ||
+      type === "response.reasoning_summary_text.delta") &&
+    typeof payload.delta === "string"
+  ) {
+    return {
+      id: responseId,
+      object: "response.chunk",
+      created: Date.now(),
+      model,
+      choices: [
+        { index: outputIndex, delta: { reasoning_content: payload.delta }, finish_reason: null },
+      ],
+    };
+  }
+
+  if (
+    type === "response.function_call_arguments.done" &&
+    typeof payload.call_id === "string" &&
+    typeof payload.name === "string" &&
+    typeof payload.arguments === "string"
+  ) {
+    return {
+      id: responseId,
+      object: "response.chunk",
+      created: Date.now(),
+      model,
+      choices: [
+        {
+          index: outputIndex,
+          delta: {
+            tool_calls: [
+              {
+                id: payload.call_id,
+                index: outputIndex,
+                type: "function",
+                function: {
+                  name: payload.name,
+                  arguments: payload.arguments,
+                },
+              },
+            ],
+          },
+          finish_reason: null,
+        },
+      ],
+    };
+  }
+
+  return undefined;
+}
+
+export async function* streamResponses(
+  apiKey: string,
+  requestBody: OcGoResponsesRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): AsyncGenerator<OcGoStreamResponse, void, unknown> {
+  const response = await createResponsesResponse(apiKey, requestBody, signal, userAgent);
+
+  if (!response.ok) {
+    await throwApiError(response);
+  }
+
+  if (!response.body) {
+    throw new Error("No response body from OpenCode Zen API");
+  }
+
+  let malformedSseCount = 0;
+  const MALFORMED_SSE_WARN_THRESHOLD = 10;
+
+  for await (const event of readSseEvents(response.body)) {
+    if (event.data === "[DONE]") {
+      continue;
+    }
+
+    try {
+      const payload = JSON.parse(event.data) as Record<string, unknown>;
+      const normalized = normalizeResponsesEvent(event.event, payload, requestBody.model);
+      if (normalized) {
+        yield normalized;
+      }
+    } catch {
+      malformedSseCount++;
+      debugLog("streamResponses", `Malformed SSE payload: ${event.data.slice(0, 200)}`);
+    }
+  }
+
+  if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
+    debugLog(
+      "streamResponses",
+      `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
+    );
   }
 }

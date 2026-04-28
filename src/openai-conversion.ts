@@ -9,7 +9,15 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { debugLog } from "./output-channel";
-import { JsonObject, OcGoChatMessage, OcGoContentPart, OcGoTool } from "./types";
+import {
+  JsonObject,
+  OcGoChatMessage,
+  OcGoContentPart,
+  OcGoResponsesContentPart,
+  OcGoResponsesInputItem,
+  OcGoResponsesTool,
+  OcGoTool,
+} from "./types";
 
 function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -210,4 +218,96 @@ export function convertTools(options: vscode.ProvideLanguageModelChatResponseOpt
   }
 
   return { tools, tool_choice: "auto" };
+}
+
+export function convertResponseTools(options: vscode.ProvideLanguageModelChatResponseOptions): {
+  tools?: OcGoResponsesTool[];
+  tool_choice?: "auto" | "required" | { type: "function"; name: string };
+} {
+  const toolsInput = options.tools ?? [];
+  if (toolsInput.length === 0) {
+    return {};
+  }
+
+  const tools: OcGoResponsesTool[] = toolsInput.map((tool) => ({
+    type: "function",
+    name: tool.name,
+    description: buildToolDescription(tool.description, tool.inputSchema),
+    parameters: tool.inputSchema as JsonObject,
+  }));
+
+  const requiredToolMode = (
+    vscode as unknown as {
+      LanguageModelChatToolMode?: { Required?: number };
+    }
+  ).LanguageModelChatToolMode?.Required;
+
+  if (requiredToolMode !== undefined && options.toolMode === requiredToolMode) {
+    return { tools, tool_choice: "required" };
+  }
+
+  return { tools, tool_choice: "auto" };
+}
+
+function toResponseContentParts(
+  role: "system" | "user" | "assistant",
+  content: string | OcGoContentPart[],
+): OcGoResponsesContentPart[] {
+  const textType = role === "assistant" ? "output_text" : "input_text";
+
+  if (typeof content === "string") {
+    return content ? [{ type: textType, text: content }] : [];
+  }
+
+  return content.flatMap((part): OcGoResponsesContentPart[] => {
+    if (part.type === "text" && typeof part.text === "string") {
+      return part.text ? [{ type: textType, text: part.text }] : [];
+    }
+    if (part.type === "image_url" && typeof part.image_url?.url === "string") {
+      return [{ type: "input_image", image_url: part.image_url.url }];
+    }
+    return [];
+  });
+}
+
+export function convertResponsesInput(
+  messages: readonly OcGoChatMessage[],
+): OcGoResponsesInputItem[] {
+  const input: OcGoResponsesInputItem[] = [];
+
+  for (const message of messages) {
+    if (message.role === "tool" && message.tool_call_id) {
+      input.push({
+        type: "function_call_output",
+        call_id: message.tool_call_id,
+        output:
+          typeof message.content === "string" ? message.content : JSON.stringify(message.content),
+      });
+      continue;
+    }
+
+    if (message.role !== "tool") {
+      const content = toResponseContentParts(message.role, message.content);
+      if (content.length > 0) {
+        input.push({
+          type: "message",
+          role: message.role,
+          content,
+        });
+      }
+    }
+
+    if (message.role === "assistant" && message.tool_calls) {
+      for (const toolCall of message.tool_calls) {
+        input.push({
+          type: "function_call",
+          call_id: toolCall.id,
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments,
+        });
+      }
+    }
+  }
+
+  return input;
 }

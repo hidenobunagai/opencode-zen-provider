@@ -1,7 +1,8 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
-import { streamChatCompletion } from "../api";
+import { streamChatCompletion, streamResponses } from "../api";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
+import type { ZenRouteKind } from "../model-catalog";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
@@ -16,16 +17,19 @@ import {
   repairToolArguments,
 } from "../tool-repair";
 import type { OcGoModelInfo } from "../types";
-import { OcGoChatRequest } from "../types";
+import { OcGoChatRequest, OcGoResponsesRequest, OcGoStreamResponse } from "../types";
 import {
   applyReasoningContentWorkaround,
   convertMessages,
+  convertResponseTools,
+  convertResponsesInput,
   convertTools,
 } from "../openai-conversion";
 
 export interface OpenAIModelInfo {
   id: string;
   modelInfo?: OcGoModelInfo;
+  routeKind?: ZenRouteKind;
   maxOutputTokens: number;
   reasoningEffort?: string;
 }
@@ -66,24 +70,50 @@ export async function processOpenAIStream(
     openCodeGoModelInfo,
   );
 
-  const toolConfig = convertTools(options);
-  const requestBody: OcGoChatRequest = {
-    model: model.id,
-    messages: convertedMessages,
-    stream: true,
-    max_tokens: requestedMaxTokens,
-    temperature: temperatureVal,
-  };
-  if (toolConfig.tools) requestBody.tools = toolConfig.tools;
-  if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
   const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
-  if (reasoningEffort) requestBody.reasoning_effort = reasoningEffort;
+  let streamSource: AsyncIterable<OcGoStreamResponse>;
 
-  debugLog("Outgoing request messages", {
-    messages: requestBody.messages,
-    tools: requestBody.tools,
-    tool_choice: requestBody.tool_choice,
-  });
+  if (model.routeKind === "responses") {
+    const toolConfig = convertResponseTools(options);
+    const requestBody: OcGoResponsesRequest = {
+      model: model.id,
+      input: convertResponsesInput(convertedMessages),
+      stream: true,
+      max_output_tokens: requestedMaxTokens,
+      temperature: temperatureVal,
+    };
+    if (toolConfig.tools) requestBody.tools = toolConfig.tools;
+    if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
+    if (reasoningEffort) requestBody.reasoning = { effort: reasoningEffort };
+
+    debugLog("Outgoing request messages", {
+      input: requestBody.input,
+      tools: requestBody.tools,
+      tool_choice: requestBody.tool_choice,
+    });
+
+    streamSource = streamResponses(apiKey, requestBody, abortController.signal, userAgent);
+  } else {
+    const toolConfig = convertTools(options);
+    const requestBody: OcGoChatRequest = {
+      model: model.id,
+      messages: convertedMessages,
+      stream: true,
+      max_tokens: requestedMaxTokens,
+      temperature: temperatureVal,
+    };
+    if (toolConfig.tools) requestBody.tools = toolConfig.tools;
+    if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
+    if (reasoningEffort) requestBody.reasoning_effort = reasoningEffort;
+
+    debugLog("Outgoing request messages", {
+      messages: requestBody.messages,
+      tools: requestBody.tools,
+      tool_choice: requestBody.tool_choice,
+    });
+
+    streamSource = streamChatCompletion(apiKey, requestBody, abortController.signal, userAgent);
+  }
 
   const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
   const completedToolCallIndices = new Set<number>();
@@ -160,12 +190,7 @@ export async function processOpenAIStream(
   };
 
   try {
-    for await (const chunk of streamChatCompletion(
-      apiKey,
-      requestBody,
-      abortController.signal,
-      userAgent,
-    )) {
+    for await (const chunk of streamSource) {
       if (token.isCancellationRequested) throw new vscode.CancellationError();
 
       const choice = chunk.choices?.[0];
