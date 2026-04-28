@@ -1,7 +1,7 @@
 {
   "name": "opencode-zen-provider",
   "publisher": "HidenobuNagai",
-  "displayName": "OpenCode Zen Provider",
+  "displayName": "OpenCode Zen Provider for Copilot Chat",
   "description": "OpenCode Zen chat provider for VS Code Copilot Chat",
   "version": "0.1.0",
   "license": "MIT",

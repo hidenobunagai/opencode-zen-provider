@@ -4,6 +4,7 @@ docs/**
 __mocks__/**
 .vscode/**
 .github/
+.worktrees/**
 node_modules/**
 .gitignore
 package-lock.json
