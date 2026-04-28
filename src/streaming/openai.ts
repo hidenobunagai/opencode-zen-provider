@@ -2,6 +2,12 @@
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
+import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
+import {
+  applyReasoningContentWorkaround,
+  convertMessages,
+  convertTools,
+} from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
@@ -15,13 +21,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
 import { ZenChatRequest } from "../types";
-import {
-  applyReasoningContentWorkaround,
-  convertMessages,
-  convertTools,
-} from "../openai-conversion";
 
 export interface OpenAIModelInfo {
   id: string;
@@ -279,6 +279,10 @@ export async function processOpenAIStream(
       } catch {
         debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
       }
+    }
+
+    if (pendingTextEmbeddedContent) {
+      pendingText += pendingTextEmbeddedContent;
     }
 
     if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {

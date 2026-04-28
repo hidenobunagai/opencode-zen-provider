@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.26] - 2026-04-28
+
+### Fixed
+
+- Restored OpenAI-stream responses when a model ends on an incomplete embedded tool block or fenced JSON snippet by flushing the unresolved tail as literal text instead of dropping the entire reply.
+
+## [0.1.25] - 2026-04-28
+
+### Fixed
+
+- Parsed fenced JSON pseudo tool-call blocks into real tool invocations for no-tool models such as Hy3 Preview Free, so raw `read_file` payloads no longer leak into the chat transcript.
+
 ## [0.1.24] - 2026-04-28
 
 ### Changed

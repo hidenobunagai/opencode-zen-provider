@@ -29,6 +29,13 @@ interface ParsedXmlStyleToolCallResult {
   toolCall?: ParsedTextToolCall;
 }
 
+interface ParsedJsonStyleToolCallResult {
+  consumed: number;
+  incomplete: boolean;
+  rawText?: string;
+  toolCalls?: ParsedTextToolCall[];
+}
+
 export function findTrailingTokenPrefixStart(text: string, token: string): number {
   const maxPrefixLength = Math.min(text.length, token.length - 1);
   for (let prefixLength = maxPrefixLength; prefixLength > 0; prefixLength -= 1) {
@@ -123,11 +130,82 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
   return { consumed, incomplete: false, toolCall: { name: toolName, args } };
 }
 
+function parseJsonStyleToolCallEntry(value: unknown): ParsedTextToolCall | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const name =
+    typeof record.tool === "string"
+      ? record.tool.trim()
+      : typeof record.name === "string"
+        ? record.name.trim()
+        : "";
+  if (!name) {
+    return undefined;
+  }
+
+  if ("parameters" in record) {
+    return { name, args: record.parameters };
+  }
+  if ("args" in record) {
+    return { name, args: record.args };
+  }
+
+  return undefined;
+}
+
+function extractJsonStyleToolCalls(value: unknown): ParsedTextToolCall[] | undefined {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return undefined;
+    const toolCalls = value
+      .map((entry) => parseJsonStyleToolCallEntry(entry))
+      .filter((entry): entry is ParsedTextToolCall => Boolean(entry));
+    return toolCalls.length === value.length ? toolCalls : undefined;
+  }
+
+  const toolCall = parseJsonStyleToolCallEntry(value);
+  return toolCall ? [toolCall] : undefined;
+}
+
+export function parseJsonStyleToolCall(text: string): ParsedJsonStyleToolCallResult {
+  const openingFenceMatch = text.match(/^```(?:json)?\r?\n/i);
+  if (!openingFenceMatch) {
+    return { consumed: 0, incomplete: true };
+  }
+
+  const bodyStart = openingFenceMatch[0].length;
+  const closingFenceMatch = text.slice(bodyStart).match(/\r?\n```/);
+  if (!closingFenceMatch || closingFenceMatch.index === undefined) {
+    return { consumed: 0, incomplete: true };
+  }
+
+  const closingFenceIndex = bodyStart + closingFenceMatch.index;
+  const consumed = closingFenceIndex + closingFenceMatch[0].length;
+  const rawText = text.slice(0, consumed);
+  const jsonText = text.slice(bodyStart, closingFenceIndex).trim();
+  if (!jsonText) {
+    return { consumed, incomplete: false, rawText };
+  }
+
+  try {
+    const parsed = JSON.parse(jsonText) as unknown;
+    const toolCalls = extractJsonStyleToolCalls(parsed);
+    if (toolCalls && toolCalls.length > 0) {
+      return { consumed, incomplete: false, toolCalls };
+    }
+  } catch {}
+
+  return { consumed, incomplete: false, rawText };
+}
+
 export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResult {
   const beginToken = "<|tool_call_begin|>";
   const argBeginToken = "<|tool_call_argument_begin|>";
   const endToken = "<|tool_call_end|>";
   const xmlStartTokens = ["<tool_calls>", "<tool_call "] as const;
+  const jsonStartTokens = ["```json", "```\n[", "```\n{", "```\r\n[", "```\r\n{"] as const;
 
   const segments: ParsedTextSegment[] = [];
   let remaining = text;
@@ -147,20 +225,24 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
     const candidateStarts = [
       { kind: "legacy" as const, index: remaining.indexOf(beginToken) },
       ...xmlStartTokens.map((token) => ({ kind: "xml" as const, index: remaining.indexOf(token) })),
+      ...jsonStartTokens.map((token) => ({
+        kind: "json" as const,
+        index: remaining.indexOf(token),
+      })),
     ].filter((candidate) => candidate.index !== -1);
 
-    const nextStart = candidateStarts.reduce<{ kind: "legacy" | "xml"; index: number } | undefined>(
-      (earliest, candidate) => {
-        if (!earliest || candidate.index < earliest.index) return candidate;
-        return earliest;
-      },
-      undefined,
-    );
+    const nextStart = candidateStarts.reduce<
+      { kind: "legacy" | "xml" | "json"; index: number } | undefined
+    >((earliest, candidate) => {
+      if (!earliest || candidate.index < earliest.index) return candidate;
+      return earliest;
+    }, undefined);
 
     if (!nextStart) {
       const partialStart = findTrailingTokenPrefixStartAny(remaining, [
         beginToken,
         ...xmlStartTokens,
+        ...jsonStartTokens,
       ]);
       if (partialStart === -1) {
         appendText(remaining);
@@ -185,6 +267,23 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
         appendText(xmlToolCall.rawText);
       } else if (xmlToolCall.toolCall) {
         segments.push({ type: "toolCall", toolCall: xmlToolCall.toolCall });
+      }
+      continue;
+    }
+
+    if (nextStart.kind === "json") {
+      const jsonToolCall = parseJsonStyleToolCall(remaining);
+      if (jsonToolCall.incomplete) {
+        incompleteText = remaining;
+        break;
+      }
+      remaining = remaining.slice(jsonToolCall.consumed);
+      if (jsonToolCall.rawText) {
+        appendText(jsonToolCall.rawText);
+      } else if (jsonToolCall.toolCalls) {
+        for (const toolCall of jsonToolCall.toolCalls) {
+          segments.push({ type: "toolCall", toolCall });
+        }
       }
       continue;
     }
@@ -216,4 +315,4 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
   return { segments, incompleteText };
 }
 
-export type { ParsedTextToolCall, ParsedTextSegment, ParsedTextToolCallResult };
+export type { ParsedTextSegment, ParsedTextToolCall, ParsedTextToolCallResult };

@@ -910,6 +910,123 @@ describe("ZenChatModelProvider", () => {
     expect(toolCallReports[0][0].input).toEqual({ filePath: "/tmp/example.md" });
   });
 
+  it("emits a tool call parsed from a fenced JSON tool block for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                'まずは関連するスキルを読み込み、対象ファイルの全体を確認します。\n\n```json\n[\n  {\n    "tool": "read_file",\n    "parameters": {\n      "filePath": "/tmp/example.md",\n      "startLine": 1,\n      "endLine": 31\n    }\n  }\n]\n```',
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "このこの文章の校正をお願いします" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "read_file",
+            description: "Read a file from disk",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("read_file");
+    expect(toolCallReports[0][0].input).toEqual({
+      filePath: "/tmp/example.md",
+      startLine: 1,
+      endLine: 31,
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("まずは関連するスキル");
+    expect(textReports[0][0].value).not.toContain("```json");
+    expect(textReports[0][0].value).not.toContain('"tool": "read_file"');
+  });
+
+  it("flushes an incomplete fenced JSON block as text at stream end", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                '```json\n[\n  {\n    "tool": "read_file",\n    "parameters": {\n      "filePath": "/tmp/example.md"\n    }\n  }\n]',
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "このこの文章の校正をお願いします" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "read_file",
+            description: "Read a file from disk",
+            inputSchema: {
+              type: "object",
+              properties: { filePath: { type: "string" } },
+              required: ["filePath"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(0);
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain('"tool": "read_file"');
+    expect(textReports[0][0].value).toContain("```json");
+  });
+
   it("preserves text order around a text-embedded tool call", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
