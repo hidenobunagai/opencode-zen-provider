@@ -50,8 +50,10 @@ V1 uses a checked-in static catalog. The initial catalog includes:
 ## Current V1 Scope
 
 - Provider registration, API key management, static model catalog, and core chat-provider wiring are included.
+- GPT-family models use the Zen `/responses` route, and Gemini models use the Zen model-specific Google-compatible streaming route automatically.
 - The custom image-analysis tool from the Go reference project is intentionally excluded.
 - Non-vision models reject image input explicitly in V1.
+- Gemini safety-blocked prompt responses surface as explicit errors instead of appearing as empty output.
 
 ## Development
 
