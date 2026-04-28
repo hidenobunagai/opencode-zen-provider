@@ -530,6 +530,58 @@ describe("streamGeminiContent", () => {
     expect(results[0].choices[0].finish_reason).toBe("STOP");
   });
 
+  it("assigns distinct tool-call indexes across Gemini SSE events", async () => {
+    const { streamGeminiContent } = require("../src/api") as {
+      streamGeminiContent: (
+        apiKey: string,
+        modelId: string,
+        requestBody: Record<string, unknown>,
+        signal?: AbortSignal,
+        userAgent?: string,
+      ) => AsyncGenerator<OcGoStreamResponse, void, unknown>;
+    };
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"call_1","name":"get_weather","args":{"city":"Kyoto"}}}]},"index":0}],"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.enqueue(
+          encoder.encode(
+            'data: {"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"call_2","name":"get_time","args":{"city":"Kyoto"}}}]},"index":0}],"responseId":"resp_1","modelVersion":"gemini-3-flash"}\r\n\r\n',
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      body: stream,
+    } as any);
+
+    const gen = streamGeminiContent("key", "gemini-3-flash", {
+      contents: [{ role: "user", parts: [{ text: "Hi" }] }],
+    });
+    const results: OcGoStreamResponse[] = [];
+    for await (const item of gen) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(2);
+    expect(results[0].choices[0].delta.tool_calls?.[0]).toMatchObject({
+      id: "call_1",
+      index: 0,
+    });
+    expect(results[1].choices[0].delta.tool_calls?.[0]).toMatchObject({
+      id: "call_2",
+      index: 1,
+    });
+  });
+
   it("throws when Gemini blocks a prompt without emitting content", async () => {
     const { streamGeminiContent } = require("../src/api") as {
       streamGeminiContent: (

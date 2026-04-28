@@ -482,9 +482,37 @@ function formatGeminiBlockError(payload: Record<string, unknown>): string | unde
   return undefined;
 }
 
+interface GeminiNormalizationState {
+  nextToolCallIndex: number;
+  toolCallIndicesById: Map<string, number>;
+}
+
+function getGeminiToolCallIndex(
+  functionCall: Record<string, unknown>,
+  state: GeminiNormalizationState,
+): number {
+  const functionCallId = typeof functionCall.id === "string" ? functionCall.id : undefined;
+  if (!functionCallId) {
+    const index = state.nextToolCallIndex;
+    state.nextToolCallIndex += 1;
+    return index;
+  }
+
+  const existingIndex = state.toolCallIndicesById.get(functionCallId);
+  if (existingIndex !== undefined) {
+    return existingIndex;
+  }
+
+  const index = state.nextToolCallIndex;
+  state.nextToolCallIndex += 1;
+  state.toolCallIndicesById.set(functionCallId, index);
+  return index;
+}
+
 function normalizeGeminiPayload(
   payload: Record<string, unknown>,
   fallbackModel: string,
+  state: GeminiNormalizationState,
 ): OcGoStreamResponse[] {
   const responseId = typeof payload.responseId === "string" ? payload.responseId : "response";
   const model = typeof payload.modelVersion === "string" ? payload.modelVersion : fallbackModel;
@@ -503,7 +531,7 @@ function normalizeGeminiPayload(
     const content = asObjectRecord(candidate.content);
     const parts = Array.isArray(content?.parts) ? content.parts : [];
     const textSegments: string[] = [];
-    const toolCalls = parts.flatMap((partValue, partIndex) => {
+    const toolCalls = parts.flatMap((partValue) => {
       const part = asObjectRecord(partValue);
       if (!part) {
         return [];
@@ -518,13 +546,15 @@ function normalizeGeminiPayload(
         return [];
       }
 
+      const toolCallIndex = getGeminiToolCallIndex(functionCall, state);
+
       return [
         {
           id:
             typeof functionCall.id === "string"
               ? functionCall.id
-              : `${responseId}_tool_${index}_${partIndex}`,
-          index: partIndex,
+              : `${responseId}_tool_${toolCallIndex}`,
+          index: toolCallIndex,
           type: "function" as const,
           function: {
             name: functionCall.name,
@@ -623,6 +653,10 @@ export async function* streamGeminiContent(
 
   let malformedSseCount = 0;
   const MALFORMED_SSE_WARN_THRESHOLD = 10;
+  const normalizationState: GeminiNormalizationState = {
+    nextToolCallIndex: 0,
+    toolCallIndicesById: new Map<string, number>(),
+  };
 
   for await (const event of readSseEvents(response.body)) {
     if (event.data === "[DONE]") {
@@ -631,7 +665,7 @@ export async function* streamGeminiContent(
 
     try {
       const payload = JSON.parse(event.data) as Record<string, unknown>;
-      const normalizedEvents = normalizeGeminiPayload(payload, modelId);
+      const normalizedEvents = normalizeGeminiPayload(payload, modelId, normalizationState);
       if (normalizedEvents.length === 0) {
         const blockError = formatGeminiBlockError(payload);
         if (blockError) {
