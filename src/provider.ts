@@ -132,6 +132,13 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         supportsTools: true,
         supportsVision: false,
       };
+      const capabilities: Record<string, number | boolean> = {};
+      if (info.supportsTools) {
+        capabilities.toolCalling = 128;
+      }
+      if (info.supportsVision) {
+        capabilities.imageInput = true;
+      }
       return {
         id: info.id,
         name: info.displayName,
@@ -144,10 +151,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
           info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),
         ),
         maxOutputTokens: info.maxOutput,
-        capabilities: {
-          toolCalling: info.supportsTools ? 128 : false,
-          imageInput: info.supportsVision,
-        },
+        capabilities,
       };
     });
   }
