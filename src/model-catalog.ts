@@ -16,6 +16,17 @@ export interface ZenModelInfo {
   reasoningEffort?: "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
 }
 
+// Models that do not actually support tool/function calling.
+// These still declare toolCalling capability so they appear in the model picker,
+// but the provider strips tools from requests before sending to the API.
+export const NO_TOOL_MODEL_IDS = new Set([
+  "big-pickle",
+  "hy3-preview-free",
+  "ling-2.6-flash-free",
+  "minimax-m2.5-free",
+  "nemotron-3-super-free",
+]);
+
 export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
   {
     id: "big-pickle",
@@ -26,7 +37,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false,
   },
   {
@@ -50,7 +61,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 196608,
     maxOutput: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false,
   },
   {
@@ -206,7 +217,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false,
   },
   {
@@ -231,7 +242,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false,
   },
   {
@@ -243,7 +254,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     apiFormat: "openai",
     contextWindow: 262144,
     maxOutput: 65536,
-    supportsTools: true,
+    supportsTools: false,
     supportsVision: false,
   },
   {

@@ -13,7 +13,7 @@ import {
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import { CONTEXT_WINDOW_SAFETY_MARGIN, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
-import { ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
+import { ZEN_MODEL_CATALOG, ZenModelInfo, NO_TOOL_MODEL_IDS } from "./model-catalog";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
@@ -145,7 +145,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         ),
         maxOutputTokens: info.maxOutput,
         capabilities: {
-          toolCalling: info.supportsTools ? 128 : false,
+          toolCalling: 128,
           imageInput: true,
         },
       };
@@ -210,6 +210,12 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         throw new Error(
           `The selected OpenCode Zen model (${model.id}) does not support image input in V1. Choose a vision-capable model and retry.`,
         );
+      }
+
+      // Strip tools for models that don't actually support function calling
+      if (NO_TOOL_MODEL_IDS.has(model.id)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (options as any).tools = [];
       }
 
       if (apiFormat === "anthropic") {
