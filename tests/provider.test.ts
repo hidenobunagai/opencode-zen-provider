@@ -275,7 +275,7 @@ describe("OcGoChatModelProvider", () => {
                   type: "function",
                   function: {
                     name: "get_weather",
-                    arguments: '{"city":"Tokyo"}',
+                    arguments: '{"city":"Kyoto"}',
                   },
                 },
               ],
@@ -408,9 +408,222 @@ describe("OcGoChatModelProvider", () => {
       expect.objectContaining({
         callId: "call_live_1",
         name: "get_weather",
-        input: { city: "Tokyo" },
+        input: { city: "Kyoto" },
       }),
     );
+  });
+
+  it("uses top-level toolConfig for Gemini required tool mode", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const { streamGeminiContent } = jest.requireMock("../src/api") as {
+      streamGeminiContent: jest.Mock;
+    };
+
+    const mockStream = async function* () {
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 1,
+        model: "gemini-3-flash",
+        choices: [{ index: 0, delta: { content: "Ready" }, finish_reason: null }],
+      };
+    };
+    streamGeminiContent.mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "gemini-3-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 1,
+          content: [new (vscode as any).LanguageModelTextPart("What's the weather in Tokyo?")],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        toolMode: (vscode as any).LanguageModelChatToolMode.Required,
+        tools: [
+          {
+            name: "get_weather",
+            description: "Get weather",
+            inputSchema: {
+              type: "object",
+              properties: {
+                city: { type: "string" },
+              },
+              required: ["city"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = streamGeminiContent.mock.calls.at(-1)?.[2];
+    expect(requestBody.toolConfig).toEqual({
+      functionCallingConfig: {
+        mode: "ANY",
+        allowedFunctionNames: ["get_weather"],
+      },
+    });
+    expect(requestBody.generationConfig.toolConfig).toBeUndefined();
+  });
+
+  it("merges Gemini tool results with the following user turn into one user content entry", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const { streamGeminiContent } = jest.requireMock("../src/api") as {
+      streamGeminiContent: jest.Mock;
+    };
+
+    const mockStream = async function* () {
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 1,
+        model: "gemini-3-flash",
+        choices: [{ index: 0, delta: { content: "Bring an umbrella." }, finish_reason: null }],
+      };
+    };
+    streamGeminiContent.mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "gemini-3-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 1,
+          content: [new (vscode as any).LanguageModelTextPart("Check the weather in Tokyo.")],
+        },
+        {
+          role: 2,
+          content: [
+            new (vscode as any).LanguageModelToolCallPart("call_1", "get_weather", {
+              city: "Tokyo",
+            }),
+          ],
+        },
+        {
+          role: 1,
+          content: [
+            new (vscode as any).LanguageModelToolResultPart("call_1", [
+              new (vscode as any).LanguageModelTextPart("Sunny, 25C"),
+            ]),
+          ],
+        },
+        {
+          role: 1,
+          content: [new (vscode as any).LanguageModelTextPart("Should I bring an umbrella?")],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [{ name: "get_weather", description: "Get weather", inputSchema: {} }],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = streamGeminiContent.mock.calls.at(-1)?.[2];
+    expect(requestBody.contents).toEqual([
+      {
+        role: "user",
+        parts: [{ text: "Check the weather in Tokyo." }],
+      },
+      {
+        role: "model",
+        parts: [
+          {
+            functionCall: {
+              id: "call_1",
+              name: "get_weather",
+              args: { city: "Tokyo" },
+            },
+          },
+        ],
+      },
+      {
+        role: "user",
+        parts: [
+          {
+            functionResponse: {
+              id: "call_1",
+              name: "get_weather",
+              response: { content: "Sunny, 25C" },
+            },
+          },
+          {
+            text: "Should I bring an umbrella?",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps V1 vision behavior for Gemini models by converting image input to inlineData", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+    const { streamGeminiContent } = jest.requireMock("../src/api") as {
+      streamGeminiContent: jest.Mock;
+    };
+
+    const mockStream = async function* () {
+      yield {
+        id: "resp_1",
+        object: "response.chunk",
+        created: 1,
+        model: "gemini-3-flash",
+        choices: [{ index: 0, delta: { content: "It looks like a chart." }, finish_reason: null }],
+      };
+    };
+    streamGeminiContent.mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "gemini-3-flash", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 1,
+          content: [
+            new (vscode as any).LanguageModelTextPart("Describe this image."),
+            { mimeType: "image/png", data: new Uint8Array([1, 2, 3]) },
+          ],
+        },
+      ] as any,
+      { modelOptions: {} } as any,
+      progress,
+      token as any,
+    );
+
+    const requestBody = streamGeminiContent.mock.calls.at(-1)?.[2];
+    expect(requestBody.contents).toEqual([
+      {
+        role: "user",
+        parts: [
+          { text: "Describe this image." },
+          {
+            inlineData: {
+              mimeType: "image/png",
+              data: "AQID",
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it("throws when message exceeds token limit", async () => {

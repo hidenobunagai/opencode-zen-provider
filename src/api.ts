@@ -3,6 +3,7 @@ import { debugLog } from "./output-channel";
 import {
   OcGoChatCompletionResponse,
   OcGoChatRequest,
+  OcGoGeminiRequest,
   OcGoResponsesRequest,
   OcGoResponsesResponse,
   OcGoStreamResponse,
@@ -96,6 +97,14 @@ function buildRequestHeaders(apiKey: string, userAgent?: string): Record<string,
   };
 }
 
+function buildGeminiRequestHeaders(apiKey: string, userAgent?: string): Record<string, string> {
+  return {
+    "x-goog-api-key": apiKey,
+    "Content-Type": "application/json",
+    ...(userAgent ? { "User-Agent": userAgent } : {}),
+  };
+}
+
 async function createChatCompletionResponse(
   apiKey: string,
   requestBody: OcGoChatRequest,
@@ -125,6 +134,25 @@ async function createResponsesResponse(
     {
       method: "POST",
       headers: buildRequestHeaders(apiKey, userAgent),
+      body: JSON.stringify(requestBody),
+      signal,
+    },
+    5,
+  );
+}
+
+async function createGeminiResponse(
+  apiKey: string,
+  modelId: string,
+  requestBody: OcGoGeminiRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): Promise<Response> {
+  return fetchWithRetry(
+    `${BASE_URL}/models/${modelId}:streamGenerateContent?alt=sse`,
+    {
+      method: "POST",
+      headers: buildGeminiRequestHeaders(apiKey, userAgent),
       body: JSON.stringify(requestBody),
       signal,
     },
@@ -388,6 +416,116 @@ function normalizeResponsesEvent(
   return undefined;
 }
 
+function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function normalizeGeminiUsage(payload: Record<string, unknown>) {
+  const usageMetadata = asObjectRecord(payload.usageMetadata);
+  if (!usageMetadata) {
+    return undefined;
+  }
+
+  const promptTokens =
+    typeof usageMetadata.promptTokenCount === "number" ? usageMetadata.promptTokenCount : undefined;
+  const completionTokens =
+    typeof usageMetadata.candidatesTokenCount === "number"
+      ? usageMetadata.candidatesTokenCount
+      : undefined;
+  const totalTokens =
+    typeof usageMetadata.totalTokenCount === "number" ? usageMetadata.totalTokenCount : undefined;
+
+  if (promptTokens === undefined && completionTokens === undefined && totalTokens === undefined) {
+    return undefined;
+  }
+
+  return {
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: totalTokens,
+  };
+}
+
+function normalizeGeminiPayload(
+  payload: Record<string, unknown>,
+  fallbackModel: string,
+): OcGoStreamResponse[] {
+  const responseId = typeof payload.responseId === "string" ? payload.responseId : "response";
+  const model = typeof payload.modelVersion === "string" ? payload.modelVersion : fallbackModel;
+  const usage = normalizeGeminiUsage(payload);
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+  const normalized: OcGoStreamResponse[] = [];
+
+  for (const [candidateIndex, candidateValue] of candidates.entries()) {
+    const candidate = asObjectRecord(candidateValue);
+    if (!candidate) {
+      continue;
+    }
+
+    const index = typeof candidate.index === "number" ? candidate.index : candidateIndex;
+    const content = asObjectRecord(candidate.content);
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+    const textSegments: string[] = [];
+    const toolCalls = parts.flatMap((partValue, partIndex) => {
+      const part = asObjectRecord(partValue);
+      if (!part) {
+        return [];
+      }
+
+      if (typeof part.text === "string" && part.text.length > 0) {
+        textSegments.push(part.text);
+      }
+
+      const functionCall = asObjectRecord(part.functionCall);
+      if (!functionCall || typeof functionCall.name !== "string") {
+        return [];
+      }
+
+      return [
+        {
+          id:
+            typeof functionCall.id === "string"
+              ? functionCall.id
+              : `${responseId}_tool_${index}_${partIndex}`,
+          index: partIndex,
+          type: "function" as const,
+          function: {
+            name: functionCall.name,
+            arguments: JSON.stringify(functionCall.args ?? {}),
+          },
+        },
+      ];
+    });
+
+    if (textSegments.length === 0 && toolCalls.length === 0) {
+      continue;
+    }
+
+    normalized.push({
+      id: responseId,
+      object: "response.chunk",
+      created: Date.now(),
+      model,
+      choices: [
+        {
+          index,
+          delta: {
+            ...(textSegments.length > 0 ? { content: textSegments.join("") } : {}),
+            ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+          },
+          finish_reason: null,
+        },
+      ],
+      ...(usage ? { usage } : {}),
+    });
+  }
+
+  return normalized;
+}
+
 export async function* streamResponses(
   apiKey: string,
   requestBody: OcGoResponsesRequest,
@@ -427,6 +565,50 @@ export async function* streamResponses(
   if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
     debugLog(
       "streamResponses",
+      `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
+    );
+  }
+}
+
+export async function* streamGeminiContent(
+  apiKey: string,
+  modelId: string,
+  requestBody: OcGoGeminiRequest,
+  signal?: AbortSignal,
+  userAgent?: string,
+): AsyncGenerator<OcGoStreamResponse, void, unknown> {
+  const response = await createGeminiResponse(apiKey, modelId, requestBody, signal, userAgent);
+
+  if (!response.ok) {
+    await throwApiError(response);
+  }
+
+  if (!response.body) {
+    throw new Error("No response body from OpenCode Zen API");
+  }
+
+  let malformedSseCount = 0;
+  const MALFORMED_SSE_WARN_THRESHOLD = 10;
+
+  for await (const event of readSseEvents(response.body)) {
+    if (event.data === "[DONE]") {
+      continue;
+    }
+
+    try {
+      const payload = JSON.parse(event.data) as Record<string, unknown>;
+      for (const normalized of normalizeGeminiPayload(payload, modelId)) {
+        yield normalized;
+      }
+    } catch {
+      malformedSseCount++;
+      debugLog("streamGeminiContent", `Malformed SSE payload: ${event.data.slice(0, 200)}`);
+    }
+  }
+
+  if (malformedSseCount >= MALFORMED_SSE_WARN_THRESHOLD) {
+    debugLog(
+      "streamGeminiContent",
       `Received ${malformedSseCount} malformed SSE lines (threshold: ${MALFORMED_SSE_WARN_THRESHOLD})`,
     );
   }

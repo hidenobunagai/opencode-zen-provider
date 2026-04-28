@@ -1,6 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
-import { streamChatCompletion, streamResponses } from "../api";
+import { streamChatCompletion, streamGeminiContent, streamResponses } from "../api";
+import { buildGeminiRequest } from "../gemini-conversion";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import type { ZenRouteKind } from "../model-catalog";
 import { debugLog } from "../output-channel";
@@ -16,7 +17,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import type { OcGoModelInfo } from "../types";
+import type { OcGoGeminiRequest, OcGoModelInfo } from "../types";
 import { OcGoChatRequest, OcGoResponsesRequest, OcGoStreamResponse } from "../types";
 import {
   applyReasoningContentWorkaround,
@@ -54,12 +55,6 @@ export async function processOpenAIStream(
   token: vscode.CancellationToken,
   abortController: AbortController,
 ): Promise<void> {
-  if (model.routeKind === "model_specific") {
-    throw new Error(
-      `OpenCode Zen model-specific routing is not implemented in V1 for ${model.id}. Gemini models are not supported yet.`,
-    );
-  }
-
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(
     apiMessages as readonly vscode.LanguageModelChatMessage[],
@@ -79,7 +74,27 @@ export async function processOpenAIStream(
   const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
   let streamSource: AsyncIterable<OcGoStreamResponse>;
 
-  if (model.routeKind === "responses") {
+  if (model.routeKind === "model_specific") {
+    const requestBody: OcGoGeminiRequest = buildGeminiRequest(convertedMessages, options, {
+      temperature: temperatureVal,
+      maxOutputTokens: requestedMaxTokens,
+    });
+
+    debugLog("Outgoing Gemini request", {
+      contents: requestBody.contents,
+      tools: requestBody.tools,
+      systemInstruction: requestBody.systemInstruction,
+      generationConfig: requestBody.generationConfig,
+    });
+
+    streamSource = streamGeminiContent(
+      apiKey,
+      model.id,
+      requestBody,
+      abortController.signal,
+      userAgent,
+    );
+  } else if (model.routeKind === "responses") {
     const toolConfig = convertResponseTools(options);
     const requestBody: OcGoResponsesRequest = {
       model: model.id,

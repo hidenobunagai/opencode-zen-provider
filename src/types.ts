@@ -91,6 +91,73 @@ export interface OcGoResponsesRequest {
   };
 }
 
+export interface OcGoGeminiTextPart {
+  text: string;
+}
+
+export interface OcGoGeminiInlineDataPart {
+  inlineData: {
+    mimeType: string;
+    data: string;
+  };
+}
+
+export interface OcGoGeminiFunctionCallPart {
+  functionCall: {
+    id?: string;
+    name: string;
+    args: JsonObject;
+  };
+}
+
+export interface OcGoGeminiFunctionResponsePart {
+  functionResponse: {
+    id?: string;
+    name: string;
+    response: JsonObject;
+  };
+}
+
+export type OcGoGeminiPart =
+  | OcGoGeminiTextPart
+  | OcGoGeminiInlineDataPart
+  | OcGoGeminiFunctionCallPart
+  | OcGoGeminiFunctionResponsePart;
+
+export interface OcGoGeminiContent {
+  role: "user" | "model";
+  parts: OcGoGeminiPart[];
+}
+
+export interface OcGoGeminiFunctionDeclaration {
+  name: string;
+  description?: string;
+  parameters?: JsonObject;
+}
+
+export interface OcGoGeminiTool {
+  functionDeclarations: OcGoGeminiFunctionDeclaration[];
+}
+
+export interface OcGoGeminiRequest {
+  contents: OcGoGeminiContent[];
+  tools?: OcGoGeminiTool[];
+  generationConfig?: {
+    temperature?: number;
+    maxOutputTokens?: number;
+  };
+  toolConfig?: {
+    functionCallingConfig?: {
+      mode: "AUTO" | "ANY";
+      allowedFunctionNames?: string[];
+    };
+  };
+  systemInstruction?: {
+    role?: "system";
+    parts: OcGoGeminiTextPart[];
+  };
+}
+
 export interface OcGoStreamChoice {
   index: number;
   delta: {
