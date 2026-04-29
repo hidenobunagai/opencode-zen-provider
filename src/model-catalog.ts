@@ -14,6 +14,7 @@ export interface ZenModelInfo {
   supportsVision: boolean;
   fixedTemperature?: number;
   reasoningEffort?: "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
+  needsReasoningContentWorkaround?: boolean;
 }
 
 // Models that do not actually support tool/function calling.
@@ -232,6 +233,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     fixedTemperature: 1,
+    needsReasoningContentWorkaround: true,
   },
   {
     id: "ling-2.6-flash-free",

@@ -12,7 +12,7 @@ import {
   Progress,
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
-import { CONTEXT_WINDOW_SAFETY_MARGIN, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
+import { calculateSafetyMargin, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
@@ -178,7 +178,10 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         model.id,
       );
       const maxInputTokens = model.maxInputTokens;
-      const effectiveMaxInputTokens = Math.max(1, maxInputTokens - CONTEXT_WINDOW_SAFETY_MARGIN);
+      const effectiveMaxInputTokens = Math.max(
+        1,
+        maxInputTokens - calculateSafetyMargin(maxInputTokens),
+      );
 
       if (inputTokenCount > effectiveMaxInputTokens) {
         throw new Error(

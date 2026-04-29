@@ -311,17 +311,17 @@ describe("convertMessages with tools", () => {
 });
 
 describe("applyReasoningContentWorkaround", () => {
-  it("adds reasoning_content for Kimi K2.6", () => {
+  it("adds reasoning_content when workaround is needed", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
     const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
-    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
+    const result = applyReasoningContentWorkaround(messages, true);
     expect(result[0].reasoning_content).toBe(" ");
   });
 
-  it("does not add reasoning_content for other models", () => {
+  it("does not add reasoning_content when workaround is not needed", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
     const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
-    const result = applyReasoningContentWorkaround(messages, "glm-5");
+    const result = applyReasoningContentWorkaround(messages, false);
     expect(result[0].reasoning_content).toBeUndefined();
   });
 
@@ -330,7 +330,7 @@ describe("applyReasoningContentWorkaround", () => {
     const messages: ZenChatMessage[] = [
       { role: "assistant", content: "Hello", reasoning_content: "existing" },
     ];
-    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
+    const result = applyReasoningContentWorkaround(messages, true);
     expect(result[0].reasoning_content).toBe("existing");
   });
 });

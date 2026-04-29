@@ -1,5 +1,23 @@
 # Change Log
 
+## [0.1.34] - 2026-04-29
+
+### Changed
+
+- Improved token estimation for CJK-optimized models (kimi, qwen, glm, hy3, ling) by using a more conservative character-based fallback ratio (0.8 instead of 2.0), reducing 3x underestimation of Chinese text tokens.
+- Replaced the fixed 4096-token context window safety margin with a percentage-based calculation (3% of context window, min 1024, max 8192), giving small models more usable context and large models sufficient buffer.
+- Pre-compiled 15 regex patterns at module level in `tool-parser.ts` to eliminate per-chunk recompilation overhead during SSE streaming.
+- Moved the reasoning_content workaround flag into the model catalog (`needsReasoningContentWorkaround`) instead of a separate Set, making per-model configuration more discoverable and maintainable.
+
+### Added
+
+- VCR-style streaming tests (`tests/streaming-vcr.test.ts`): 13 tests covering Anthropic SSE event parsing, OpenAI tool call delta chunking, and all pseudo tool-call formats (JSON-fenced, compact XML, tool_sep, legacy tokens).
+- Smoke test script (`scripts/smoke.ts`): `bun run smoke` verifies all Zen models respond correctly. Filter with `--model <id>` and enable verbose output with `--verbose`.
+
+### Removed
+
+- Deleted 10 stale `.vsix` build artifacts from the repository root (already covered by `.gitignore`).
+
 ## [0.1.33] - 2026-04-28
 
 ### Fixed

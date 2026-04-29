@@ -1,5 +1,10 @@
 import * as vscode from "vscode";
-import { MODEL_TOKENIZER_MAP } from "./constants";
+import {
+  CJK_CHARS_PER_TOKEN,
+  CJK_MODEL_PREFIXES,
+  DEFAULT_CHARS_PER_TOKEN,
+  DEFAULT_TIKTOKEN_MODEL,
+} from "./constants";
 import { getDataPartTextValue, getTextPartValue, type LegacyPart } from "./message-parts";
 import { debugLog } from "./output-channel";
 
@@ -29,6 +34,14 @@ function getTiktokenModule(): TiktokenModule | null {
   return cachedTiktokenModule;
 }
 
+function getModelCharsPerToken(modelId?: string): number {
+  if (!modelId) return DEFAULT_CHARS_PER_TOKEN;
+  if (CJK_MODEL_PREFIXES.some((prefix) => modelId.startsWith(prefix))) {
+    return CJK_CHARS_PER_TOKEN;
+  }
+  return DEFAULT_CHARS_PER_TOKEN;
+}
+
 export function estimateTokens(text: string, modelId?: string): number {
   if (!text) return 0;
   try {
@@ -36,13 +49,12 @@ export function estimateTokens(text: string, modelId?: string): number {
     if (!tiktoken) {
       throw new Error("@dqbd/tiktoken unavailable");
     }
-    const modelName = modelId ? MODEL_TOKENIZER_MAP[modelId] : undefined;
-    const encoding = tiktoken.encoding_for_model(modelName || "gpt-4o");
+    const encoding = tiktoken.encoding_for_model(DEFAULT_TIKTOKEN_MODEL);
     const tokens = encoding.encode(text).length;
     encoding.free();
     return tokens;
   } catch {
-    return Math.ceil(text.length / 2);
+    return Math.ceil(text.length / getModelCharsPerToken(modelId));
   }
 }
 

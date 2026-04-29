@@ -61,7 +61,10 @@ export async function processOpenAIStream(
   const endpoint = resolveApiEndpoint(model.routeKind, model.id);
 
   let convertedMessages = convertMessages(apiMessages, { maxToolResultChars });
-  convertedMessages = applyReasoningContentWorkaround(convertedMessages, model.id);
+  convertedMessages = applyReasoningContentWorkaround(
+    convertedMessages,
+    !!model.modelInfo?.needsReasoningContentWorkaround,
+  );
   convertedMessages = applyOpenAiSystemPromptGuidance(
     convertedMessages,
     model.id,

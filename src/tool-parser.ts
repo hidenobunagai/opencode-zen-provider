@@ -1,5 +1,21 @@
 // tool-parser.ts — parse text-embedded and XML-style tool calls from model output
 
+// --- Pre-compiled regex patterns ---
+const RE_PARSEABLE_JSON_VALUE = /^[\[{"]/;
+const RE_JSON_PRIMITIVE = /^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)$/;
+const RE_XML_ATTRIBUTE = /\b([A-Za-z_][\w-]*)\s*=\s*"([^"]*)"/g;
+const RE_LOOSE_XML_TAG = /<([A-Za-z_][\w-]*)"?>([\s\S]*?)<\/\1>/g;
+const RE_TOOL_SEP_TOKEN = /<(arg_key|arg_value)>([\s\S]*?)<\/(?:arg_key|arg_value)>/g;
+const RE_WS_CHAR = /\s/;
+const RE_TOOL_PARAMETER = /<tool_parameter\s+name="([^"]+)">([\s\S]*?)<\/tool_parameter>/g;
+const RE_TOOL_CALLS_END = /^\s*<\/tool_calls>/;
+const RE_OPENING_FENCE = /^```(?:json)?\r?\n/i;
+const RE_CLOSING_FENCE = /\r?\n```/;
+const RE_COMPACT_TOOL_NAME = /^\s*([^\s<>="'\/]+)/;
+const RE_XML_NAME_ATTR = /\bname\s*=\s*"([^"]+)"/;
+const RE_COMPACT_INNER = /^\s*([^\s<>="'\/]+)([\s\S]*)$/;
+
+// --- Types ---
 interface ParsedTextToolCall {
   name: string;
   args: unknown;
@@ -61,10 +77,7 @@ export function findTrailingTokenPrefixStartAny(text: string, tokens: readonly s
 function parseEmbeddedToolParameterValue(rawValue: string): unknown {
   const trimmed = rawValue.trim();
   if (!trimmed) return "";
-  if (
-    /^[\[{\"]/.test(trimmed) ||
-    /^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)$/.test(trimmed)
-  ) {
+  if (RE_PARSEABLE_JSON_VALUE.test(trimmed) || RE_JSON_PRIMITIVE.test(trimmed)) {
     try {
       return JSON.parse(trimmed);
     } catch {}
@@ -74,9 +87,9 @@ function parseEmbeddedToolParameterValue(rawValue: string): unknown {
 
 function extractXmlStyleAttributes(text: string): Record<string, unknown> {
   const args: Record<string, unknown> = {};
-  const attributePattern = /\b([A-Za-z_][\w-]*)\s*=\s*"([^"]*)"/g;
+  RE_XML_ATTRIBUTE.lastIndex = 0;
   let attributeMatch: RegExpExecArray | null;
-  while ((attributeMatch = attributePattern.exec(text)) !== null) {
+  while ((attributeMatch = RE_XML_ATTRIBUTE.exec(text)) !== null) {
     const attributeName = attributeMatch[1]?.trim();
     if (!attributeName || attributeName === "name") continue;
     args[attributeName] = parseEmbeddedToolParameterValue(attributeMatch[2] ?? "");
@@ -87,9 +100,9 @@ function extractXmlStyleAttributes(text: string): Record<string, unknown> {
 function extractLooseXmlStyleParameters(text: string): Record<string, unknown> {
   const normalizedText = text.replace(/<tool_call>(?=[A-Za-z_][\w-]*"?\s*>)/g, "<");
   const args = extractXmlStyleAttributes(normalizedText);
-  const tagPattern = /<([A-Za-z_][\w-]*)"?>([\s\S]*?)<\/\1>/g;
+  RE_LOOSE_XML_TAG.lastIndex = 0;
   let tagMatch: RegExpExecArray | null;
-  while ((tagMatch = tagPattern.exec(normalizedText)) !== null) {
+  while ((tagMatch = RE_LOOSE_XML_TAG.exec(normalizedText)) !== null) {
     const parameterName = tagMatch[1]?.trim();
     if (!parameterName) continue;
     args[parameterName] = parseEmbeddedToolParameterValue(tagMatch[2] ?? "");
@@ -99,11 +112,11 @@ function extractLooseXmlStyleParameters(text: string): Record<string, unknown> {
 
 function extractToolSepStyleParameters(text: string): Record<string, unknown> {
   const args: Record<string, unknown> = {};
-  const tokenPattern = /<(arg_key|arg_value)>([\s\S]*?)<\/(?:arg_key|arg_value)>/g;
+  RE_TOOL_SEP_TOKEN.lastIndex = 0;
   let tokenMatch: RegExpExecArray | null;
   let pendingKey: string | undefined;
 
-  while ((tokenMatch = tokenPattern.exec(text)) !== null) {
+  while ((tokenMatch = RE_TOOL_SEP_TOKEN.exec(text)) !== null) {
     const tokenType = tokenMatch[1];
     const tokenValue = tokenMatch[2] ?? "";
 
@@ -123,8 +136,9 @@ function extractToolSepStyleParameters(text: string): Record<string, unknown> {
 }
 
 function skipWhitespace(text: string, cursor: number): number {
+  RE_WS_CHAR.lastIndex = cursor;
   let nextCursor = cursor;
-  while (nextCursor < text.length && /\s/.test(text[nextCursor])) {
+  while (nextCursor < text.length && RE_WS_CHAR.test(text[nextCursor])) {
     nextCursor += 1;
   }
   return nextCursor;
@@ -251,7 +265,7 @@ function parseSingleXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResult
   let closingTagLength = toolCallEndToken.length;
   const potentialCompactToolName = text
     .slice(openTagEnd + 1)
-    .match(/^\s*([^\s<>="'\/]+)/)?.[1]
+    .match(RE_COMPACT_TOOL_NAME)?.[1]
     ?.trim();
   if (closeTagIndex === -1 && potentialCompactToolName) {
     const namedCloseTag = `</${potentialCompactToolName}>`;
@@ -269,7 +283,7 @@ function parseSingleXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResult
   const innerContent = text.slice(openTagEnd + 1, closeTagIndex);
   const args: Record<string, unknown> = extractXmlStyleAttributes(openTag);
 
-  let resolvedToolName = openTag.match(/\bname\s*=\s*"([^"]+)"/)?.[1]?.trim();
+  let resolvedToolName = openTag.match(RE_XML_NAME_ATTR)?.[1]?.trim();
   const toolSepToken = "<tool_sep>";
   const toolSepIndex = innerContent.indexOf(toolSepToken);
 
@@ -283,16 +297,16 @@ function parseSingleXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResult
       extractToolSepStyleParameters(innerContent.slice(toolSepIndex + toolSepToken.length)),
     );
   } else {
-    const parameterPattern = /<tool_parameter\s+name="([^"]+)">([\s\S]*?)<\/tool_parameter>/g;
+    RE_TOOL_PARAMETER.lastIndex = 0;
     let parameterMatch: RegExpExecArray | null;
-    while ((parameterMatch = parameterPattern.exec(innerContent)) !== null) {
+    while ((parameterMatch = RE_TOOL_PARAMETER.exec(innerContent)) !== null) {
       const parameterName = parameterMatch[1]?.trim();
       if (!parameterName) continue;
       args[parameterName] = parseEmbeddedToolParameterValue(parameterMatch[2] ?? "");
     }
     Object.assign(args, extractLooseXmlStyleParameters(innerContent));
 
-    const compactInnerMatch = innerContent.match(/^\s*([^\s<>="'\/]+)([\s\S]*)$/);
+    const compactInnerMatch = innerContent.match(RE_COMPACT_INNER);
     const compactToolName = compactInnerMatch?.[1]?.trim();
     const compactArgs = compactInnerMatch?.[2]
       ? extractLooseXmlStyleParameters(compactInnerMatch[2])
@@ -374,7 +388,6 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
 
   const toolCallsStartToken = "<tool_calls>";
   const toolCallEndToken = "</tool_call>";
-  const toolCallsEndPattern = /^\s*<\/tool_calls>/;
 
   let cursor = 0;
   let wrapped = false;
@@ -382,7 +395,7 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
   if (text.startsWith(toolCallsStartToken)) {
     wrapped = true;
     cursor = toolCallsStartToken.length;
-    while (cursor < text.length && /\s/.test(text[cursor])) {
+    while (cursor < text.length && RE_WS_CHAR.test(text[cursor])) {
       cursor += 1;
     }
   }
@@ -394,7 +407,7 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
 
   let consumed = cursor + singleToolCall.consumed;
   if (wrapped) {
-    const wrapperCloseMatch = text.slice(consumed).match(toolCallsEndPattern);
+    const wrapperCloseMatch = text.slice(consumed).match(RE_TOOL_CALLS_END);
     if (
       !wrapperCloseMatch &&
       text.slice(consumed - toolCallEndToken.length, consumed) === toolCallEndToken
@@ -463,13 +476,13 @@ function extractJsonStyleToolCalls(value: unknown): ParsedTextToolCall[] | undef
 }
 
 export function parseJsonStyleToolCall(text: string): ParsedJsonStyleToolCallResult {
-  const openingFenceMatch = text.match(/^```(?:json)?\r?\n/i);
+  const openingFenceMatch = text.match(RE_OPENING_FENCE);
   if (!openingFenceMatch) {
     return { consumed: 0, incomplete: true };
   }
 
   const bodyStart = openingFenceMatch[0].length;
-  const closingFenceMatch = text.slice(bodyStart).match(/\r?\n```/);
+  const closingFenceMatch = text.slice(bodyStart).match(RE_CLOSING_FENCE);
   if (!closingFenceMatch || closingFenceMatch.index === undefined) {
     return { consumed: 0, incomplete: true };
   }
