@@ -1,5 +1,55 @@
 # Change Log
 
+## [0.1.33] - 2026-04-28
+
+### Fixed
+
+- Parsed no-tool-model pseudo tool calls that encode arguments with `tool_sep`, `arg_key`, and `arg_value` markers instead of JSON or XML attributes.
+- Recovered multiple `read_file` calls from a single `<tool_calls>` wrapper even when some argument value tags are malformed, preventing raw pseudo-tool blocks from leaking into chat.
+
+## [0.1.32] - 2026-04-28
+
+### Fixed
+
+- Repaired malformed `runSubagent` outputs that omit `agentName` by inferring the intended subagent from the assistant's surrounding text.
+- Restored `Explore` subagent invocations for no-tool-model workspace summary requests that were otherwise falling back to a generic subagent run.
+
+## [0.1.31] - 2026-04-28
+
+### Fixed
+
+- Repaired malformed `runSubagent` outputs that omit `prompt` by falling back to the latest user request extracted from chat context.
+- Stopped surfacing the invalid-tool fallback message for no-tool-model subagent requests when the task text can be recovered from the current chat turn.
+
+## [0.1.30] - 2026-04-28
+
+### Fixed
+
+- Parsed fenced JSON pseudo tool calls that use legacy top-level fields like `agentName` and `argument` instead of nesting arguments under `parameters` or `args`.
+- Recovered malformed no-tool-model `runSubagent` outputs that were previously rendered as a visible JSON code block in chat.
+
+## [0.1.29] - 2026-04-28
+
+### Fixed
+
+- Parsed nested generic `<tool_call>` marker chains from no-tool models such as Hy3 Preview Free, so visible `<tool_calls>` wrappers no longer leak into chat transcripts for malformed `runSubagent` outputs.
+- Accepted legacy `runSubagent` payloads that use `input` instead of `prompt` and repaired them into a valid subagent invocation.
+
+## [0.1.28] - 2026-04-28
+
+### Fixed
+
+- Parsed malformed XML-like `runSubagent` outputs from no-tool models such as Hy3 Preview Free, including legacy `name` / `argument` / `argumentHint` fields.
+- Accepted broken pseudo-XML blocks that close with the tool name instead of `</tool_call>` and still recovered the intended tool invocation.
+
+## [0.1.27] - 2026-04-28
+
+### Fixed
+
+- Parsed compact XML-style pseudo tool calls such as `<tool_call>read_file path="..."</tool_call>` into real tool invocations for no-tool models like Hy3 Preview Free.
+- Kept local tool schemas available for argument repair and validation even when tool definitions are stripped from upstream API requests for no-tool models.
+- Stopped reusing the active editor selection range when a repaired `read_file` call explicitly targets a different file.
+
 ## [0.1.26] - 2026-04-28
 
 ### Fixed

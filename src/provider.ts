@@ -13,7 +13,7 @@ import {
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
 import { CONTEXT_WINDOW_SAFETY_MARGIN, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
-import { ZEN_MODEL_CATALOG, ZenModelInfo, NO_TOOL_MODEL_IDS } from "./model-catalog";
+import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
@@ -212,17 +212,16 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         );
       }
 
-      // Strip tools for models that don't actually support function calling
-      if (NO_TOOL_MODEL_IDS.has(model.id)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (options as any).tools = [];
-      }
+      const requestOptions = NO_TOOL_MODEL_IDS.has(model.id)
+        ? ({ ...options, tools: [] } as ProvideLanguageModelChatResponseOptions)
+        : options;
 
       if (apiFormat === "anthropic") {
         await handleAnthropicRequest({
           modelId: effectiveModelId,
           messages: effectiveMessages,
           options,
+          requestOptions,
           apiKey,
           requestedMaxTokens,
           temperatureVal,
@@ -247,6 +246,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         openAIModel,
         effectiveMessages,
         options,
+        requestOptions,
         apiKey,
         requestedMaxTokens,
         temperatureVal,

@@ -1,7 +1,10 @@
 // streaming/anthropic.ts — Anthropic-format SSE streaming for /messages endpoint
 import * as vscode from "vscode";
+import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, resolveApiEndpoint } from "../api";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
+import type { ZenModelInfo } from "../model-catalog";
+import { convertTools } from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
@@ -16,14 +19,12 @@ import {
   repairToolArguments,
 } from "../tool-repair";
 import { AnthropicMessage, AnthropicSSEEvent, type Json } from "../types";
-import type { ZenModelInfo } from "../model-catalog";
-import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
-import { convertTools } from "../openai-conversion";
 
 export interface AnthropicRequestParams {
   modelId: string;
   messages: readonly vscode.LanguageModelChatMessage[];
   options: vscode.ProvideLanguageModelChatResponseOptions;
+  requestOptions: vscode.ProvideLanguageModelChatResponseOptions;
   apiKey: string;
   requestedMaxTokens: number;
   temperatureVal: number;
@@ -45,6 +46,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     modelId,
     messages,
     options,
+    requestOptions,
     apiKey,
     requestedMaxTokens,
     temperatureVal,
@@ -58,13 +60,13 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   const isDeepSeek = modelId.startsWith("deepseek-");
   let toolConfig: { tools?: unknown[]; tool_choice?: unknown };
   if (isDeepSeek) {
-    const openAiConfig = convertTools(options);
+    const openAiConfig = convertTools(requestOptions);
     toolConfig = {
       tools: openAiConfig.tools,
       tool_choice: openAiConfig.tool_choice,
     };
   } else {
-    const anthropicConfig = convertToolsToAnthropic(options);
+    const anthropicConfig = convertToolsToAnthropic(requestOptions);
     toolConfig = {
       tools: anthropicConfig.tools,
       tool_choice: anthropicConfig.tool_choice,
@@ -186,7 +188,13 @@ async function processAnthropicStreamingResponse(
   const emitEmbeddedToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
     sawToolCall = true;
     const schema = toolSchemas.get(toolCall.name);
-    const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
+    const repairedArgs = repairToolArguments(
+      toolCall.name,
+      toolCall.args,
+      requestContext,
+      schema,
+      pendingText,
+    );
     const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
 

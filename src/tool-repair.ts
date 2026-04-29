@@ -11,6 +11,24 @@ interface ChatRequestContext {
   startLine?: number;
   endLine?: number;
   cwd?: string;
+  userRequest?: string;
+}
+
+function inferRunSubagentAgentName(text: string | undefined): string | undefined {
+  if (!text) return undefined;
+
+  const agentPattern =
+    /(?:[`"'「『])?([A-Za-z][\w &\/-]{0,80}?)(?:[`"'」』])?\s*(?:エージェント|agent|subagent)/gi;
+  let match: RegExpExecArray | null;
+  let inferred: string | undefined;
+
+  while ((match = agentPattern.exec(text)) !== null) {
+    const candidate = match[1]?.trim();
+    if (!candidate) continue;
+    inferred = candidate;
+  }
+
+  return inferred;
 }
 
 export function buildToolCallCanonicalKey(name: string, args: unknown): string {
@@ -145,6 +163,7 @@ export function extractChatRequestContext(
   const filePattern = /The user's current file is\s+([^\n]+?)\.(?:\s|$)/;
   const selectionPattern = /The current selection is from line\s+(\d+)\s+to line\s+(\d+)/;
   const cwdPattern = /(?:^|\n)Cwd:\s+([^\n]+)/;
+  const userRequestPattern = /<userRequest>\s*([\s\S]*?)\s*<\/userRequest>/i;
   const context: ChatRequestContext = {};
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -164,9 +183,25 @@ export function extractChatRequestContext(
       const fileMatch = text.match(filePattern);
       const selectionMatch = text.match(selectionPattern);
       const cwdMatch = text.match(cwdPattern);
+      const userRequestMatch = text.match(userRequestPattern);
 
       if (fileMatch && !context.filePath) context.filePath = fileMatch[1].trim();
       if (cwdMatch && !context.cwd) context.cwd = cwdMatch[1].trim();
+      if (!context.userRequest) {
+        const explicitUserRequest = userRequestMatch?.[1]?.trim();
+        if (explicitUserRequest) {
+          context.userRequest = explicitUserRequest;
+        } else {
+          const trimmedText = text.trim();
+          if (
+            trimmedText &&
+            !trimmedText.includes("<attachments>") &&
+            !trimmedText.includes("<context>")
+          ) {
+            context.userRequest = trimmedText;
+          }
+        }
+      }
       if (selectionMatch && context.startLine === undefined && context.endLine === undefined) {
         const startLine = Number(selectionMatch[1]);
         const endLine = Number(selectionMatch[2]);
@@ -178,6 +213,7 @@ export function extractChatRequestContext(
       if (
         context.filePath &&
         context.cwd &&
+        context.userRequest &&
         context.startLine !== undefined &&
         context.endLine !== undefined
       )
@@ -187,6 +223,7 @@ export function extractChatRequestContext(
 
   return context.filePath ||
     context.cwd ||
+    context.userRequest ||
     context.startLine !== undefined ||
     context.endLine !== undefined
     ? context
@@ -198,6 +235,7 @@ export function repairToolArguments(
   args: unknown,
   requestContext: ChatRequestContext | undefined,
   schema?: ToolSchema,
+  assistantText?: string,
 ): unknown {
   if (typeof args !== "object" || args === null || Array.isArray(args)) return args;
 
@@ -217,32 +255,6 @@ export function repairToolArguments(
   if (needsBooleanField(repaired.includeIgnoredFiles, "includeIgnoredFiles"))
     repaired.includeIgnoredFiles = false;
 
-  if (!context) return repaired;
-
-  if (toolName === "read_file") {
-    const inferredFilePath =
-      context?.filePath ??
-      vscode.window.activeTextEditor?.document.uri.fsPath ??
-      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    return {
-      ...repaired,
-      ...(needsStringField(repaired.filePath, "filePath") && inferredFilePath
-        ? { filePath: inferredFilePath }
-        : {}),
-      ...(needsNumberField(repaired.startLine, "startLine")
-        ? { startLine: context.startLine ?? 1 }
-        : {}),
-      ...(needsNumberField(repaired.endLine, "endLine") ? { endLine: context.endLine ?? 200 } : {}),
-    };
-  }
-
-  if (toolName === "list_dir") {
-    return {
-      ...repaired,
-      ...(needsStringField(repaired.path, "path") && context.cwd ? { path: context.cwd } : {}),
-    };
-  }
-
   // run_in_terminal: required args are command, explanation, goal, mode, timeout.
   // command is the only truly required arg; the rest have safe defaults.
   if (toolName === "run_in_terminal") {
@@ -258,6 +270,90 @@ export function repairToolArguments(
       ...(needsStringField(repaired.goal, "goal") ? { goal: "Execute command" } : {}),
       ...(needsStringField(repaired.mode, "mode") ? { mode: "sync" } : {}),
       ...(needsNumberField(repaired.timeout, "timeout") ? { timeout: 30000 } : {}),
+    };
+  }
+
+  if (toolName === "runSubagent") {
+    const {
+      name: _legacyName,
+      input: _legacyInput,
+      argument: _legacyArgument,
+      argumentHint: _legacyArgumentHint,
+      ...subagentArgs
+    } = repaired;
+    const agentName =
+      typeof subagentArgs.agentName === "string" && subagentArgs.agentName.trim().length > 0
+        ? subagentArgs.agentName.trim()
+        : typeof repaired.name === "string" && repaired.name.trim().length > 0
+          ? repaired.name.trim()
+          : inferRunSubagentAgentName(assistantText);
+    const prompt =
+      typeof subagentArgs.prompt === "string" && subagentArgs.prompt.trim().length > 0
+        ? subagentArgs.prompt.trim()
+        : typeof repaired.input === "string" && repaired.input.trim().length > 0
+          ? repaired.input.trim()
+          : typeof repaired.argument === "string" && repaired.argument.trim().length > 0
+            ? repaired.argument.trim()
+            : typeof context?.userRequest === "string" && context.userRequest.trim().length > 0
+              ? context.userRequest.trim()
+              : undefined;
+    const description =
+      typeof subagentArgs.description === "string" && subagentArgs.description.trim().length > 0
+        ? subagentArgs.description.trim()
+        : typeof repaired.argumentHint === "string" && repaired.argumentHint.trim().length > 0
+          ? repaired.argumentHint.trim()
+          : agentName
+            ? `Run ${agentName} subagent`
+            : "Run subagent";
+
+    return {
+      ...subagentArgs,
+      ...(agentName ? { agentName } : {}),
+      ...(prompt ? { prompt } : {}),
+      ...(description ? { description } : {}),
+    };
+  }
+
+  if (!context) return repaired;
+
+  if (toolName === "read_file") {
+    const legacyPath = typeof repaired.path === "string" ? repaired.path.trim() : "";
+    const { path: _unusedPath, ...readFileArgs } = repaired;
+    const normalizedReadFileArgs =
+      legacyPath &&
+      (typeof readFileArgs.filePath !== "string" || readFileArgs.filePath.trim().length === 0)
+        ? { ...readFileArgs, filePath: legacyPath }
+        : readFileArgs;
+    const explicitFilePath =
+      typeof normalizedReadFileArgs.filePath === "string" &&
+      normalizedReadFileArgs.filePath.trim().length > 0
+        ? normalizedReadFileArgs.filePath
+        : undefined;
+    const inferredFilePath =
+      explicitFilePath ??
+      context?.filePath ??
+      vscode.window.activeTextEditor?.document.uri.fsPath ??
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const shouldUseContextRange =
+      !explicitFilePath || !context.filePath || explicitFilePath === context.filePath;
+    return {
+      ...normalizedReadFileArgs,
+      ...(needsStringField(normalizedReadFileArgs.filePath, "filePath") && inferredFilePath
+        ? { filePath: inferredFilePath }
+        : {}),
+      ...(needsNumberField(normalizedReadFileArgs.startLine, "startLine")
+        ? { startLine: shouldUseContextRange ? (context.startLine ?? 1) : 1 }
+        : {}),
+      ...(needsNumberField(normalizedReadFileArgs.endLine, "endLine")
+        ? { endLine: shouldUseContextRange ? (context.endLine ?? 200) : 200 }
+        : {}),
+    };
+  }
+
+  if (toolName === "list_dir") {
+    return {
+      ...repaired,
+      ...(needsStringField(repaired.path, "path") && context.cwd ? { path: context.cwd } : {}),
     };
   }
 

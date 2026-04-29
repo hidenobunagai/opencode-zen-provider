@@ -974,6 +974,206 @@ describe("ZenChatModelProvider", () => {
     expect(textReports[0][0].value).not.toContain('"tool": "read_file"');
   });
 
+  it("emits a runSubagent call parsed from a fenced legacy JSON tool block for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const prompt =
+      "Summarize the entire workspace directory at /Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes. List all files and folders, their purposes, key topics covered (e.g., PTA activities, job interview preparation, work tasks, personal moments, archived notes). Note any patterns in dating, file naming conventions, and content themes. Thoroughness: quick";
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content: `ワークスペース全体のサマリーを取得するため、Explore サブエージェントを使用してフォルダの構造と内容を調査します。\n\n\`\`\`json\n{\n  "tool": "runSubagent",\n  "agentName": "Explore",\n  "argument": ${JSON.stringify(prompt)}\n}\n\`\`\``,
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "フォルダ全体を見てサマリーをください。" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "runSubagent",
+            description: "Launch a subagent",
+            inputSchema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                description: { type: "string" },
+                agentName: { type: "string" },
+              },
+              required: ["prompt", "description"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("runSubagent");
+    expect(toolCallReports[0][0].input).toEqual({
+      agentName: "Explore",
+      prompt,
+      description: "Run Explore subagent",
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("Explore サブエージェント");
+    expect(textReports[0][0].value).not.toContain("```json");
+    expect(textReports[0][0].value).not.toContain('"tool": "runSubagent"');
+  });
+
+  it("repairs a missing runSubagent prompt from the latest user request", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const userRequest = "フォルダ全体を見てサマリーをください。";
+    const wrappedUserRequest = `<attachments>\n<attachment id="file:example.md">\nExcerpt\n</attachment>\n</attachments>\n<context>\nThe current date is 2026年4月28日.\n</context>\n<userRequest>\n${userRequest}\n</userRequest>`;
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                'フォルダ全体のサマリーを作成するために、まずはファイル構造を詳しく調べます。Explore サブエージェントを使って効率的に情報を収集します。\n\n```json\n{\n  "tool": "runSubagent",\n  "agentName": "Explore"\n}\n```',
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: wrappedUserRequest }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "runSubagent",
+            description: "Launch a subagent",
+            inputSchema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                description: { type: "string" },
+                agentName: { type: "string" },
+              },
+              required: ["prompt", "description"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("runSubagent");
+    expect(toolCallReports[0][0].input).toEqual({
+      agentName: "Explore",
+      prompt: userRequest,
+      description: "Run Explore subagent",
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("Explore サブエージェント");
+    expect(textReports[0][0].value).not.toContain("required argument(s) `prompt`");
+  });
+
+  it("repairs a missing runSubagent agentName from surrounding assistant text", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const userRequest = "フォルダ全体を見てサマリーをください。";
+    const wrappedUserRequest = `<attachments>\n<attachment id="file:example.md">\nExcerpt\n</attachment>\n</attachments>\n<context>\nThe current date is 2026年4月28日.\n</context>\n<userRequest>\n${userRequest}\n</userRequest>`;
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                'まず、スーパーパワースキルを確認し、その後でワークスペース全体を探索してサマリーを提供します。\n\n`using-superpowers` スキルは既にコンテキストに読み込まれています。次に、`Explore` エージェントを使用してワークスペース全体を探索します。\n\n```json\n{\n  "tool": "runSubagent",\n  "argument": ' +
+                JSON.stringify(userRequest) +
+                "\n}\n```",
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: wrappedUserRequest }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "runSubagent",
+            description: "Launch a subagent",
+            inputSchema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                description: { type: "string" },
+                agentName: { type: "string" },
+              },
+              required: ["prompt", "description"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("runSubagent");
+    expect(toolCallReports[0][0].input).toEqual({
+      agentName: "Explore",
+      prompt: userRequest,
+      description: "Run Explore subagent",
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("Explore");
+    expect(textReports[0][0].value).not.toContain('"tool": "runSubagent"');
+  });
+
   it("flushes an incomplete fenced JSON block as text at stream end", async () => {
     (secrets.get as jest.Mock).mockResolvedValue("test-key");
 
@@ -1025,6 +1225,299 @@ describe("ZenChatModelProvider", () => {
     expect(textReports).toHaveLength(1);
     expect(textReports[0][0].value).toContain('"tool": "read_file"');
     expect(textReports[0][0].value).toContain("```json");
+  });
+
+  it("emits a tool call parsed from a compact xml tool block for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                'まず、core-principles スキルを読み込みます。これはセッション開始時に必須です。\n<tool_calls>\n<tool_call>read_file path="/Users/hidenobunagai/.agents/skills/core-principles/SKILL.md"</tool_call>\n</tool_calls>',
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [
+        {
+          role: 1,
+          content: [
+            {
+              value:
+                "<editorContext>\nThe user's current file is /tmp/current.md. The current selection is from line 10 to line 12.\n</editorContext>\n<userRequest>このメモのサマリーをください。</userRequest>",
+            },
+          ],
+        },
+      ] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "read_file",
+            description: "Read a file from disk",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("read_file");
+    expect(toolCallReports[0][0].input).toEqual({
+      filePath: "/Users/hidenobunagai/.agents/skills/core-principles/SKILL.md",
+      startLine: 1,
+      endLine: 200,
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("core-principles スキル");
+    expect(textReports[0][0].value).not.toContain("<tool_calls>");
+  });
+
+  it("emits read_file calls parsed from tool_sep arg_key arg_value tool blocks for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content:
+                "サブエージェントの結果を読み取るために、まずファイルの内容を確認します。サブエージェントの結果ファイルを読み取ります。まず、そのファイルの内容を確認します。サブエージェントの結果ファイルを正しく読み取ります。サブエージェントの結果を読み取るために、まずファイルを直接読み取ります。ワークスペースのファイルを直接探索してサマリーを作成します。まず、主要なファイルを読み取って内容を確認します。<tool_calls>\n<tool_call>read_file<tool_sep>\n<arg_key>filePath</arg_key>\n<arg_value>/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026_02_11_データ分析の力.md</arg_value>\n<arg_key>startLine</arg_key>\n<arg_value>1</arg_value>\n<arg_key>endLine</arg_key>\n<arg_value>50</arg_value>\n</tool_call>\n<tool_call>read_file<tool_sep>\n<arg_key>filePath</arg_key>\n<arg_value>/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026-03-07_07-02_カード一覧.md</arg_value>\n<arg_key>startLine</arg_key>\n<arg_value>1</arg_value>\n<arg_key>endLine</arg_key>\n<arg_key>50</arg_value>\n</tool_call>\n<tool_call>read_file<tool_sep>\n<arg_key>filePath</arg_key>\n<arg_value>/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026-04-17_21-14-52_カタリナ_タレント名鑑.md</arg_value>\n<arg_key>startLine</arg_key>\n<arg_key>1</arg_value>\n<arg_key>endLine</arg_key>\n<arg_value>50</arg_value>\n</tool_call>\n<tool_call>read_file<tool_sep>\n<arg_key>filePath</arg_key>\n<arg_value>/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/thino_archive.md</arg_value>\n<arg_key>startLine</arg_key>\n<arg_value>1</arg_value>\n<arg_key>endLine</arg_key>\n<arg_value>50</arg_value>\n</tool_call>\n</tool_calls>",
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "フォルダ全体を見てサマリーをください。" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "read_file",
+            description: "Read a file from disk",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string" },
+                startLine: { type: "number" },
+                endLine: { type: "number" },
+              },
+              required: ["filePath", "startLine", "endLine"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(4);
+    expect(toolCallReports.map((c: any) => c[0].name)).toEqual([
+      "read_file",
+      "read_file",
+      "read_file",
+      "read_file",
+    ]);
+    expect(toolCallReports.map((c: any) => c[0].input)).toEqual([
+      {
+        filePath:
+          "/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026_02_11_データ分析の力.md",
+        startLine: 1,
+        endLine: 50,
+      },
+      {
+        filePath:
+          "/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026-03-07_07-02_カード一覧.md",
+        startLine: 1,
+        endLine: 50,
+      },
+      {
+        filePath:
+          "/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/2026-04-17_21-14-52_カタリナ_タレント名鑑.md",
+        startLine: 1,
+        endLine: 50,
+      },
+      {
+        filePath:
+          "/Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes/thino_archive.md",
+        startLine: 1,
+        endLine: 50,
+      },
+    ]);
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("サブエージェントの結果を読み取るために");
+    expect(textReports[0][0].value).not.toContain("<tool_calls>");
+    expect(textReports[0][0].value).not.toContain("<arg_key>");
+  });
+
+  it("emits a runSubagent call parsed from a malformed xml tool block for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const prompt =
+      "Describe the overall content and themes of this Notes workspace. I need a summary of: 1) Main folder markdown files and their topics, 2) archive/ folder contents, 3) moments/ folder pattern, 4) tasks/ folder structure. Keep it quick - just identify themes and date ranges.";
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content: `I'll use the Explore agent to quickly scan the workspace contents and provide you with a summary.<tool_calls>\n<tool_call>runSubagent<tool_call>name">Explore</name>\n<argument>${prompt}</argument>\n<argumentHint>quick</argumentHint>\n</runSubagent>`,
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "フォルダ全体を見てサマリーをください。" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "runSubagent",
+            description: "Launch a subagent",
+            inputSchema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                description: { type: "string" },
+                agentName: { type: "string" },
+              },
+              required: ["prompt", "description"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("runSubagent");
+    expect(toolCallReports[0][0].input).toEqual({
+      agentName: "Explore",
+      prompt,
+      description: "quick",
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("Explore agent");
+    expect(textReports[0][0].value).not.toContain("<tool_calls>");
+  });
+
+  it("emits a runSubagent call parsed from nested tool_call markers for no-tool models", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const prompt =
+      "Summarize the entire workspace folder at /Users/hidenobunagai/Library/CloudStorage/GoogleDrive-hidenobu.nagai.jp@gmail.com/マイドライブ/Documents/Notes. The workspace contains markdown files including notes, PTA meeting records, interview preparation documents, task lists, and daily moments. Provide a high-level summary of topics covered, key themes, organizational patterns, and any notable observations. Be thorough and include:\n1. Main categories of documents (e.g., PTA, interviews, personal notes)\n2. Time range of documents\n3. Recurring themes or topics\n4. Structure of subdirectories (archive, moments, tasks)\n5. Any unique or interesting findings";
+
+    const mockStream = async function* () {
+      yield {
+        choices: [
+          {
+            delta: {
+              content: `フォルダ全体の要約を取得するために、\`Explore\` エージェントを使用します。これはコードベースやドキュメントの探索に特化したサブエージェントです。<tool_calls>\n<tool_call>runSubagent <tool_call>name <tool_call>Explore </tool_call> <tool_call>input <tool_call>${prompt} </tool_call> </tool_call> </tool_call>`,
+            },
+          },
+        ],
+      };
+    };
+    (streamChatCompletion as jest.Mock).mockReturnValue(mockStream());
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+
+    await provider.provideLanguageModelChatResponse(
+      { id: "hy3-preview-free", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      [{ role: 1, content: [{ value: "フォルダ全体を見てサマリーをください。" }] }] as any,
+      {
+        modelOptions: {},
+        tools: [
+          {
+            name: "runSubagent",
+            description: "Launch a subagent",
+            inputSchema: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                description: { type: "string" },
+                agentName: { type: "string" },
+              },
+              required: ["prompt", "description"],
+            },
+          },
+        ],
+      } as any,
+      progress,
+      token as any,
+    );
+
+    const toolCallReports = progress.report.mock.calls.filter((c: any) => c[0]?.callId);
+    const textReports = progress.report.mock.calls.filter((c: any) => c[0]?.value);
+
+    expect(toolCallReports).toHaveLength(1);
+    expect(toolCallReports[0][0].name).toBe("runSubagent");
+    expect(toolCallReports[0][0].input).toEqual({
+      agentName: "Explore",
+      prompt,
+      description: "Run Explore subagent",
+    });
+    expect(textReports).toHaveLength(1);
+    expect(textReports[0][0].value).toContain("Explore");
+    expect(textReports[0][0].value).not.toContain("<tool_calls>");
   });
 
   it("preserves text order around a text-embedded tool call", async () => {

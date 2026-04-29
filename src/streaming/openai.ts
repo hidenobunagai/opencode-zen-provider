@@ -42,6 +42,7 @@ export async function processOpenAIStream(
   model: OpenAIModelInfo,
   apiMessages: readonly vscode.LanguageModelChatMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
+  requestOptions: vscode.ProvideLanguageModelChatResponseOptions,
   apiKey: string,
   requestedMaxTokens: number,
   temperatureVal: number,
@@ -68,7 +69,7 @@ export async function processOpenAIStream(
     zenModels,
   );
 
-  const toolConfig = convertTools(options);
+  const toolConfig = convertTools(requestOptions);
   const requestBody: ZenChatRequest = {
     model: model.id,
     messages: convertedMessages,
@@ -122,7 +123,13 @@ export async function processOpenAIStream(
   const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
     sawToolCall = true;
     const schema = toolSchemas.get(toolCall.name);
-    const repairedArgs = repairToolArguments(toolCall.name, toolCall.args, requestContext, schema);
+    const repairedArgs = repairToolArguments(
+      toolCall.name,
+      toolCall.args,
+      requestContext,
+      schema,
+      pendingText,
+    );
     const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
 
