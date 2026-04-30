@@ -6,7 +6,12 @@ import {
   DEFAULT_TIKTOKEN_MODEL,
   TOKENS_PER_IMAGE,
 } from "./constants";
-import { getDataPartTextValue, getTextPartValue, extractImageData, type LegacyPart } from "./message-parts";
+import {
+  extractImageData,
+  getDataPartTextValue,
+  getTextPartValue,
+  type LegacyPart,
+} from "./message-parts";
 import { debugLog } from "./output-channel";
 
 type Encoding = {

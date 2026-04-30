@@ -6,8 +6,8 @@ import {
   getToolResultEntries,
   type LegacyPart,
 } from "./message-parts";
-import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, Json, JsonObject } from "./types";
 import { buildToolDescription } from "./openai-conversion";
+import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, Json, JsonObject } from "./types";
 
 export function tryParseJSONObject<T extends Json = Json>(
   text: string,

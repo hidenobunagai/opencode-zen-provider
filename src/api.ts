@@ -1,6 +1,11 @@
-import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, SSE_CHUNK_TIMEOUT_MS } from "./constants";
-import { debugLog } from "./output-channel";
+import {
+  BASE_RETRY_DELAY_MS,
+  BASE_URL,
+  MAX_RETRY_DELAY_MS,
+  SSE_CHUNK_TIMEOUT_MS,
+} from "./constants";
 import type { ZenRouteKind } from "./model-catalog";
+import { debugLog } from "./output-channel";
 import { ZenChatCompletionResponse, ZenChatRequest, ZenStreamResponse } from "./types";
 
 /**
@@ -199,7 +204,12 @@ export async function* streamChatCompletion(
           reader.read(),
           new Promise<never>((_, reject) => {
             timeoutId = setTimeout(
-              () => reject(new Error(`SSE stream timed out after ${SSE_CHUNK_TIMEOUT_MS / 1000}s of inactivity`)),
+              () =>
+                reject(
+                  new Error(
+                    `SSE stream timed out after ${SSE_CHUNK_TIMEOUT_MS / 1000}s of inactivity`,
+                  ),
+                ),
               SSE_CHUNK_TIMEOUT_MS,
             );
           }),
