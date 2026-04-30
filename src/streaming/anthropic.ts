@@ -135,7 +135,11 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
 
   /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
   let snapshotEmittedKeys = getCompletedToolCallKeys(messages, requestContext, toolSchemas);
-  const maxRetries = MAX_STREAM_RETRIES;
+
+  // Reasoning/thinking models self-regulate output budget via the API.
+  // Retrying is pointless: we can't increase max_tokens (we omit it),
+  // and the model will repeat the same self-regulated stop.
+  const maxRetries = isReasoningModel ? 1 : MAX_STREAM_RETRIES;
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
