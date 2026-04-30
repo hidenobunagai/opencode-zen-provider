@@ -41,6 +41,23 @@ export function buildToolCallCanonicalKey(name: string, args: unknown): string {
   return `${name}:${JSON.stringify(args)}`;
 }
 
+/**
+ * WeakMap cache for canonical keys to avoid repeated JSON.stringify on the same args object.
+ * Keys are only cached while the args object is alive (GC'd when args is GC'd).
+ */
+const canonicalKeyCache = new WeakMap<object, string>();
+
+export function buildToolCallCanonicalKeyCached(name: string, args: unknown): string {
+  if (typeof args === "object" && args !== null) {
+    const cached = canonicalKeyCache.get(args as object);
+    if (cached) return cached;
+    const key = `${name}:${JSON.stringify(args)}`;
+    canonicalKeyCache.set(args as object, key);
+    return key;
+  }
+  return `${name}:${JSON.stringify(args)}`;
+}
+
 export function getCompletedToolCallKeys(
   messages: readonly vscode.LanguageModelChatMessage[],
   requestContext: ChatRequestContext | undefined,

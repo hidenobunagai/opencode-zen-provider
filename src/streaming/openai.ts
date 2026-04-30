@@ -12,7 +12,7 @@ import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
   buildInvalidToolCallFallback,
-  buildToolCallCanonicalKey,
+  buildToolCallCanonicalKeyCached,
   extractChatRequestContext,
   getCompletedToolCallKeys,
   getMissingRequiredToolArguments,
@@ -160,7 +160,7 @@ export async function processOpenAIStream(
       schema,
       pendingText,
     );
-    const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
+    const canonicalKey = buildToolCallCanonicalKeyCached(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
 
     if (hasRequiredToolArguments(repairedArgs, schema) && isToolCallInput(repairedArgs)) {
@@ -250,7 +250,7 @@ export async function processOpenAIStream(
               isToolCallInput(args) &&
               hasRequiredToolArguments(args, schema)
             ) {
-              const canonicalKey = buildToolCallCanonicalKey(buf.name, args);
+              const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
               if (emittedTextToolCallKeys.has(canonicalKey)) {
                 completedToolCallIndices.add(idx);
                 toolCallBuffers.delete(idx);
@@ -298,7 +298,7 @@ export async function processOpenAIStream(
           schema,
         );
         if (buf.id && buf.name && isToolCallInput(args) && hasRequiredToolArguments(args, schema)) {
-          const canonicalKey = buildToolCallCanonicalKey(buf.name, args);
+          const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
           if (emittedTextToolCallKeys.has(canonicalKey)) continue;
           flushPendingText();
           progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));

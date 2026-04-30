@@ -9,7 +9,7 @@ import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
 import {
   buildInvalidToolCallFallback,
-  buildToolCallCanonicalKey,
+  buildToolCallCanonicalKeyCached,
   extractChatRequestContext,
   getCompletedToolCallKeys,
   getMissingRequiredToolArguments,
@@ -195,7 +195,7 @@ async function processAnthropicStreamingResponse(
       schema,
       pendingText,
     );
-    const canonicalKey = buildToolCallCanonicalKey(toolCall.name, repairedArgs);
+    const canonicalKey = buildToolCallCanonicalKeyCached(toolCall.name, repairedArgs);
     if (emittedTextToolCallKeys.has(canonicalKey)) return;
 
     if (hasRequiredToolArguments(repairedArgs, schema) && isToolCallInput(repairedArgs)) {
