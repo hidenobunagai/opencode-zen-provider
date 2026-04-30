@@ -138,10 +138,11 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         supportsVision: false,
       };
       const isReasoning = REASONING_MODEL_IDS.has(model.id);
-      // Reasoning/thinking models need a guaranteed output headroom so they
-      // don't exhaust the context window on internal reasoning tokens.
+      // Reasoning/thinking models self-regulate output via the API.
+      // Use the minimum output budget as a fixed headroom instead of the
+      // model's declared maxOutput (which may equal the full context window).
       const effectiveOutputBudget = isReasoning
-        ? Math.max(info.maxOutput, REASONING_MODEL_MIN_OUTPUT_BUDGET)
+        ? REASONING_MODEL_MIN_OUTPUT_BUDGET
         : Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS);
       return {
         id: info.id,
