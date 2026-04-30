@@ -1,5 +1,23 @@
 # Change Log
 
+## [0.1.36] - 2026-04-30
+
+### Fixed
+
+- Stopped sending `max_tokens` to reasoning/thinking models (`kimi-k2.6`) — the API self-regulates output budget and an explicit cap causes premature mid-response stops.
+- Added streaming retry loop (3 attempts) with mid-response stop detection and snapshot-based tool call deduplication to recover from transient generation failures.
+- Skipped retry loop for reasoning models — retrying is pointless when `max_tokens` is omitted and the model self-regulates output.
+
+### Performance
+
+- Cached tiktoken encoding object across all `estimateTokens()` calls instead of creating/freeing one per invocation.
+- Compressed provider identity guidance from 6 lines to 1 line and tool-use grounding guidance from 12 rules to 4 rules, reducing system prompt token overhead.
+- Reduced context window safety margin from 3% to 1% (min 2048 → was 1024), freeing more usable context headroom.
+
+### Added
+
+- Reasoning model minimum output budget constant (16384 tokens) for context window calculations, ensuring thinking models have guaranteed output headroom.
+
 ## [0.1.35] - 2026-04-30
 
 ### Performance
