@@ -31,6 +31,9 @@ export const ANTHROPIC_MAX_TOOL_RESULT_CHARS = 20000;
 /** Timeout for individual SSE chunk reads (milliseconds). Prevents indefinite hang when the server stops sending data. */
 export const SSE_CHUNK_TIMEOUT_MS = 60000;
 
+/** Tokens per image for vision models (conservative estimate for 512x512+ with detail: auto) */
+export const TOKENS_PER_IMAGE = 1000;
+
 /** Default tiktoken encoder model used for all token estimation */
 export const DEFAULT_TIKTOKEN_MODEL = "gpt-4o";
 
