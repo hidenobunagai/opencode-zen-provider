@@ -125,11 +125,7 @@ export async function processOpenAIStream(
   });
 
   /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
-  let snapshotEmittedKeys = getCompletedToolCallKeys(
-    apiMessages,
-    requestContext,
-    toolSchemas,
-  );
+  let snapshotEmittedKeys = getCompletedToolCallKeys(apiMessages, requestContext, toolSchemas);
 
   const maxRetries = MAX_STREAM_RETRIES;
   let lastError: unknown;
@@ -310,7 +306,12 @@ export async function processOpenAIStream(
             requestContext,
             schema,
           );
-          if (buf.id && buf.name && isToolCallInput(args) && hasRequiredToolArguments(args, schema)) {
+          if (
+            buf.id &&
+            buf.name &&
+            isToolCallInput(args) &&
+            hasRequiredToolArguments(args, schema)
+          ) {
             const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
             if (emittedTextToolCallKeys.has(canonicalKey)) continue;
             flushPendingText();
@@ -339,7 +340,10 @@ export async function processOpenAIStream(
 
       // Mid-response stop detection: model generated tool calls but didn't complete them
       if (!emittedToolCall && sawToolCall && toolCallBuffers.size > 0 && attempt + 1 < maxRetries) {
-        debugLog("processOpenAIStream", `Mid-response stop detected (attempt ${attempt + 1}/${maxRetries}), retrying...`);
+        debugLog(
+          "processOpenAIStream",
+          `Mid-response stop detected (attempt ${attempt + 1}/${maxRetries}), retrying...`,
+        );
         snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
         continue;
       }
@@ -359,7 +363,10 @@ export async function processOpenAIStream(
       }
       // Retry on stream errors if we haven't exceeded max retries
       if (receivedAnyOutput && attempt + 1 < maxRetries) {
-        debugLog("processOpenAIStream", `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`);
+        debugLog(
+          "processOpenAIStream",
+          `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`,
+        );
         snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
         continue;
       }

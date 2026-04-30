@@ -57,6 +57,4 @@ export const CJK_CHARS_PER_TOKEN = 0.8;
  * them to consume the entire budget on reasoning, leaving zero visible output.
  * These models must be called WITHOUT max_tokens — they self-regulate output.
  */
-export const REASONING_MODEL_IDS = new Set([
-  "kimi-k2.6",
-]);
+export const REASONING_MODEL_IDS = new Set(["kimi-k2.6"]);

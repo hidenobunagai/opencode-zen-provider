@@ -202,7 +202,10 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
         throw new vscode.CancellationError();
       }
       if (attempt + 1 < maxRetries) {
-        debugLog("handleAnthropicRequest", `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`);
+        debugLog(
+          "handleAnthropicRequest",
+          `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`,
+        );
         continue;
       }
       throw err;
