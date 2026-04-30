@@ -7,6 +7,7 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, Json, JsonObject } from "./types";
+import { buildToolDescription } from "./openai-conversion";
 
 export function tryParseJSONObject<T extends Json = Json>(
   text: string,
@@ -220,7 +221,7 @@ export function convertToolsToAnthropic(options: vscode.ProvideLanguageModelChat
 
   const tools: AnthropicTool[] = toolsInput.map((tool) => ({
     name: tool.name,
-    description: tool.description,
+    description: buildToolDescription(tool.description, tool.inputSchema) ?? tool.description,
     input_schema:
       (tool.inputSchema as JsonObject) ?? ({ type: "object", properties: {} } as JsonObject),
   }));

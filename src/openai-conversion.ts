@@ -17,7 +17,7 @@ function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown>;
 }
 
-function buildToolDescription(
+export function buildToolDescription(
   description: string | undefined,
   inputSchema: unknown,
 ): string | undefined {
