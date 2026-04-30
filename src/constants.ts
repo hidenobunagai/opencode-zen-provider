@@ -47,3 +47,13 @@ export const DEFAULT_CHARS_PER_TOKEN = 2.0;
  */
 export const CJK_MODEL_PREFIXES = ["kimi", "qwen", "glm", "hy3", "ling"];
 export const CJK_CHARS_PER_TOKEN = 0.8;
+
+/**
+ * Reasoning/thinking model IDs that emit internal "thinking" tokens as part of
+ * their output stream. Sending an explicit max_tokens to these models causes
+ * them to consume the entire budget on reasoning, leaving zero visible output.
+ * These models must be called WITHOUT max_tokens — they self-regulate output.
+ */
+export const REASONING_MODEL_IDS = new Set([
+  "kimi-k2.6",
+]);

@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, resolveApiEndpoint } from "../api";
+import { REASONING_MODEL_IDS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import type { ZenModelInfo } from "../model-catalog";
 import { convertTools } from "../openai-conversion";
@@ -88,11 +89,12 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     throw new Error("No messages to send to Anthropic API");
   }
 
+  const isReasoningModel = REASONING_MODEL_IDS.has(modelId);
   const requestBody: {
     model: string;
     messages: AnthropicMessage[];
     system?: string | Array<{ type: "text"; text: string }>;
-    max_tokens: number;
+    max_tokens?: number;
     stream: boolean;
     temperature?: number;
     tools?: unknown[];
@@ -100,9 +102,13 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   } = {
     model: modelId,
     messages: apiMessages,
-    max_tokens: Math.max(1, requestedMaxTokens),
     stream: true,
   };
+  // Reasoning/thinking models must NOT receive max_tokens — they consume
+  // the entire budget on internal reasoning, leaving zero visible output.
+  if (!isReasoningModel) {
+    requestBody.max_tokens = Math.max(1, requestedMaxTokens);
+  }
 
   if (effectiveSystem) requestBody.system = effectiveSystem;
   if (typeof temperatureVal === "number" && temperatureVal > 0) {

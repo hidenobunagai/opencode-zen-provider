@@ -1,6 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
+import { REASONING_MODEL_IDS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
 import {
@@ -100,13 +101,18 @@ export async function processOpenAIStream(
   );
 
   const toolConfig = convertTools(requestOptions);
+  const isReasoningModel = REASONING_MODEL_IDS.has(model.id);
   const requestBody: ZenChatRequest = {
     model: model.id,
     messages: convertedMessages,
     stream: true,
-    max_tokens: requestedMaxTokens,
     temperature: temperatureVal,
   };
+  // Reasoning/thinking models must NOT receive max_tokens — they consume
+  // the entire budget on internal reasoning, leaving zero visible output.
+  if (!isReasoningModel) {
+    requestBody.max_tokens = requestedMaxTokens;
+  }
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
   if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
   const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
