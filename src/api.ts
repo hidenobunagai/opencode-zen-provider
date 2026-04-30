@@ -1,4 +1,4 @@
-import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS } from "./constants";
+import { BASE_RETRY_DELAY_MS, BASE_URL, MAX_RETRY_DELAY_MS, SSE_CHUNK_TIMEOUT_MS } from "./constants";
 import { debugLog } from "./output-channel";
 import type { ZenRouteKind } from "./model-catalog";
 import { ZenChatCompletionResponse, ZenChatRequest, ZenStreamResponse } from "./types";
@@ -191,25 +191,41 @@ export async function* streamChatCompletion(
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+      // Race reader.read() against a timeout to prevent indefinite hang.
+      // The timer is cleared as soon as the read settles to avoid leaks.
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const readResult = await Promise.race([
+          reader.read(),
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
+              () => reject(new Error(`SSE stream timed out after ${SSE_CHUNK_TIMEOUT_MS / 1000}s of inactivity`)),
+              SSE_CHUNK_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        if (readResult.done) break;
+        const { value } = readResult;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        const data = trimmed.slice(6);
-        if (data === "[DONE]") continue;
-        try {
-          const parsed = JSON.parse(data) as ZenStreamResponse;
-          yield parsed;
-        } catch {
-          malformedSseCount++;
-          debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(data) as ZenStreamResponse;
+            yield parsed;
+          } catch {
+            malformedSseCount++;
+            debugLog("streamChatCompletion", `Malformed SSE line: ${data.slice(0, 200)}`);
+          }
         }
+      } finally {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
       }
     }
 
