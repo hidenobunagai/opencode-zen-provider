@@ -1,7 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
-import { REASONING_MODEL_IDS } from "../constants";
+import { MAX_STREAM_RETRIES, REASONING_MODEL_IDS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
 import {
@@ -124,227 +124,248 @@ export async function processOpenAIStream(
     tool_choice: requestBody.tool_choice,
   });
 
-  const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
-  const completedToolCallIndices = new Set<number>();
-  const skippedToolCalls: { name: string; required: string[]; missing: string[] }[] = [];
-  const emittedTextToolCallKeys = getCompletedToolCallKeys(
+  /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
+  let snapshotEmittedKeys = getCompletedToolCallKeys(
     apiMessages,
     requestContext,
     toolSchemas,
   );
-  let pendingTextEmbeddedContent = "";
-  let pendingText = "";
-  let sawToolCall = false;
-  let emittedToolCall = false;
-  /** Accumulated reasoning/thinking content from models that emit it (e.g. DeepSeek V4) */
-  let reasoningContent = "";
-  /** Whether we have already flushed the accumulated reasoning content to the progress stream */
-  let reasoningFlushed = false;
 
-  const flushPendingText = (): void => {
-    // When a thinking model finishes reasoning, flush accumulated reasoning_content first
-    // so it appears in the debug log and gives the user visibility into the model's thinking
-    if (!reasoningFlushed && reasoningContent) {
-      reasoningFlushed = true;
-      debugLog("processOpenAIStream", {
-        reasoning_length: reasoningContent.length,
-        reasoning_preview: reasoningContent.slice(0, 300),
-      });
-    }
-    if (!pendingText) return;
-    progress.report(new vscode.LanguageModelTextPart(pendingText));
-    pendingText = "";
-  };
+  const maxRetries = MAX_STREAM_RETRIES;
+  let lastError: unknown;
 
-  const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
-    sawToolCall = true;
-    const schema = toolSchemas.get(toolCall.name);
-    const repairedArgs = repairToolArguments(
-      toolCall.name,
-      toolCall.args,
-      requestContext,
-      schema,
-      pendingText,
-    );
-    const canonicalKey = buildToolCallCanonicalKeyCached(toolCall.name, repairedArgs);
-    if (emittedTextToolCallKeys.has(canonicalKey)) return;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (token.isCancellationRequested) throw new vscode.CancellationError();
 
-    if (hasRequiredToolArguments(repairedArgs, schema) && isToolCallInput(repairedArgs)) {
-      flushPendingText();
-      progress.report(
-        new vscode.LanguageModelToolCallPart(
-          toolId ?? `text_tool_${Math.random().toString(36).slice(2, 10)}`,
-          toolCall.name,
-          repairedArgs,
-        ),
+    const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
+    const completedToolCallIndices = new Set<number>();
+    const skippedToolCalls: { name: string; required: string[]; missing: string[] }[] = [];
+    const emittedTextToolCallKeys = new Set(snapshotEmittedKeys);
+    let pendingTextEmbeddedContent = "";
+    let pendingText = "";
+    let sawToolCall = false;
+    let emittedToolCall = false;
+    let reasoningContent = "";
+    let reasoningFlushed = false;
+    let receivedAnyOutput = false;
+
+    const flushPendingText = (): void => {
+      if (!reasoningFlushed && reasoningContent) {
+        reasoningFlushed = true;
+        debugLog("processOpenAIStream", {
+          reasoning_length: reasoningContent.length,
+          reasoning_preview: reasoningContent.slice(0, 300),
+        });
+      }
+      if (!pendingText) return;
+      progress.report(new vscode.LanguageModelTextPart(pendingText));
+      pendingText = "";
+    };
+
+    const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
+      sawToolCall = true;
+      const schema = toolSchemas.get(toolCall.name);
+      const repairedArgs = repairToolArguments(
+        toolCall.name,
+        toolCall.args,
+        requestContext,
+        schema,
+        pendingText,
       );
-      emittedToolCall = true;
-      emittedTextToolCallKeys.add(canonicalKey);
-    } else {
-      skippedToolCalls.push({
-        name: toolCall.name,
-        required: schema?.required ?? [],
-        missing: getMissingRequiredToolArguments(repairedArgs, schema),
-      });
-      debugLog("Skipped invalid text tool call", toolCall);
-    }
-  };
+      const canonicalKey = buildToolCallCanonicalKeyCached(toolCall.name, repairedArgs);
+      if (emittedTextToolCallKeys.has(canonicalKey)) return;
 
-  const handleTextDelta = (text: string): void => {
-    const { segments, incompleteText } = parseTextEmbeddedToolCalls(
-      pendingTextEmbeddedContent + text,
-    );
-    pendingTextEmbeddedContent = incompleteText;
-    for (const segment of segments) {
-      if (segment.type === "text") {
-        pendingText += segment.text;
+      if (hasRequiredToolArguments(repairedArgs, schema) && isToolCallInput(repairedArgs)) {
+        flushPendingText();
+        progress.report(
+          new vscode.LanguageModelToolCallPart(
+            toolId ?? `text_tool_${Math.random().toString(36).slice(2, 10)}`,
+            toolCall.name,
+            repairedArgs,
+          ),
+        );
+        emittedToolCall = true;
+        emittedTextToolCallKeys.add(canonicalKey);
       } else {
-        emitTextToolCall(segment.toolCall);
+        skippedToolCalls.push({
+          name: toolCall.name,
+          required: schema?.required ?? [],
+          missing: getMissingRequiredToolArguments(repairedArgs, schema),
+        });
+        debugLog("Skipped invalid text tool call", toolCall);
       }
-    }
-  };
+    };
 
-  try {
-    for await (const chunk of streamChatCompletion(
-      apiKey,
-      requestBody,
-      endpoint,
-      abortController.signal,
-      userAgent,
-    )) {
-      if (token.isCancellationRequested) throw new vscode.CancellationError();
-
-      const choice = chunk.choices?.[0];
-
-      if (choice?.delta?.content) {
-        handleTextDelta(choice.delta.content);
+    const handleTextDelta = (text: string): void => {
+      const { segments, incompleteText } = parseTextEmbeddedToolCalls(
+        pendingTextEmbeddedContent + text,
+      );
+      pendingTextEmbeddedContent = incompleteText;
+      for (const segment of segments) {
+        if (segment.type === "text") {
+          pendingText += segment.text;
+        } else {
+          emitTextToolCall(segment.toolCall);
+        }
       }
+    };
 
-      if (choice?.delta?.reasoning_content) {
-        reasoningContent += choice.delta.reasoning_content;
-      }
+    try {
+      for await (const chunk of streamChatCompletion(
+        apiKey,
+        requestBody,
+        endpoint,
+        abortController.signal,
+        userAgent,
+      )) {
+        if (token.isCancellationRequested) throw new vscode.CancellationError();
 
-      if (choice?.delta?.tool_calls) {
-        sawToolCall = true;
-        for (const tc of choice.delta.tool_calls) {
-          const idx = (tc as { index?: number }).index ?? 0;
-          if (completedToolCallIndices.has(idx)) continue;
+        const choice = chunk.choices?.[0];
+        receivedAnyOutput = true;
 
-          const buf = toolCallBuffers.get(idx) ?? { args: "" };
-          if (tc.id && typeof tc.id === "string") buf.id = tc.id;
-          const func = tc.function;
-          if (func?.name && typeof func.name === "string") buf.name = func.name;
-          if (typeof func?.arguments === "string") buf.args += func.arguments;
-          toolCallBuffers.set(idx, buf);
+        if (choice?.delta?.content) {
+          handleTextDelta(choice.delta.content);
+        }
 
-          if (buf.args.trim().length === 0) continue;
+        if (choice?.delta?.reasoning_content) {
+          reasoningContent += choice.delta.reasoning_content;
+        }
 
-          // Skip JSON.parse if braces/brackets aren't balanced yet (incomplete JSON)
-          if (buf.args && !isBalancedBraces(buf.args)) continue;
+        if (choice?.delta?.tool_calls) {
+          sawToolCall = true;
+          for (const tc of choice.delta.tool_calls) {
+            const idx = (tc as { index?: number }).index ?? 0;
+            if (completedToolCallIndices.has(idx)) continue;
 
-          try {
-            const schema = toolSchemas.get(buf.name ?? "");
-            const args = repairToolArguments(
-              buf.name ?? "",
-              buf.args ? JSON.parse(buf.args) : {},
-              requestContext,
-              schema,
-            );
-            if (
-              buf.id &&
-              buf.name &&
-              isToolCallInput(args) &&
-              hasRequiredToolArguments(args, schema)
-            ) {
-              const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
-              if (emittedTextToolCallKeys.has(canonicalKey)) {
+            const buf = toolCallBuffers.get(idx) ?? { args: "" };
+            if (tc.id && typeof tc.id === "string") buf.id = tc.id;
+            const func = tc.function;
+            if (func?.name && typeof func.name === "string") buf.name = func.name;
+            if (typeof func?.arguments === "string") buf.args += func.arguments;
+            toolCallBuffers.set(idx, buf);
+
+            if (buf.args.trim().length === 0) continue;
+
+            if (buf.args && !isBalancedBraces(buf.args)) continue;
+
+            try {
+              const schema = toolSchemas.get(buf.name ?? "");
+              const args = repairToolArguments(
+                buf.name ?? "",
+                buf.args ? JSON.parse(buf.args) : {},
+                requestContext,
+                schema,
+              );
+              if (
+                buf.id &&
+                buf.name &&
+                isToolCallInput(args) &&
+                hasRequiredToolArguments(args, schema)
+              ) {
+                const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
+                if (emittedTextToolCallKeys.has(canonicalKey)) {
+                  completedToolCallIndices.add(idx);
+                  toolCallBuffers.delete(idx);
+                  continue;
+                }
+                flushPendingText();
+                progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
+                emittedToolCall = true;
+                emittedTextToolCallKeys.add(canonicalKey);
                 completedToolCallIndices.add(idx);
                 toolCallBuffers.delete(idx);
-                continue;
+              } else if (buf.id && buf.name) {
+                skippedToolCalls.push({
+                  name: buf.name,
+                  required: schema?.required ?? [],
+                  missing: getMissingRequiredToolArguments(args, schema),
+                });
+                debugLog("Skipped invalid tool call", {
+                  id: buf.id,
+                  name: buf.name,
+                  args,
+                });
+                completedToolCallIndices.add(idx);
+                toolCallBuffers.delete(idx);
               }
-              flushPendingText();
-              progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
-              emittedToolCall = true;
-              emittedTextToolCallKeys.add(canonicalKey);
-              completedToolCallIndices.add(idx);
-              toolCallBuffers.delete(idx);
-            } else if (buf.id && buf.name) {
-              skippedToolCalls.push({
-                name: buf.name,
-                required: schema?.required ?? [],
-                missing: getMissingRequiredToolArguments(args, schema),
-              });
-              debugLog("Skipped invalid tool call", {
-                id: buf.id,
-                name: buf.name,
-                args,
-              });
-              completedToolCallIndices.add(idx);
-              toolCallBuffers.delete(idx);
+            } catch {
+              debugLog(
+                "processOpenAIStream",
+                "Failed to parse tool call JSON, waiting for next chunk",
+              );
             }
-          } catch {
-            debugLog(
-              "processOpenAIStream",
-              "Failed to parse tool call JSON, waiting for next chunk",
-            );
           }
         }
       }
-    }
 
-    // Flush remaining buffered tool calls at stream end
-    for (const [idx, buf] of Array.from(toolCallBuffers.entries())) {
-      if (completedToolCallIndices.has(idx)) continue;
-      try {
-        const schema = toolSchemas.get(buf.name ?? "");
-        const args = repairToolArguments(
-          buf.name ?? "",
-          buf.args ? JSON.parse(buf.args) : {},
-          requestContext,
-          schema,
-        );
-        if (buf.id && buf.name && isToolCallInput(args) && hasRequiredToolArguments(args, schema)) {
-          const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
-          if (emittedTextToolCallKeys.has(canonicalKey)) continue;
-          flushPendingText();
-          progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
-          emittedToolCall = true;
-          emittedTextToolCallKeys.add(canonicalKey);
-        } else if (buf.id && buf.name) {
-          skippedToolCalls.push({
-            name: buf.name,
-            required: schema?.required ?? [],
-            missing: getMissingRequiredToolArguments(args, schema),
-          });
-          debugLog("Skipped invalid tool call at stream end", {
-            id: buf.id,
-            name: buf.name,
-            args,
-          });
+      // Stream completed normally
+      // Flush remaining buffered tool calls
+      for (const [idx, buf] of Array.from(toolCallBuffers.entries())) {
+        if (completedToolCallIndices.has(idx)) continue;
+        try {
+          const schema = toolSchemas.get(buf.name ?? "");
+          const args = repairToolArguments(
+            buf.name ?? "",
+            buf.args ? JSON.parse(buf.args) : {},
+            requestContext,
+            schema,
+          );
+          if (buf.id && buf.name && isToolCallInput(args) && hasRequiredToolArguments(args, schema)) {
+            const canonicalKey = buildToolCallCanonicalKeyCached(buf.name, args);
+            if (emittedTextToolCallKeys.has(canonicalKey)) continue;
+            flushPendingText();
+            progress.report(new vscode.LanguageModelToolCallPart(buf.id, buf.name, args));
+            emittedToolCall = true;
+            emittedTextToolCallKeys.add(canonicalKey);
+          } else if (buf.id && buf.name) {
+            skippedToolCalls.push({
+              name: buf.name,
+              required: schema?.required ?? [],
+              missing: getMissingRequiredToolArguments(args, schema),
+            });
+          }
+        } catch {
+          debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
         }
-      } catch {
-        debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
       }
-    }
 
-    if (pendingTextEmbeddedContent) {
-      pendingText += pendingTextEmbeddedContent;
-    }
-
-    if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {
-      flushPendingText();
-    }
-
-    if (sawToolCall && !emittedToolCall) {
-      const fallbackText = buildInvalidToolCallFallback(skippedToolCalls);
-      if (fallbackText) {
-        progress.report(new vscode.LanguageModelTextPart(fallbackText));
+      if (pendingTextEmbeddedContent) {
+        pendingText += pendingTextEmbeddedContent;
       }
+
+      if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {
+        flushPendingText();
+      }
+
+      // Mid-response stop detection: model generated tool calls but didn't complete them
+      if (!emittedToolCall && sawToolCall && toolCallBuffers.size > 0 && attempt + 1 < maxRetries) {
+        debugLog("processOpenAIStream", `Mid-response stop detected (attempt ${attempt + 1}/${maxRetries}), retrying...`);
+        snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
+        continue;
+      }
+
+      if (sawToolCall && !emittedToolCall) {
+        const fallbackText = buildInvalidToolCallFallback(skippedToolCalls);
+        if (fallbackText) {
+          progress.report(new vscode.LanguageModelTextPart(fallbackText));
+        }
+      }
+
+      return; // Success — exit retry loop
+    } catch (err) {
+      lastError = err;
+      if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
+        throw new vscode.CancellationError();
+      }
+      // Retry on stream errors if we haven't exceeded max retries
+      if (receivedAnyOutput && attempt + 1 < maxRetries) {
+        debugLog("processOpenAIStream", `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`);
+        snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
+        continue;
+      }
+      throw err;
     }
-  } catch (err) {
-    if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
-      throw new vscode.CancellationError();
-    }
-    throw err;
   }
+
+  throw lastError ?? new Error("OpenAI stream failed after all retries");
 }

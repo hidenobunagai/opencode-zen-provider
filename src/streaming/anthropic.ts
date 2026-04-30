@@ -2,7 +2,7 @@
 import * as vscode from "vscode";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, resolveApiEndpoint } from "../api";
-import { REASONING_MODEL_IDS } from "../constants";
+import { MAX_STREAM_RETRIES, REASONING_MODEL_IDS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import type { ZenModelInfo } from "../model-catalog";
 import { convertTools } from "../openai-conversion";
@@ -129,34 +129,94 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   });
 
   const endpoint = resolveApiEndpoint("messages");
-  const response = await fetchWithRetry(
-    endpoint,
-    {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-        "User-Agent": userAgent,
+
+  const toolSchemas = getToolSchemaMap(options);
+  const requestContext = extractChatRequestContext(messages);
+
+  /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
+  let snapshotEmittedKeys = getCompletedToolCallKeys(messages, requestContext, toolSchemas);
+  const maxRetries = MAX_STREAM_RETRIES;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (token.isCancellationRequested) throw new vscode.CancellationError();
+
+    if (attempt > 0) {
+      debugLog("handleAnthropicRequest", `Retry attempt ${attempt + 1}/${maxRetries}`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    const response = await fetchWithRetry(
+      endpoint,
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+          "User-Agent": userAgent,
+        },
+        signal: abortController.signal,
+        body: JSON.stringify(requestBody),
       },
-      signal: abortController.signal,
-      body: JSON.stringify(requestBody),
-    },
-    5,
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `OpenCode Zen Anthropic API error: ${response.status} ${response.statusText}\n${errorText}`,
+      5,
     );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `OpenCode Zen Anthropic API error: ${response.status} ${response.statusText}\n${errorText}`,
+      );
+    }
+
+    if (!response.body) {
+      throw new Error("No response body from Anthropic API");
+    }
+
+    try {
+      const result = await processAnthropicStreamingResponse(
+        response.body,
+        progress,
+        token,
+        messages,
+        options,
+        snapshotEmittedKeys,
+      );
+
+      if (result.needsRetry && attempt + 1 < maxRetries) {
+        snapshotEmittedKeys = result.emittedKeys;
+        continue;
+      }
+
+      if (result.didStop) {
+        const fallbackText = buildInvalidToolCallFallback(result.skippedToolCalls);
+        if (fallbackText) {
+          progress.report(new vscode.LanguageModelTextPart(fallbackText));
+        }
+      }
+
+      return; // Success
+    } catch (err) {
+      lastError = err;
+      if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
+        throw new vscode.CancellationError();
+      }
+      if (attempt + 1 < maxRetries) {
+        debugLog("handleAnthropicRequest", `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`);
+        continue;
+      }
+      throw err;
+    }
   }
 
-  if (!response.body) {
-    throw new Error("No response body from Anthropic API");
-  }
+  throw lastError ?? new Error("Anthropic request failed after all retries");
+}
 
-  await processAnthropicStreamingResponse(response.body, progress, token, messages, options);
+interface StreamingResult {
+  needsRetry: boolean;
+  didStop: boolean;
+  emittedKeys: Set<string>;
+  skippedToolCalls: SkippedToolCall[];
 }
 
 async function processAnthropicStreamingResponse(
@@ -165,24 +225,21 @@ async function processAnthropicStreamingResponse(
   token: vscode.CancellationToken,
   messages: readonly vscode.LanguageModelChatMessage[],
   options: vscode.ProvideLanguageModelChatResponseOptions,
-): Promise<void> {
+  snapshotEmittedKeys: Set<string>,
+): Promise<StreamingResult> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  // Tool call state for native Anthropic content_block events
   const activeToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
-  // Tool call state for OpenAI-format events (e.g. DeepSeek routed via /messages endpoint)
-  // Kept separate to avoid index collisions with native Anthropic content_block indices
   const activeOpenAiToolCalls = new Map<number, { id: string; name: string; inputJson: string }>();
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(messages);
   const skippedToolCalls: SkippedToolCall[] = [];
-  const emittedTextToolCallKeys = getCompletedToolCallKeys(messages, requestContext, toolSchemas);
+  const emittedTextToolCallKeys = new Set(snapshotEmittedKeys);
   let pendingTextEmbeddedContent = "";
   let pendingText = "";
   let sawToolCall = false;
   let emittedToolCall = false;
-  /** Accumulated reasoning/thinking content for models that emit it (e.g. MiniMax with extended thinking) */
   let reasoningContent = "";
 
   const flushPendingText = (): void => {
@@ -283,7 +340,6 @@ async function processAnthropicStreamingResponse(
               const toolName = cb.name ?? "unknown_tool";
               activeToolCalls.set(idx, { id: toolId, name: toolName, inputJson: "" });
             }
-            // thinking content blocks are accumulated silently via thinking_delta events
             break;
           }
 
@@ -406,19 +462,27 @@ async function processAnthropicStreamingResponse(
       flushPendingText();
     }
 
-    if (sawToolCall && !emittedToolCall) {
-      const fallbackText = buildInvalidToolCallFallback(skippedToolCalls);
-      if (fallbackText) {
-        progress.report(new vscode.LanguageModelTextPart(fallbackText));
-      }
-    }
-
     if (reasoningContent) {
       debugLog("processAnthropicStreamingResponse", {
         reasoning_length: reasoningContent.length,
         reasoning_preview: reasoningContent.slice(0, 200),
       });
     }
+
+    const didStop = sawToolCall && !emittedToolCall;
+    const needsRetry = didStop && activeToolCalls.size > 0;
+
+    return {
+      needsRetry,
+      didStop,
+      emittedKeys: emittedTextToolCallKeys,
+      skippedToolCalls: didStop ? skippedToolCalls : [],
+    };
+  } catch (err) {
+    if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
+      throw new vscode.CancellationError();
+    }
+    throw err;
   } finally {
     reader.releaseLock();
   }
