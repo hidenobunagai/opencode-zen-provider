@@ -497,10 +497,10 @@ describe("ZenChatModelProvider", () => {
 
     expect(systemMessages).toHaveLength(1);
     expect(systemMessages[0].content).toContain(
-      "For read_file, always provide filePath and the required line range fields from the available editor context before calling the tool.",
+      "For read_file, always provide filePath and required line range fields from the available context.",
     );
     expect(systemMessages[0].content).toContain(
-      "If you do not know the file path or line range, ask for clarification instead of emitting an empty read_file call.",
+      "If unknown, ask instead of emitting an empty call.",
     );
   });
 

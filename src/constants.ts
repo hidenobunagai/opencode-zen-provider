@@ -3,9 +3,9 @@ import { version } from "../package.json";
 export const BASE_URL = "https://opencode.ai/zen/v1";
 export const EXTENSION_VERSION: string = version;
 
-/** Safety margin ratio for context window calculations (3% of context window) */
-export const CONTEXT_WINDOW_SAFETY_MARGIN_RATIO = 0.03;
-export const CONTEXT_WINDOW_SAFETY_MARGIN_MIN = 1024;
+/** Safety margin ratio for context window calculations (1% of context window) */
+export const CONTEXT_WINDOW_SAFETY_MARGIN_RATIO = 0.01;
+export const CONTEXT_WINDOW_SAFETY_MARGIN_MIN = 2048;
 export const CONTEXT_WINDOW_SAFETY_MARGIN_MAX = 8192;
 
 export function calculateSafetyMargin(contextWindow: number): number {
@@ -58,3 +58,7 @@ export const CJK_CHARS_PER_TOKEN = 0.8;
  * These models must be called WITHOUT max_tokens — they self-regulate output.
  */
 export const REASONING_MODEL_IDS = new Set(["kimi-k2.6"]);
+/** Minimum output token budget for reasoning/thinking models when max_tokens is omitted.
+ * This is used as a safety floor in context window calculations to ensure
+ * the model has enough headroom after input tokens. */
+export const REASONING_MODEL_MIN_OUTPUT_BUDGET = 16384;

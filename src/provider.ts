@@ -12,7 +12,12 @@ import {
   Progress,
   ProvideLanguageModelChatResponseOptions,
 } from "vscode";
-import { calculateSafetyMargin, DEFAULT_MAX_OUTPUT_TOKENS } from "./constants";
+import {
+  calculateSafetyMargin,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  REASONING_MODEL_IDS,
+  REASONING_MODEL_MIN_OUTPUT_BUDGET,
+} from "./constants";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
@@ -132,6 +137,12 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         supportsTools: true,
         supportsVision: false,
       };
+      const isReasoning = REASONING_MODEL_IDS.has(model.id);
+      // Reasoning/thinking models need a guaranteed output headroom so they
+      // don't exhaust the context window on internal reasoning tokens.
+      const effectiveOutputBudget = isReasoning
+        ? Math.max(info.maxOutput, REASONING_MODEL_MIN_OUTPUT_BUDGET)
+        : Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS);
       return {
         id: info.id,
         name: info.displayName,
@@ -139,10 +150,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         tooltip: `OpenCode Zen ${info.name}`,
         family: "opencode-zen",
         version: "1.0.0",
-        maxInputTokens: Math.max(
-          1,
-          info.contextWindow - Math.min(info.maxOutput, DEFAULT_MAX_OUTPUT_TOKENS),
-        ),
+        maxInputTokens: Math.max(1, info.contextWindow - effectiveOutputBudget),
         maxOutputTokens: info.maxOutput,
         capabilities: {
           toolCalling: 128,

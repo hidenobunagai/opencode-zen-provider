@@ -24,6 +24,7 @@ type TiktokenModule = {
 };
 
 let cachedTiktokenModule: TiktokenModule | null | undefined;
+let cachedEncoding: Encoding | null | undefined;
 
 function getTiktokenModule(): TiktokenModule | null {
   if (cachedTiktokenModule !== undefined) {
@@ -38,6 +39,18 @@ function getTiktokenModule(): TiktokenModule | null {
   }
 
   return cachedTiktokenModule;
+}
+
+/**
+ * Get a cached tiktoken encoding. Reuses the same encoding across all calls
+ * instead of creating/freeing one per estimateTokens() invocation.
+ */
+function getCachedEncoding(model: string): Encoding | null {
+  if (cachedEncoding) return cachedEncoding;
+  const tiktoken = getTiktokenModule();
+  if (!tiktoken) return null;
+  cachedEncoding = tiktoken.encoding_for_model(model);
+  return cachedEncoding;
 }
 
 function getModelCharsPerToken(modelId?: string): number {
@@ -78,15 +91,12 @@ export function estimateTokens(text: string, modelId?: string): number {
     return Math.ceil(text.length / getModelCharsPerToken(modelId));
   }
   try {
-    const tiktoken = getTiktokenModule();
-    if (!tiktoken) {
-      throw new Error("@dqbd/tiktoken unavailable");
-    }
     const tiktokenModel = getTiktokenModelForModelId(modelId);
-    const encoding = tiktoken.encoding_for_model(tiktokenModel);
-    const tokens = encoding.encode(text).length;
-    encoding.free();
-    return tokens;
+    const encoding = getCachedEncoding(tiktokenModel);
+    if (!encoding) {
+      return Math.ceil(text.length / getModelCharsPerToken(modelId));
+    }
+    return encoding.encode(text).length;
   } catch {
     return Math.ceil(text.length / getModelCharsPerToken(modelId));
   }
@@ -111,4 +121,12 @@ export function estimateMessagesTokens(
     }
   }
   return total;
+}
+
+/** Release the cached tiktoken encoding. Call on extension deactivation. */
+export function releaseCachedEncoding(): void {
+  if (cachedEncoding) {
+    cachedEncoding.free();
+    cachedEncoding = undefined;
+  }
 }
