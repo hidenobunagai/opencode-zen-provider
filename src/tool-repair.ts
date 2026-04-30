@@ -14,6 +14,12 @@ interface ChatRequestContext {
   userRequest?: string;
 }
 
+// --- Pre-compiled regex patterns (module-level, compiled once) ---
+const RE_FILE_PATH = /The user's current file is\s+([^\n]+?)\.(?:\s|$)/;
+const RE_SELECTION = /The current selection is from line\s+(\d+)\s+to line\s+(\d+)/;
+const RE_CWD = /(?:^|\n)Cwd:\s+([^\n]+)/;
+const RE_USER_REQUEST = /<userRequest>\s*([\s\S]*?)\s*<\/userRequest>/i;
+
 function inferRunSubagentAgentName(text: string | undefined): string | undefined {
   if (!text) return undefined;
 
@@ -160,15 +166,19 @@ export function buildInvalidToolCallFallback(
 export function extractChatRequestContext(
   messages: readonly vscode.LanguageModelChatMessage[],
 ): ChatRequestContext | undefined {
-  const filePattern = /The user's current file is\s+([^\n]+?)\.(?:\s|$)/;
-  const selectionPattern = /The current selection is from line\s+(\d+)\s+to line\s+(\d+)/;
-  const cwdPattern = /(?:^|\n)Cwd:\s+([^\n]+)/;
-  const userRequestPattern = /<userRequest>\s*([\s\S]*?)\s*<\/userRequest>/i;
   const context: ChatRequestContext = {};
+  // Track which fields we've found to enable early exit
+  let foundFile = false;
+  let foundCwd = false;
+  let foundUserRequest = false;
+  let foundSelection = false;
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i];
     for (const part of message.content) {
+      // Early exit: all 4 fields collected
+      if (foundFile && foundCwd && foundUserRequest && foundSelection) break;
+
       const text =
         part instanceof vscode.LanguageModelTextPart
           ? part.value
@@ -180,16 +190,23 @@ export function extractChatRequestContext(
             : undefined;
       if (!text) continue;
 
-      const fileMatch = text.match(filePattern);
-      const selectionMatch = text.match(selectionPattern);
-      const cwdMatch = text.match(cwdPattern);
-      const userRequestMatch = text.match(userRequestPattern);
+      const fileMatch = !foundFile ? text.match(RE_FILE_PATH) : undefined;
+      const selectionMatch = !foundSelection ? text.match(RE_SELECTION) : undefined;
+      const cwdMatch = !foundCwd ? text.match(RE_CWD) : undefined;
+      const userRequestMatch = !foundUserRequest ? text.match(RE_USER_REQUEST) : undefined;
 
-      if (fileMatch && !context.filePath) context.filePath = fileMatch[1].trim();
-      if (cwdMatch && !context.cwd) context.cwd = cwdMatch[1].trim();
-      if (!context.userRequest) {
+      if (fileMatch && !foundFile) {
+        foundFile = true;
+        context.filePath = fileMatch[1].trim();
+      }
+      if (cwdMatch && !foundCwd) {
+        foundCwd = true;
+        context.cwd = cwdMatch[1].trim();
+      }
+      if (!foundUserRequest) {
         const explicitUserRequest = userRequestMatch?.[1]?.trim();
         if (explicitUserRequest) {
+          foundUserRequest = true;
           context.userRequest = explicitUserRequest;
         } else {
           const trimmedText = text.trim();
@@ -198,27 +215,23 @@ export function extractChatRequestContext(
             !trimmedText.includes("<attachments>") &&
             !trimmedText.includes("<context>")
           ) {
+            foundUserRequest = true;
             context.userRequest = trimmedText;
           }
         }
       }
-      if (selectionMatch && context.startLine === undefined && context.endLine === undefined) {
+      if (selectionMatch && !foundSelection) {
         const startLine = Number(selectionMatch[1]);
         const endLine = Number(selectionMatch[2]);
         if (Number.isFinite(startLine) && Number.isFinite(endLine)) {
+          foundSelection = true;
           context.startLine = startLine;
           context.endLine = endLine;
         }
       }
-      if (
-        context.filePath &&
-        context.cwd &&
-        context.userRequest &&
-        context.startLine !== undefined &&
-        context.endLine !== undefined
-      )
-        break;
     }
+    // Early exit: all 4 fields collected
+    if (foundFile && foundCwd && foundUserRequest && foundSelection) break;
   }
 
   return context.filePath ||
