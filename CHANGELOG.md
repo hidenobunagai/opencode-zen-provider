@@ -1,5 +1,24 @@
 # Change Log
 
+## [0.1.35] - 2026-04-30
+
+### Performance
+
+- Pre-compiled 4 regex patterns at module level in `tool-repair.ts` with early-exit booleans to skip redundant context extraction.
+- Added balanced-braces preflight check before JSON.parse in OpenAI streaming tool call assembly, eliminating parse exceptions on incomplete arguments.
+- Replaced per-character regex whitespace skip in `tool-parser.ts` with single `slice().match(/^\s*/)`.
+- Replaced 9 separate `indexOf()` token searches in `tool-parser.ts` with a single pre-compiled regex pass (`RE_START_TOKENS`).
+- Pre-compiled regex patterns (`RE_BASE64`, `RE_CONTROL_CHARS`) and reused `TextDecoder` singleton in `message-parts.ts`.
+- Added WeakMap-based canonical tool call key cache in `tool-repair.ts` to avoid repeated `JSON.stringify` during deduplication.
+- Skipped tiktoken for CJK-prefixed models (kimi, qwen, glm, hy3, ling) — char-based fallback is more accurate and faster.
+
+### Added
+
+- Image token estimation (1000 tokens/image) in `estimateMessagesTokens()` for more accurate context window accounting.
+- SSE streaming 60-second timeout with `clearTimeout` cleanup to prevent indefinite hangs when the server stops sending data.
+- Identity and tool-use grounding guidance now applied to ALL models, not just DeepSeek.
+- Schema-enriched tool descriptions also applied to Anthropic API format.
+
 ## [0.1.34] - 2026-04-29
 
 ### Changed
