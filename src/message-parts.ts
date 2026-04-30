@@ -1,6 +1,13 @@
 import * as vscode from "vscode";
 import { debugLog } from "./output-channel";
 
+// --- Pre-compiled regex patterns ---
+const RE_BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+const RE_CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/;
+
+// --- Shared TextDecoder (reused to avoid per-call allocation) ---
+const textDecoder = new TextDecoder();
+
 export interface LegacyPart {
   type?: string;
   mimeType?: string;
@@ -34,13 +41,13 @@ function toUint8Array(
       options?.allowBase64String &&
       trimmed.length > 0 &&
       trimmed.length % 4 === 0 &&
-      /^[A-Za-z0-9+/]+={0,2}$/.test(trimmed)
+      RE_BASE64.test(trimmed)
     ) {
       const decoded = Buffer.from(trimmed, "base64");
       if (decoded.length > 0) {
         try {
-          const text = new TextDecoder().decode(decoded);
-          if (!text.includes("\uFFFD") && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text)) {
+          const text = textDecoder.decode(decoded);
+          if (!text.includes("\uFFFD") && !RE_CONTROL_CHARS.test(text)) {
             return decoded;
           }
         } catch {
@@ -108,7 +115,7 @@ export function getDataPartTextValue(
     return undefined;
   }
   try {
-    return new TextDecoder().decode(bytes);
+    return textDecoder.decode(bytes);
   } catch {
     return undefined;
   }
