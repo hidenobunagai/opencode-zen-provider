@@ -108,9 +108,15 @@ export async function processOpenAIStream(
     stream: true,
     temperature: temperatureVal,
   };
-  // Reasoning/thinking models must NOT receive max_tokens — they consume
-  // the entire budget on internal reasoning, leaving zero visible output.
-  if (!isReasoningModel) {
+  // Reasoning/thinking models receive the full declared maxOutput budget
+  // (e.g. 262144 for Kimi K2.6) instead of the DEFAULT_MAX_OUTPUT_TOKENS cap.
+  // If we omit max_tokens entirely, the model may consume its entire budget on
+  // internal reasoning, leaving zero visible output. If we clamp to 65536, the
+  // model hits the limit mid-response. Using the full declared budget gives the
+  // model headroom for both reasoning and visible text.
+  if (isReasoningModel) {
+    requestBody.max_tokens = model.maxOutputTokens;
+  } else {
     requestBody.max_tokens = requestedMaxTokens;
   }
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
@@ -127,9 +133,8 @@ export async function processOpenAIStream(
   /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
   let snapshotEmittedKeys = getCompletedToolCallKeys(apiMessages, requestContext, toolSchemas);
 
-  // Reasoning/thinking models self-regulate output budget via the API.
-  // Retrying is pointless: we can't increase max_tokens (we omit it),
-  // and the model will repeat the same self-regulated stop.
+  // Reasoning/thinking models self-regulate output budget via the API
+  // even with max_tokens set. Retrying is unlikely to change the outcome.
   const maxRetries = isReasoningModel ? 1 : MAX_STREAM_RETRIES;
   let lastError: unknown;
 
@@ -356,6 +361,21 @@ export async function processOpenAIStream(
         if (fallbackText) {
           progress.report(new vscode.LanguageModelTextPart(fallbackText));
         }
+      }
+
+      // Reasoning model produced internal thinking but no visible output.
+      // Emit the reasoning content so the user can see what the model thought.
+      if (
+        !receivedAnyOutput ||
+        (reasoningContent && !pendingText && !emittedToolCall && !sawToolCall)
+      ) {
+        progress.report(
+          new vscode.LanguageModelTextPart(
+            "The model completed internal reasoning but produced no visible response. " +
+              "This may indicate the model self-regulated its output budget on reasoning. " +
+              "Try rephrasing your request or switching to a non-reasoning model.",
+          ),
+        );
       }
 
       return; // Success — exit retry loop

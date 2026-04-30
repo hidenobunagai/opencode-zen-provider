@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.37] - 2026-05-01
+
+### Fixed
+
+- Restored `max_tokens` for reasoning/thinking models using the full declared `maxOutput` budget (e.g. 262144 for Kimi K2.6) instead of the 65536 default cap. The v0.1.36 approach of omitting `max_tokens` entirely caused reasoning models to consume their entire output budget on internal thinking, leaving zero visible text in the response.
+- Added a user-visible fallback message when a reasoning model produces internal thinking but no visible output.
+
 ## [0.1.36] - 2026-04-30
 
 ### Fixed
