@@ -23,6 +23,33 @@ import {
 } from "../tool-repair";
 import { ZenChatRequest } from "../types";
 
+/** Check if a JSON string has balanced braces/brackets (optimistic preflight before JSON.parse) */
+function isBalancedBraces(json: string): boolean {
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\" && inString) {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{" || ch === "[") depth++;
+    if (ch === "}" || ch === "]") depth--;
+    if (depth < 0) return false; // Unmatched close
+  }
+  return depth === 0 && !inString;
+}
+
 export interface OpenAIModelInfo {
   id: string;
   modelInfo?: ZenModelInfo;
@@ -205,6 +232,9 @@ export async function processOpenAIStream(
           toolCallBuffers.set(idx, buf);
 
           if (buf.args.trim().length === 0) continue;
+
+          // Skip JSON.parse if braces/brackets aren't balanced yet (incomplete JSON)
+          if (buf.args && !isBalancedBraces(buf.args)) continue;
 
           try {
             const schema = toolSchemas.get(buf.name ?? "");
