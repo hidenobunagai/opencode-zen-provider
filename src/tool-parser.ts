@@ -6,7 +6,6 @@ const RE_JSON_PRIMITIVE = /^(?:true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)
 const RE_XML_ATTRIBUTE = /\b([A-Za-z_][\w-]*)\s*=\s*"([^"]*)"/g;
 const RE_LOOSE_XML_TAG = /<([A-Za-z_][\w-]*)"?>([\s\S]*?)<\/\1>/g;
 const RE_TOOL_SEP_TOKEN = /<(arg_key|arg_value)>([\s\S]*?)<\/(?:arg_key|arg_value)>/g;
-const RE_WS_CHAR = /\s/;
 const RE_TOOL_PARAMETER = /<tool_parameter\s+name="([^"]+)">([\s\S]*?)<\/tool_parameter>/g;
 const RE_TOOL_CALLS_END = /^\s*<\/tool_calls>/;
 const RE_OPENING_FENCE = /^```(?:json)?\r?\n/i;
@@ -136,12 +135,9 @@ function extractToolSepStyleParameters(text: string): Record<string, unknown> {
 }
 
 function skipWhitespace(text: string, cursor: number): number {
-  RE_WS_CHAR.lastIndex = cursor;
-  let nextCursor = cursor;
-  while (nextCursor < text.length && RE_WS_CHAR.test(text[nextCursor])) {
-    nextCursor += 1;
-  }
-  return nextCursor;
+  const slice = text.slice(cursor);
+  const match = slice.match(/^\s*/);
+  return cursor + (match ? match[0].length : 0);
 }
 
 function findEarliestTokenIndex(text: string, start: number, tokens: readonly string[]): number {
@@ -395,9 +391,8 @@ export function parseXmlStyleToolCall(text: string): ParsedXmlStyleToolCallResul
   if (text.startsWith(toolCallsStartToken)) {
     wrapped = true;
     cursor = toolCallsStartToken.length;
-    while (cursor < text.length && RE_WS_CHAR.test(text[cursor])) {
-      cursor += 1;
-    }
+    const wsMatch = text.slice(cursor).match(/^\s*/);
+    cursor += wsMatch ? wsMatch[0].length : 0;
   }
 
   const singleToolCall = parseSingleXmlStyleToolCall(text.slice(cursor));
