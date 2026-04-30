@@ -1,7 +1,7 @@
 // guidance.ts — system prompt sanitization, identity & tool-use grounding guidance
-import { ZenChatMessage } from "./types";
 import { ProvideLanguageModelChatResponseOptions } from "vscode";
 import type { ZenModelInfo } from "./model-catalog";
+import { ZenChatMessage } from "./types";
 
 export function sanitizeSystemPromptForModel(
   system: string | undefined,
@@ -58,14 +58,9 @@ export function applyOpenAiSystemPromptGuidance(
   zenModels?: readonly ZenModelInfo[],
 ): ZenChatMessage[] {
   const hasTools = (options.tools?.length ?? 0) > 0;
-  if (!hasTools && !modelId.startsWith("deepseek-")) {
-    return apiMessages;
-  }
 
   const guidance = [
-    modelId.startsWith("deepseek-")
-      ? buildProviderIdentityGuidance(modelId, zenModels ?? [])
-      : undefined,
+    buildProviderIdentityGuidance(modelId, zenModels ?? []),
     hasTools ? buildToolUseGroundingGuidance(options) : undefined,
   ]
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
