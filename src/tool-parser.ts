@@ -14,6 +14,9 @@ const RE_COMPACT_TOOL_NAME = /^\s*([^\s<>="'\/]+)/;
 const RE_XML_NAME_ATTR = /\bname\s*=\s*"([^"]+)"/;
 const RE_COMPACT_INNER = /^\s*([^\s<>="'\/]+)([\s\S]*)$/;
 
+// Combined regex to find the earliest start token in a single pass
+const RE_START_TOKENS = /<\|tool_call_begin\|>|<tool_calls?>|<tool_call\s|```json|```\r?\n[\{\[]/;
+
 // --- Types ---
 interface ParsedTextToolCall {
   name: string;
@@ -523,23 +526,18 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
   };
 
   while (remaining.length > 0) {
-    const candidateStarts = [
-      { kind: "legacy" as const, index: remaining.indexOf(beginToken) },
-      ...xmlStartTokens.map((token) => ({ kind: "xml" as const, index: remaining.indexOf(token) })),
-      ...jsonStartTokens.map((token) => ({
-        kind: "json" as const,
-        index: remaining.indexOf(token),
-      })),
-    ].filter((candidate) => candidate.index !== -1);
+    // Single regex pass to find the earliest start token
+    const tokenMatch = RE_START_TOKENS.exec(remaining);
+    const nextStartIndex = tokenMatch ? tokenMatch.index : -1;
+    let nextStartKind: "legacy" | "xml" | "json" | undefined;
+    if (tokenMatch) {
+      const m = tokenMatch[0];
+      if (m === beginToken) nextStartKind = "legacy";
+      else if (m.startsWith("<tool_call")) nextStartKind = "xml";
+      else nextStartKind = "json";
+    }
 
-    const nextStart = candidateStarts.reduce<
-      { kind: "legacy" | "xml" | "json"; index: number } | undefined
-    >((earliest, candidate) => {
-      if (!earliest || candidate.index < earliest.index) return candidate;
-      return earliest;
-    }, undefined);
-
-    if (!nextStart) {
+    if (nextStartKind === undefined) {
       const partialStart = findTrailingTokenPrefixStartAny(remaining, [
         beginToken,
         ...xmlStartTokens,
@@ -554,10 +552,10 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
       break;
     }
 
-    appendText(remaining.slice(0, nextStart.index));
-    remaining = remaining.slice(nextStart.index);
+    appendText(remaining.slice(0, nextStartIndex));
+    remaining = remaining.slice(nextStartIndex);
 
-    if (nextStart.kind === "xml") {
+    if (nextStartKind === "xml") {
       const xmlToolCall = parseXmlStyleToolCall(remaining);
       if (xmlToolCall.incomplete) {
         incompleteText = remaining;
@@ -576,7 +574,7 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
       continue;
     }
 
-    if (nextStart.kind === "json") {
+    if (nextStartKind === "json") {
       const jsonToolCall = parseJsonStyleToolCall(remaining);
       if (jsonToolCall.incomplete) {
         incompleteText = remaining;
@@ -593,27 +591,29 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
       continue;
     }
 
-    remaining = remaining.slice(beginToken.length);
-    const argBeginIndex = remaining.indexOf(argBeginToken);
-    const endIndex = remaining.indexOf(endToken);
-    if (argBeginIndex === -1 || endIndex === -1 || argBeginIndex > endIndex) {
-      incompleteText = beginToken + remaining;
-      break;
-    }
+    if (nextStartKind === "legacy") {
+      remaining = remaining.slice(beginToken.length);
+      const argBeginIndex = remaining.indexOf(argBeginToken);
+      const endIndex = remaining.indexOf(endToken);
+      if (argBeginIndex === -1 || endIndex === -1 || argBeginIndex > endIndex) {
+        incompleteText = beginToken + remaining;
+        break;
+      }
 
-    const name = remaining.slice(0, argBeginIndex).trim();
-    const argsText = remaining.slice(argBeginIndex + argBeginToken.length, endIndex).trim();
-    remaining = remaining.slice(endIndex + endToken.length);
+      const name = remaining.slice(0, argBeginIndex).trim();
+      const argsText = remaining.slice(argBeginIndex + argBeginToken.length, endIndex).trim();
+      remaining = remaining.slice(endIndex + endToken.length);
 
-    if (!name) continue;
+      if (!name) continue;
 
-    try {
-      segments.push({
-        type: "toolCall",
-        toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
-      });
-    } catch {
-      appendText(`${beginToken}${name}${argBeginToken}${argsText}${endToken}`);
+      try {
+        segments.push({
+          type: "toolCall",
+          toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
+        });
+      } catch {
+        appendText(`${beginToken}${name}${argBeginToken}${argsText}${endToken}`);
+      }
     }
   }
 
