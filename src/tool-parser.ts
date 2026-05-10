@@ -620,4 +620,171 @@ export function parseTextEmbeddedToolCalls(text: string): ParsedTextToolCallResu
   return { segments, incompleteText };
 }
 
+// ---------------------------------------------------------------------------
+// Stateful scanner for streaming text-embedded tool calls.
+// Avoids re-scanning the entire accumulated buffer on every text delta.
+// Each delta is processed incrementally — incomplete content is kept in an
+// internal buffer and retried when the next delta arrives.
+// ---------------------------------------------------------------------------
+
+export class ToolCallScanner {
+  private readonly beginToken = "<|tool_call_begin|>";
+  private readonly argBeginToken = "<|tool_call_argument_begin|>";
+  private readonly endToken = "<|tool_call_end|>";
+  private readonly xmlStartTokens = ["<tool_calls>", "<tool_call ", "<tool_call>"] as const;
+  private readonly jsonStartFragments = [
+    "```json",
+    "```\n[",
+    "```\n{",
+    "```\r\n[",
+    "```\r\n{",
+  ] as const;
+
+  /** Accumulated unprocessed or partial content. */
+  buffer = "";
+
+  /**
+   * Feed a new text delta into the scanner.
+   * Returns fully-parsed segments.  Incomplete content is kept in {@link buffer}
+   * and will be retried when the next delta arrives.
+   */
+  feed(text: string): ParsedTextSegment[] {
+    this.buffer += text;
+
+    const delimTokens = [this.beginToken, ...this.xmlStartTokens, ...this.jsonStartFragments];
+
+    const segments: ParsedTextSegment[] = [];
+    let pos = 0;
+
+    const appendText = (value: string): void => {
+      if (!value) return;
+      const lastSegment = segments.at(-1);
+      if (lastSegment?.type === "text") {
+        lastSegment.text += value;
+        return;
+      }
+      segments.push({ type: "text", text: value });
+    };
+
+    while (pos < this.buffer.length) {
+      // Find the earliest delimiter in the remaining buffer
+      let earliestIdx = -1;
+      let earliestKind: "legacy" | "xml" | "json" = "legacy";
+
+      const legacyIdx = this.buffer.indexOf(this.beginToken, pos);
+      if (legacyIdx !== -1) {
+        earliestIdx = legacyIdx;
+        earliestKind = "legacy";
+      }
+      for (const token of this.xmlStartTokens) {
+        const idx = this.buffer.indexOf(token, pos);
+        if (idx !== -1 && (earliestIdx === -1 || idx < earliestIdx)) {
+          earliestIdx = idx;
+          earliestKind = "xml";
+        }
+      }
+      for (const token of this.jsonStartFragments) {
+        const idx = this.buffer.indexOf(token, pos);
+        if (idx !== -1 && (earliestIdx === -1 || idx < earliestIdx)) {
+          earliestIdx = idx;
+          earliestKind = "json";
+        }
+      }
+
+      if (earliestIdx === -1) {
+        // No delimiter found.  Check for partial delimiter at the very end.
+        const partialStart = findTrailingTokenPrefixStartAny(this.buffer.slice(pos), delimTokens);
+        if (partialStart === -1) {
+          // All remaining content is plain text — emit it and clear buffer
+          appendText(this.buffer.slice(pos));
+          pos = this.buffer.length;
+        } else {
+          // Partial delimiter — keep in buffer for next delta
+          appendText(this.buffer.slice(pos, pos + partialStart));
+          this.buffer = this.buffer.slice(pos + partialStart);
+          return segments;
+        }
+        break;
+      }
+
+      // Emit text before the delimiter
+      appendText(this.buffer.slice(pos, earliestIdx));
+      pos = earliestIdx;
+
+      if (earliestKind === "xml") {
+        const xmlResult = parseXmlStyleToolCall(this.buffer.slice(pos));
+        if (xmlResult.incomplete) {
+          // Incomplete XML — keep from pos onward for next delta
+          this.buffer = this.buffer.slice(pos);
+          return segments;
+        }
+        pos += xmlResult.consumed;
+        if (xmlResult.rawText) {
+          appendText(xmlResult.rawText);
+        } else if (xmlResult.toolCalls) {
+          for (const toolCall of xmlResult.toolCalls) {
+            segments.push({ type: "toolCall", toolCall });
+          }
+        } else if (xmlResult.toolCall) {
+          segments.push({ type: "toolCall", toolCall: xmlResult.toolCall });
+        }
+        continue;
+      }
+
+      if (earliestKind === "json") {
+        const jsonResult = parseJsonStyleToolCall(this.buffer.slice(pos));
+        if (jsonResult.incomplete) {
+          this.buffer = this.buffer.slice(pos);
+          return segments;
+        }
+        pos += jsonResult.consumed;
+        if (jsonResult.rawText) {
+          appendText(jsonResult.rawText);
+        } else if (jsonResult.toolCalls) {
+          for (const toolCall of jsonResult.toolCalls) {
+            segments.push({ type: "toolCall", toolCall });
+          }
+        }
+        continue;
+      }
+
+      // Legacy format: <|tool_call_begin|> name <|tool_call_argument_begin|> args <|tool_call_end|>
+      pos += this.beginToken.length;
+      const argBeginIdx = this.buffer.indexOf(this.argBeginToken, pos);
+      const endIdx = this.buffer.indexOf(this.endToken, pos);
+      if (argBeginIdx === -1 || endIdx === -1 || argBeginIdx > endIdx) {
+        // Incomplete — keep from the beginToken position
+        this.buffer = this.buffer.slice(earliestIdx);
+        return segments;
+      }
+
+      const name = this.buffer.slice(pos, argBeginIdx).trim();
+      pos = endIdx + this.endToken.length;
+
+      if (!name) continue;
+
+      const argsText = this.buffer.slice(argBeginIdx + this.argBeginToken.length, endIdx).trim();
+      try {
+        segments.push({
+          type: "toolCall",
+          toolCall: { name, args: argsText ? JSON.parse(argsText) : {} },
+        });
+      } catch {
+        appendText(`${this.beginToken}${name}${this.argBeginToken}${argsText}${this.endToken}`);
+      }
+    }
+
+    // All content consumed — reset buffer
+    this.buffer = "";
+    return segments;
+  }
+
+  /** Flush any remaining buffered content as plain text. */
+  flushText(): string {
+    const text = this.buffer;
+    this.buffer = "";
+    return text;
+  }
+}
+
 export type { ParsedTextSegment, ParsedTextToolCall, ParsedTextToolCallResult };
