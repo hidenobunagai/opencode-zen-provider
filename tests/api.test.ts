@@ -100,7 +100,7 @@ describe("streamChatCompletion", () => {
       { model: "kimi-k2.6", messages: [], stream: true },
       endpoint,
     );
-    await expect(gen.next()).rejects.toThrow("OpenCode Zen API error: 500 Internal Server Error");
+    await expect(gen.next()).rejects.toThrow("OpenCode Zen server error (500)");
   });
 
   it("throws authentication error on 401", async () => {
@@ -118,7 +118,7 @@ describe("streamChatCompletion", () => {
       endpoint,
     );
     await expect(gen.next()).rejects.toThrow(
-      "Authentication failed. Your API key may be invalid or expired.",
+      "OpenCode Zen API authentication failed (401)"
     );
   });
 

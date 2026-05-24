@@ -18,6 +18,11 @@ jest.mock("vscode", () => ({
     event = jest.fn();
     fire = jest.fn();
   },
+  LanguageModelChatMessageRole: { User: 1, Assistant: 2, System: 0 },
+  LanguageModelChatMessage: {
+    User: jest.fn((content) => ({ role: 1, content })),
+    Assistant: jest.fn((content) => ({ role: 2, content })),
+  },
   window: {
     createOutputChannel: jest.fn(() => ({
       appendLine: jest.fn(),
