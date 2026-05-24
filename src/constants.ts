@@ -34,6 +34,9 @@ export const SSE_CHUNK_TIMEOUT_MS = 60000;
 /** Maximum number of retries when a streaming response stops mid-generation */
 export const MAX_STREAM_RETRIES = 3;
 
+/** Request timeout in milliseconds */
+export const REQUEST_TIMEOUT_MS = 60000;
+
 /** Tokens per image for vision models (conservative estimate for 512x512+ with detail: auto) */
 export const TOKENS_PER_IMAGE = 1000;
 

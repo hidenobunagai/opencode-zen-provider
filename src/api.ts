@@ -2,6 +2,7 @@ import {
   BASE_RETRY_DELAY_MS,
   BASE_URL,
   MAX_RETRY_DELAY_MS,
+  REQUEST_TIMEOUT_MS,
   SSE_CHUNK_TIMEOUT_MS,
 } from "./constants";
 import type { ZenRouteKind } from "./model-catalog";
@@ -119,30 +120,87 @@ async function createChatCompletionResponse(
   signal?: AbortSignal,
   userAgent?: string,
 ): Promise<Response> {
-  return fetchWithRetry(
-    endpoint,
-    {
-      method: "POST",
-      headers: buildChatCompletionHeaders(apiKey, userAgent),
-      body: JSON.stringify(requestBody),
-      signal,
-    },
-    5,
-  );
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
+
+  try {
+    const response = await fetchWithRetry(
+      endpoint,
+      {
+        method: "POST",
+        headers: buildChatCompletionHeaders(apiKey, userAgent),
+        body: JSON.stringify(requestBody),
+        signal: combinedSignal,
+      },
+      5,
+    );
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function throwChatCompletionError(response: Response): Promise<never> {
-  const text = await response.text();
-  let message = `OpenCode Zen API error: ${response.status} ${response.statusText}`;
-  if (response.status === 401 || response.status === 403) {
-    message = `Authentication failed. Your API key may be invalid or expired.\n${message}`;
-  } else if (response.status === 429) {
-    const retryAfter = response.headers.get("retry-after");
-    message = `Rate limited. ${retryAfter ? `Retry after ${retryAfter}s. ` : ""}\n${message}`;
-  } else if (response.status >= 500 && response.status < 600) {
-    message = `Server error. The OpenCode Zen service may be experiencing issues.\n${message}`;
+  const rawBody = await response.text();
+  let detail = "";
+
+  // Parse response body for structured error info
+  try {
+    const body = JSON.parse(rawBody) as {
+      error?: { message?: string; code?: string; type?: string };
+    };
+    if (body.error?.message) {
+      detail = body.error.message;
+    }
+  } catch {
+    // Non-JSON body — use first 500 chars of raw text
+    if (rawBody.trim().length > 0) {
+      detail = rawBody.trim().slice(0, 500);
+    }
   }
-  throw new Error(`${message}\n${text}`);
+
+  if (response.status === 401 || response.status === 403) {
+    const guide =
+      'Run "OpenCode Zen: Manage OpenCode Zen API Key" from the Command Palette to update your API key.';
+    throw new Error(
+      `OpenCode Zen API authentication failed (${response.status}). Your API key may be invalid or expired.\n${guide}\n${detail}`,
+    );
+  }
+
+  if (response.status === 429) {
+    const retryAfter = response.headers.get("retry-after");
+    const retryInfo = retryAfter ? `Retry after ${retryAfter}. ` : "";
+    throw new Error(
+      `OpenCode Zen rate limit reached (429). ${retryInfo}The request will be retried automatically.\n${detail}`,
+    );
+  }
+
+  if (response.status === 400) {
+    if (
+      detail.toLowerCase().includes("token") &&
+      (detail.toLowerCase().includes("limit") || detail.toLowerCase().includes("exceed"))
+    ) {
+      throw new Error(
+        `OpenCode Zen token limit exceeded. Try reducing conversation history, splitting the request, or switching to a model with a larger context window.\n${detail}`,
+      );
+    }
+    throw new Error(
+      `OpenCode Zen API error (400): The request was invalid.\n${detail || rawBody.trim().slice(0, 500)}`,
+    );
+  }
+
+  if (response.status >= 500 && response.status < 600) {
+    throw new Error(
+      `OpenCode Zen server error (${response.status}). The service may be experiencing issues.\n${detail}`,
+    );
+  }
+
+  throw new Error(
+    `OpenCode Zen API error (${response.status} ${response.statusText})\n${detail || rawBody.trim().slice(0, 500)}`,
+  );
 }
 
 export async function requestChatCompletion(
