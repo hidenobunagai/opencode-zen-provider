@@ -2,7 +2,8 @@ import * as vscode from "vscode";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
 import { ZenChatModelProvider } from "./provider";
-import { releaseCachedEncoding } from "./tokenizer";
+import { disposeTokenizerCache } from "./tokenizer";
+import { registerZenTools } from "./tools";
 
 let _provider: ZenChatModelProvider | null = null;
 
@@ -74,9 +75,18 @@ export function activate(context: vscode.ExtensionContext) {
       output.show(true);
     }),
   );
+
+  try {
+    context.subscriptions.push(registerZenTools(context.secrets, ua));
+  } catch (error) {
+    debugLog("registerZenTools", error);
+    vscode.window.showWarningMessage(
+      "OpenCode Zen image analysis tool could not be registered. API key management and chat remain available.",
+    );
+  }
 }
 
 export function deactivate() {
-  releaseCachedEncoding();
+  disposeTokenizerCache();
   _provider = null;
 }
