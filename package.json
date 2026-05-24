@@ -41,18 +41,31 @@
       {
         "vendor": "opencode-zen",
         "displayName": "OpenCode Zen",
-        "configuration": {
+        "managementCommand": "opencode-zen.manage"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "opencode_zen_analyze_image",
+        "toolReferenceName": "analyzeImage",
+        "displayName": "OpenCode Zen Analyze Image",
+        "modelDescription": "Analyze an image with the OpenCode Zen vision model and return a text description.",
+        "userDescription": "Analyze an image using OpenCode Zen Vision.",
+        "inputSchema": {
           "type": "object",
           "properties": {
-            "apiKey": {
+            "image_data": {
               "type": "string",
-              "secret": true,
-              "description": "API key for OpenCode Zen",
-              "title": "API Key"
+              "description": "Base64-encoded image data URL."
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Instruction describing what to analyze in the image."
             }
           },
           "required": [
-            "apiKey"
+            "image_data",
+            "prompt"
           ]
         }
       }
@@ -102,7 +115,5 @@
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.2"
   },
-  "dependencies": {
-    "@dqbd/tiktoken": "^1.0.22"
-  }
+  "dependencies": {}
 }
