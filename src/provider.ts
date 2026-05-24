@@ -19,6 +19,8 @@ import {
   REASONING_MODEL_MIN_OUTPUT_BUDGET,
 } from "./constants";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
+import { ZenMcpClient } from "./mcp";
+import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
 import { processOpenAIStream, type OpenAIModelInfo } from "./streaming/openai";
 import { estimateMessagesTokens, estimateTokens } from "./tokenizer";
@@ -28,10 +30,16 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
   readonly onDidChangeLanguageModelChatInformation: Event<void> =
     this._onDidChangeLanguageModelChatInformation.event;
 
+  private readonly _mcpClient: ZenMcpClient;
+  private readonly _modelMap: Map<string, ZenModelInfo>;
+
   constructor(
     private readonly secrets: vscode.SecretStorage,
     private readonly userAgent: string,
-  ) {}
+  ) {
+    this._mcpClient = new ZenMcpClient(secrets, userAgent);
+    this._modelMap = new Map(ZEN_MODEL_CATALOG.map((m) => [m.id, m]));
+  }
 
   fireModelInfoChanged(): void {
     this._onDidChangeLanguageModelChatInformation.fire();
@@ -93,7 +101,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
   }
 
   private getModelInfo(modelId: string): ZenModelInfo | undefined {
-    return ZEN_MODEL_CATALOG.find((m) => m.id === modelId);
+    return this._modelMap.get(modelId);
   }
 
   private resolveApiModelId(modelId: string): string {
@@ -103,6 +111,15 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
 
   private modelSupportsVision(modelId: string): boolean {
     return this.getModelInfo(modelId)?.supportsVision ?? false;
+  }
+
+  private getVisionFallbackModelId(): string | undefined {
+    const gemini = this._modelMap.get("gemini-3-flash");
+    if (gemini && gemini.supportsVision) return gemini.id;
+    for (const m of this._modelMap.values()) {
+      if (m.supportsVision) return m.id;
+    }
+    return undefined;
   }
 
   private hasImageInput(messages: readonly LanguageModelChatMessage[]): boolean {
@@ -115,20 +132,108 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
     return false;
   }
 
+  private async processImagesForNonVisionModel(
+    messages: readonly LanguageModelChatMessage[],
+    token: CancellationToken,
+    apiKey: string,
+  ): Promise<LanguageModelChatMessage[]> {
+    const processedMessages: LanguageModelChatMessage[] = [];
+
+    for (const msg of messages) {
+      const textParts: string[] = [];
+      for (const part of msg.content) {
+        if (part instanceof vscode.LanguageModelTextPart) {
+          textParts.push(part.value);
+        } else if (
+          typeof part === "object" &&
+          part !== null &&
+          "value" in part &&
+          typeof (part as { value?: unknown }).value === "string"
+        ) {
+          textParts.push((part as { value: string }).value);
+        }
+      }
+
+      const images: Array<{ mimeType: string; data: Uint8Array }> = [];
+      for (const part of msg.content) {
+        const p = part as { mimeType?: unknown; data?: unknown; bytes?: unknown; buffer?: unknown };
+        if (typeof p.mimeType !== "string" || !p.mimeType.startsWith("image/")) continue;
+        let data: Uint8Array | undefined;
+        if (p.data instanceof Uint8Array && p.data.length > 0) data = p.data;
+        else if (p.bytes instanceof Uint8Array && (p.bytes as Uint8Array).length > 0)
+          data = p.bytes as Uint8Array;
+        else if (Array.isArray(p.data) && p.data.length > 0)
+          data = new Uint8Array(p.data as number[]);
+        else if (Array.isArray(p.bytes) && (p.bytes as unknown[]).length > 0)
+          data = new Uint8Array(p.bytes as number[]);
+        if (data) images.push({ mimeType: p.mimeType, data });
+      }
+
+      if (images.length === 0) {
+        processedMessages.push(msg);
+        continue;
+      }
+
+      const userPrompt = textParts.join(" ");
+      const abortController = new AbortController();
+      const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
+
+      const descriptions = await Promise.all(
+        images.map(async (img) => {
+          if (token.isCancellationRequested) throw new vscode.CancellationError();
+          const base64Data = Buffer.from(img.data).toString("base64");
+          const imageDataUrl = `data:${img.mimeType};base64,${base64Data}`;
+          const analysisPrompt = userPrompt || "Describe this image in detail.";
+          return this._mcpClient.analyzeImage(
+            imageDataUrl,
+            analysisPrompt,
+            abortController.signal,
+            apiKey,
+          );
+        }),
+      ).finally(() => cancellationSubscription.dispose());
+
+      const newContent: vscode.LanguageModelTextPart[] = textParts.map(
+        (t) => new vscode.LanguageModelTextPart(t),
+      );
+      if (descriptions.length > 0) {
+        newContent.push(
+          new vscode.LanguageModelTextPart(
+            `\n\n[Image Analysis]:\n${descriptions.join("\n\n---\n\n")}`,
+          ),
+        );
+      }
+      processedMessages.push(vscode.LanguageModelChatMessage.User(newContent));
+    }
+
+    return processedMessages;
+  }
+
   async provideLanguageModelChatInformation(
     options: PrepareLanguageModelChatModelOptions,
     token: CancellationToken,
   ): Promise<LanguageModelChatInformation[]> {
     if (token.isCancellationRequested) return [];
-    await this.syncConfiguredApiKey(options);
-    return this._mapToChatInformation(ZEN_MODEL_CATALOG);
+    try {
+      await this.syncConfiguredApiKey(options);
+      const models = this._mapToChatInformation(ZEN_MODEL_CATALOG);
+      debugLog("provideLanguageModelChatInformation", {
+        silent: options.silent,
+        modelCount: models.length,
+      });
+      return models;
+    } catch (error) {
+      debugLog("provideLanguageModelChatInformationError", error);
+      const models = this._mapToChatInformation(ZEN_MODEL_CATALOG);
+      return models;
+    }
   }
 
   private _mapToChatInformation(
     models: Array<{ id: string; name: string }>,
   ): LanguageModelChatInformation[] {
     return models.map((model) => {
-      const info = ZEN_MODEL_CATALOG.find((m) => m.id === model.id) ?? {
+      const info = this._modelMap.get(model.id) ?? {
         id: model.id,
         name: model.name,
         displayName: model.name,
@@ -151,11 +256,12 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         tooltip: `OpenCode Zen ${info.name}`,
         family: "opencode-zen",
         version: "1.0.0",
+        isUserSelectable: true,
         maxInputTokens: Math.max(1, info.contextWindow - effectiveOutputBudget),
         maxOutputTokens: info.maxOutput,
         capabilities: {
-          toolCalling: 128,
-          imageInput: true,
+          toolCalling: info.supportsTools,
+          imageInput: info.supportsVision,
         },
       };
     });
@@ -172,7 +278,10 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
     const cancellationSubscription = token.onCancellationRequested(() => abortController.abort());
 
     try {
-      const apiKey = await this.ensureApiKey(options, false);
+      const [apiKey, inputTokenCount] = await Promise.all([
+        this.ensureApiKey(options, false),
+        Promise.resolve(estimateMessagesTokens(messages as never, model.id)),
+      ]);
       if (!apiKey) {
         progress.report(
           new vscode.LanguageModelTextPart(
@@ -182,10 +291,6 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         return;
       }
 
-      const inputTokenCount = estimateMessagesTokens(
-        messages as never, // cast needed for VS Code API type compatibility
-        model.id,
-      );
       const maxInputTokens = model.maxInputTokens;
       const effectiveMaxInputTokens = Math.max(
         1,
@@ -204,6 +309,18 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         model.maxOutputTokens,
       );
 
+      // Thinking models consume part of the max_tokens budget for internal reasoning.
+      // Enforce a minimum output budget so the model has enough room to reason AND produce a visible response.
+      const MIN_THINKING_MODEL_OUTPUT_TOKENS = 16384;
+      const resolvedModelId = this.resolveApiModelId(model.id);
+      const isThinkingModel = REASONING_MODEL_IDS.has(resolvedModelId);
+      const effectiveMaxTokens = isThinkingModel
+        ? Math.max(
+            requestedMaxTokens,
+            Math.min(MIN_THINKING_MODEL_OUTPUT_TOKENS, model.maxOutputTokens),
+          )
+        : requestedMaxTokens;
+
       const modelInfo = this.getModelInfo(model.id);
       const apiFormat = modelInfo?.apiFormat ?? "openai";
       const reasoningEffort = modelInfo?.reasoningEffort;
@@ -215,13 +332,37 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
             : 0.7;
 
       const hasImages = this.hasImageInput(messages);
-      const effectiveMessages = messages;
-      const effectiveModelId = this.resolveApiModelId(model.id);
+      let effectiveMessages = messages;
+      let effectiveModelId = this.resolveApiModelId(model.id);
+      let effectiveModelInfo = this.getModelInfo(effectiveModelId);
 
       if (hasImages && !this.modelSupportsVision(model.id)) {
-        throw new Error(
-          `The selected OpenCode Zen model (${model.id}) does not support image input in V1. Choose a vision-capable model and retry.`,
-        );
+        const visionFallback = this.getVisionFallbackModelId();
+        if (visionFallback && visionFallback !== model.id) {
+          effectiveModelId = this.resolveApiModelId(visionFallback);
+          effectiveModelInfo = this._modelMap.get(visionFallback);
+          const selectedModelInfo = this.getModelInfo(model.id);
+          progress.report(
+            new vscode.LanguageModelTextPart(
+              `Switching to ${effectiveModelInfo?.displayName ?? visionFallback} for image analysis (${selectedModelInfo?.displayName ?? model.id} does not support vision).\n\n`,
+            ),
+          );
+        } else {
+          try {
+            effectiveMessages = await this.processImagesForNonVisionModel(messages, token, apiKey);
+          } catch (err) {
+            if (err instanceof vscode.CancellationError || token.isCancellationRequested) {
+              throw err;
+            }
+            const message = err instanceof Error ? err.message : String(err);
+            progress.report(
+              new vscode.LanguageModelTextPart(
+                `Image analysis failed: ${message}. The selected model (${effectiveModelInfo?.displayName ?? model.id}) does not support vision and no vision fallback model is available. Please switch to a vision-capable model and try again.`,
+              ),
+            );
+            return;
+          }
+        }
       }
 
       const requestOptions = NO_TOOL_MODEL_IDS.has(model.id)
@@ -235,7 +376,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
           options,
           requestOptions,
           apiKey,
-          requestedMaxTokens,
+          requestedMaxTokens: effectiveMaxTokens,
           temperatureVal,
           userAgent: this.userAgent,
           fallbackModels: ZEN_MODEL_CATALOG,
@@ -248,10 +389,10 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
 
       const openAIModel: OpenAIModelInfo = {
         id: effectiveModelId,
-        modelInfo,
+        modelInfo: effectiveModelInfo,
         maxOutputTokens: model.maxOutputTokens,
         reasoningEffort,
-        routeKind: modelInfo?.routeKind,
+        routeKind: effectiveModelInfo?.routeKind,
       };
 
       await processOpenAIStream(
@@ -260,7 +401,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         options,
         requestOptions,
         apiKey,
-        requestedMaxTokens,
+        effectiveMaxTokens,
         temperatureVal,
         ZEN_MODEL_CATALOG,
         this.userAgent,
@@ -286,22 +427,23 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
     if (typeof text === "string") {
       return Promise.resolve(estimateTokens(text));
     }
-    let total = 0;
+    const textParts: string[] = [];
     for (const part of text.content) {
       if (part instanceof vscode.LanguageModelTextPart) {
-        total += estimateTokens(part.value);
+        textParts.push(part.value);
       } else if (
         typeof part === "object" &&
         part !== null &&
         "value" in part &&
         typeof (part as Record<string, unknown>).value === "string"
       ) {
-        total += estimateTokens((part as { value: string }).value);
-      } else {
-        total += 2;
+        textParts.push((part as { value: string }).value);
       }
     }
-    return Promise.resolve(total);
+    if (textParts.length === 0) {
+      return Promise.resolve(2 * text.content.length);
+    }
+    return Promise.resolve(estimateTokens(textParts.join(" ")));
   }
 
   private async ensureApiKey(options: unknown, silent: boolean): Promise<string | undefined> {
