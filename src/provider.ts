@@ -241,6 +241,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         maxOutput: 65536,
         supportsTools: true,
         supportsVision: false,
+        supportsThinking: false,
       };
       const isReasoning = REASONING_MODEL_IDS.has(model.id);
       // Reasoning/thinking models self-regulate output via the API.
@@ -263,6 +264,29 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
           toolCalling: info.supportsTools,
           imageInput: info.supportsVision,
         },
+        ...(info.supportsThinking
+          ? {
+              configurationSchema: {
+                properties: {
+                  reasoningEffort: {
+                    type: "string",
+                    title: "Thinking Effort",
+                    enum: ["default", "max", "high", "medium", "low"],
+                    enumItemLabels: ["Default", "Max", "High", "Medium", "Low"],
+                    enumDescriptions: [
+                      "Let the model decide the reasoning effort",
+                      "Maximum reasoning effort (xhigh)",
+                      "High reasoning effort",
+                      "Medium reasoning effort",
+                      "Low reasoning effort",
+                    ],
+                    default: "default",
+                    group: "navigation",
+                  },
+                },
+              },
+            }
+          : {}),
       };
     });
   }
@@ -323,7 +347,14 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
 
       const modelInfo = this.getModelInfo(model.id);
       const apiFormat = modelInfo?.apiFormat ?? "openai";
-      const reasoningEffort = modelInfo?.reasoningEffort;
+      const modelConfig = (options as unknown as Record<string, unknown>).modelConfiguration as
+        | Record<string, unknown>
+        | undefined;
+      const rawReasoningEffort =
+        typeof modelConfig?.reasoningEffort === "string"
+          ? (modelConfig.reasoningEffort as string)
+          : undefined;
+      const reasoningEffort = rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
       const temperatureVal =
         typeof modelInfo?.fixedTemperature === "number"
           ? modelInfo.fixedTemperature
@@ -391,7 +422,6 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         id: effectiveModelId,
         modelInfo: effectiveModelInfo,
         maxOutputTokens: model.maxOutputTokens,
-        reasoningEffort,
         routeKind: effectiveModelInfo?.routeKind,
       };
 
@@ -408,6 +438,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         progress,
         token,
         abortController,
+        reasoningEffort,
       );
     } catch (err) {
       if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {

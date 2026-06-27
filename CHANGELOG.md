@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.1.40] - 2026-06-27
+
+### Added
+
+- **Added Thinking Effort dropdown for reasoning models.** GLM-5, GLM-5.1, GLM-5.2, DeepSeek V4 Pro, DeepSeek V4 Flash, Kimi K2.5, Kimi K2.6, and Qwen3.6 Plus now show a "Thinking Effort" dropdown (Default / Max / High / Medium / Low) in the model picker via `configurationSchema`. The selected effort is sent as `reasoning_effort` in the API request.
+
 ## [0.1.37] - 2026-05-01
 
 ### Fixed

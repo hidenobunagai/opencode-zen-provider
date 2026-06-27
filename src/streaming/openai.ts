@@ -55,7 +55,6 @@ export interface OpenAIModelInfo {
   id: string;
   modelInfo?: ZenModelInfo;
   maxOutputTokens: number;
-  reasoningEffort?: string;
   routeKind?: ZenRouteKind;
 }
 
@@ -79,6 +78,7 @@ export async function processOpenAIStream(
   progress: vscode.Progress<vscode.LanguageModelResponsePart>,
   token: vscode.CancellationToken,
   abortController: AbortController,
+  reasoningEffort?: string,
 ): Promise<void> {
   const toolSchemas = getToolSchemaMap(options);
   const requestContext = extractChatRequestContext(
@@ -121,8 +121,8 @@ export async function processOpenAIStream(
   }
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
   if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
-  const reasoningEffort = normalizeReasoningEffort(model.reasoningEffort);
-  if (reasoningEffort) requestBody.reasoning_effort = reasoningEffort;
+  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
+  if (normalizedEffort) requestBody.reasoning_effort = normalizedEffort;
 
   debugLog("Outgoing request messages", {
     messages: requestBody.messages,
