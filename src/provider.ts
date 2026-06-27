@@ -409,6 +409,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
           apiKey,
           requestedMaxTokens: effectiveMaxTokens,
           temperatureVal,
+          reasoningEffort,
           userAgent: this.userAgent,
           fallbackModels: ZEN_MODEL_CATALOG,
           progress,

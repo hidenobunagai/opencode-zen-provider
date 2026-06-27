@@ -43,6 +43,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "claude-fable-5",
@@ -55,6 +56,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-haiku-4-5",
@@ -67,6 +69,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-opus-4-1",
@@ -79,6 +82,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-opus-4-5",
@@ -91,6 +95,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-opus-4-6",
@@ -103,6 +108,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-opus-4-7",
@@ -115,6 +121,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-opus-4-8",
@@ -127,6 +134,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-sonnet-4",
@@ -139,6 +147,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-sonnet-4-5",
@@ -151,6 +160,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "claude-sonnet-4-6",
@@ -163,6 +173,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "deepseek-v4-flash",
@@ -188,6 +199,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "deepseek-v4-pro",
@@ -213,6 +225,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gemini-3.1-pro",
@@ -225,6 +238,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gemini-3.5-flash",
@@ -237,6 +251,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "glm-5",
@@ -262,6 +277,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "glm-5.2",
@@ -287,6 +303,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 16384,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5-codex",
@@ -299,6 +316,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 16384,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5-nano",
@@ -311,6 +329,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 8192,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.1",
@@ -323,6 +342,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.1-codex",
@@ -335,6 +355,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.1-codex-max",
@@ -347,6 +368,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.1-codex-mini",
@@ -359,6 +381,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.2",
@@ -371,6 +394,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.2-codex",
@@ -383,6 +407,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.3-codex",
@@ -395,6 +420,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.3-codex-spark",
@@ -407,6 +433,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.4",
@@ -419,6 +446,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.4-mini",
@@ -431,6 +459,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.4-nano",
@@ -443,6 +472,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 32768,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.4-pro",
@@ -455,6 +485,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.5",
@@ -467,6 +498,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "gpt-5.5-pro",
@@ -479,6 +511,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "grok-build-0.1",
@@ -491,6 +524,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "kimi-k2.5",
@@ -519,6 +553,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsVision: true,
     fixedTemperature: 1,
     needsReasoningContentWorkaround: true,
+    supportsThinking: true,
   },
   {
     id: "mimo-v2.5-free",
@@ -531,6 +566,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "minimax-m2.5",
@@ -543,6 +579,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "minimax-m2.7",
@@ -555,6 +592,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "minimax-m3-free",
@@ -567,6 +605,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "nemotron-3-super-free",
@@ -579,6 +618,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "nemotron-3-ultra-free",
@@ -591,6 +631,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "north-mini-code-free",
@@ -603,6 +644,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "qwen3.5-plus",
@@ -615,6 +657,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "qwen3.6-plus",
@@ -640,6 +683,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: false,
     supportsVision: false,
+    supportsThinking: true,
   },
   {
     id: "qwen3.7-max",
@@ -652,6 +696,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
   {
     id: "qwen3.7-plus",
@@ -664,5 +709,6 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
+    supportsThinking: true,
   },
 ];

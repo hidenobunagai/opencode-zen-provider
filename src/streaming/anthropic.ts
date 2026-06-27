@@ -29,6 +29,7 @@ export interface AnthropicRequestParams {
   apiKey: string;
   requestedMaxTokens: number;
   temperatureVal: number;
+  reasoningEffort?: string;
   progress: vscode.Progress<vscode.LanguageModelResponsePart>;
   token: vscode.CancellationToken;
   abortController: AbortController;
@@ -42,6 +43,22 @@ interface SkippedToolCall {
   missing: string[];
 }
 
+function calculateThinkingBudget(
+  reasoningEffort: string,
+  maxTokens: number,
+): number | undefined {
+  const ratios: Record<string, number> = {
+    low: 0.2,
+    medium: 0.4,
+    high: 0.6,
+    xhigh: 0.8,
+  };
+  const ratio = ratios[reasoningEffort];
+  if (ratio === undefined) return undefined;
+  const budget = Math.round(maxTokens * ratio);
+  return Math.max(1024, Math.min(budget, maxTokens - 1024));
+}
+
 export async function handleAnthropicRequest(params: AnthropicRequestParams): Promise<void> {
   const {
     modelId,
@@ -51,6 +68,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     apiKey,
     requestedMaxTokens,
     temperatureVal,
+    reasoningEffort,
     progress,
     token,
     abortController,
@@ -90,6 +108,9 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   }
 
   const isReasoningModel = REASONING_MODEL_IDS.has(modelId);
+  const thinkingBudget = reasoningEffort
+    ? calculateThinkingBudget(reasoningEffort, requestedMaxTokens)
+    : undefined;
   const requestBody: {
     model: string;
     messages: AnthropicMessage[];
@@ -97,6 +118,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     max_tokens?: number;
     stream: boolean;
     temperature?: number;
+    thinking?: { type: "enabled"; budget_tokens: number };
     tools?: unknown[];
     tool_choice?: unknown;
   } = {
@@ -110,10 +132,15 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     requestBody.max_tokens = Math.max(1, requestedMaxTokens);
   }
 
-  if (effectiveSystem) requestBody.system = effectiveSystem;
-  if (typeof temperatureVal === "number" && temperatureVal > 0) {
+  if (thinkingBudget) {
+    // Extended thinking mode: Anthropic forces temperature to 1 internally,
+    // and budget_tokens must be less than max_tokens.
+    requestBody.thinking = { type: "enabled", budget_tokens: thinkingBudget };
+  } else if (typeof temperatureVal === "number" && temperatureVal > 0) {
     requestBody.temperature = temperatureVal;
   }
+
+  if (effectiveSystem) requestBody.system = effectiveSystem;
   if (toolConfig.tools && toolConfig.tools.length > 0) {
     requestBody.tools = toolConfig.tools;
     if (toolConfig.tool_choice && toolConfig.tool_choice !== "auto") {
