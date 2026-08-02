@@ -1,5 +1,6 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
+import { buildMissingToolCallNudge, looksLikeActionAnnouncement } from "../announcement";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
 import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
@@ -22,7 +23,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import { ZenChatRequest } from "../types";
+import { ZenChatMessage, ZenChatRequest } from "../types";
 
 /** Check if a JSON string has balanced braces/brackets (optimistic preflight before JSON.parse) */
 function isBalancedBraces(json: string): boolean {
@@ -199,6 +200,7 @@ export async function processOpenAIStream(
     let reasoningContent = "";
     let reasoningFlushed = false;
     let receivedAnyOutput = false;
+    let finishReason: string | null = null;
 
     const flushPendingText = (): void => {
       if (!reasoningFlushed && reasoningContent) {
@@ -273,6 +275,10 @@ export async function processOpenAIStream(
 
         const choice = chunk.choices?.[0];
         receivedAnyOutput = true;
+
+        if (typeof choice?.finish_reason === "string") {
+          finishReason = choice.finish_reason;
+        }
 
         if (choice?.delta?.content) {
           handleTextDelta(choice.delta.content);
@@ -387,6 +393,38 @@ export async function processOpenAIStream(
 
       if (pendingTextEmbeddedContent) {
         pendingText += pendingTextEmbeddedContent;
+      }
+
+      // Action-announcement detection: the model ended its turn by announcing
+      // an action (e.g. "テストを実行します。" / "I will run the tests.")
+      // without emitting the tool call, which would silently end the agentic
+      // loop before the announced action ever happens.  The announcement text
+      // is still buffered (never shown to the user), so silently replay it as
+      // an assistant message and nudge the model to emit the tool call.
+      const canNudge =
+        attempt + 1 < MAX_RETRIES &&
+        !sawToolCall &&
+        (finishReason === null || finishReason === "stop") &&
+        (toolConfig.tools?.length ?? 0) > 0 &&
+        pendingText.trim().length > 0 &&
+        looksLikeActionAnnouncement(pendingText);
+      if (canNudge) {
+        debugLog(
+          "processOpenAIStream",
+          `Action announcement detected (attempt ${attempt + 1}/${MAX_RETRIES}), nudging model...`,
+        );
+        const announcement = pendingText.trim();
+        requestBody.messages = [
+          ...convertedMessages,
+          {
+            role: "assistant",
+            content: announcement,
+            ...(isReasoningModel ? { reasoning_content: " " } : {}),
+          },
+          { role: "user", content: buildMissingToolCallNudge() },
+        ] as ZenChatMessage[];
+        snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
+        continue;
       }
 
       if (pendingText && (!sawToolCall || emittedToolCall || pendingText.trim().length > 0)) {
