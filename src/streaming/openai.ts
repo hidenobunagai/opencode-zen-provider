@@ -9,6 +9,7 @@ import {
   applyReasoningContentWorkaround,
   convertMessages,
   convertTools,
+  reasoningCache,
 } from "../openai-conversion";
 import { debugLog } from "../output-channel";
 import { parseTextEmbeddedToolCalls, type ParsedTextToolCall } from "../tool-parser";
@@ -466,6 +467,13 @@ export async function processOpenAIStream(
               "Try rephrasing your request or switching to a non-reasoning model.",
           ),
         );
+      }
+
+      // Cache reasoning content so later turns can restore it in assistant
+      // history (the API requires reasoning_content on follow-up assistant
+      // messages for workaround models).
+      if (reasoningContent && pendingText.trim().length > 0) {
+        reasoningCache.set(pendingText.trim(), reasoningContent.trim());
       }
 
       return; // Success — exit retry loop

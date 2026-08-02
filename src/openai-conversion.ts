@@ -69,6 +69,86 @@ export function buildToolDescription(
   return baseDescription || guidanceText || undefined;
 }
 
+export interface ExtractedMessageContent {
+  content: string;
+  reasoningContent?: string;
+}
+
+/** Maximum number of entries kept in {@link reasoningCache}. */
+const MAX_REASONING_CACHE_ENTRIES = 50;
+
+/**
+ * Small LRU cache mapping assistant message text to its reasoning content.
+ * Bounded so long chat sessions cannot grow it without limit.
+ */
+class ReasoningCache {
+  private readonly entries = new Map<string, string>();
+
+  get(key: string): string | undefined {
+    const value = this.entries.get(key);
+    if (value !== undefined) {
+      // Refresh recency: re-insert at the newest position.
+      this.entries.delete(key);
+      this.entries.set(key, value);
+    }
+    return value;
+  }
+
+  set(key: string, value: string): void {
+    this.entries.delete(key);
+    this.entries.set(key, value);
+    while (this.entries.size > MAX_REASONING_CACHE_ENTRIES) {
+      const oldest = this.entries.keys().next();
+      if (oldest.done) break;
+      this.entries.delete(oldest.value);
+    }
+  }
+
+  clear(): void {
+    this.entries.clear();
+  }
+}
+
+export const reasoningCache = new ReasoningCache();
+
+export function extractReasoningContent(text: string): ExtractedMessageContent {
+  // 1. Try HTML details block
+  const detailsRegex =
+    /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/i;
+  const globalDetailsRegex =
+    /<details\s+data-reasoning="true"\s*>[\s\S]*?<summary>.*?<\/summary>\s*([\s\S]*?)\s*<\/details>/gi;
+  let match = detailsRegex.exec(text);
+  if (match) {
+    const reasoningContent = match[1].trim();
+    const content = text.replace(globalDetailsRegex, "").trim();
+    return { content, reasoningContent };
+  }
+
+  // 2. Try Markdown blockquote
+  const markdownRegex =
+    />\s*\*\*\[思考プロセス\s+\(Thinking\s+Process\)\]\*\*\s*\n((?:>\s*.*(?:\n|$))*)/i;
+  const globalMarkdownRegex =
+    />\s*\*\*\[思考プロセス\s+\(Thinking\s+Process\)\]\*\*\s*\n(?:>\s*.*(?:\n|$))*/gi;
+
+  match = markdownRegex.exec(text);
+  if (match) {
+    const reasoningContent = match[1]
+      .split("\n")
+      .map((line) => line.replace(/^>\s?/, ""))
+      .join("\n")
+      .trim();
+
+    let content = text.replace(globalMarkdownRegex, "").trim();
+    content = content
+      .replace(/^---\s*/, "")
+      .replace(/\s*---\s*$/, "")
+      .trim();
+    return { content, reasoningContent };
+  }
+
+  return { content: text };
+}
+
 export function convertMessages(
   messages: readonly vscode.LanguageModelChatMessage[],
   options?: { maxToolResultChars?: number },
@@ -118,10 +198,21 @@ export function convertMessages(
           Boolean(toolCall),
       );
 
+    const rawTextContent = textParts.join("");
+    const extracted = extractReasoningContent(rawTextContent);
+    const content = extracted.content;
+    let reasoningContent = extracted.reasoningContent;
+    if (!reasoningContent && role === "assistant") {
+      const cached = reasoningCache.get(rawTextContent.trim());
+      if (cached) {
+        reasoningContent = cached;
+      }
+    }
+
     if (toolCalls.length > 0) {
       result.push({
         role: "assistant",
-        content: textParts.join(""),
+        content: content,
         tool_calls: toolCalls.map((toolCall) => ({
           id: toolCall.id ?? `call_${Math.random().toString(36).slice(2, 10)}`,
           type: "function",
@@ -130,7 +221,7 @@ export function convertMessages(
             arguments: JSON.stringify(toolCall.args ?? {}),
           },
         })),
-        reasoning_content: " ",
+        reasoning_content: reasoningContent || " ",
       });
     }
 
@@ -145,21 +236,40 @@ export function convertMessages(
       result.push({ role: "tool", tool_call_id: toolResult.callId, content });
     }
 
-    const hasTextOrImage = textParts.length > 0 || imageParts.length > 0;
+    const hasTextOrImage = content.length > 0 || imageParts.length > 0;
     const isAssistantWithToolCalls = role === "assistant" && toolCalls.length > 0;
 
     if (hasTextOrImage && !isAssistantWithToolCalls) {
       if (imageParts.length > 0) {
         const contentParts: ZenContentPart[] = [];
-        const text = textParts.join("");
-        if (text) contentParts.push({ type: "text", text });
+        if (content) contentParts.push({ type: "text", text: content });
         contentParts.push(...imageParts);
-        result.push({ role, content: contentParts });
+        result.push({
+          role,
+          content: contentParts,
+          ...(role === "assistant" && reasoningContent
+            ? { reasoning_content: reasoningContent }
+            : {}),
+        });
       } else {
-        result.push({ role, content: textParts.join("") });
+        result.push({
+          role,
+          content: content,
+          ...(role === "assistant" && reasoningContent
+            ? { reasoning_content: reasoningContent }
+            : {}),
+        });
       }
     } else if (!isAssistantWithToolCalls && toolResults.length === 0 && !hasTextOrImage) {
-      result.push({ role, content: "" });
+      if (role === "assistant" && reasoningContent) {
+        result.push({
+          role,
+          content: "",
+          reasoning_content: reasoningContent,
+        });
+      } else {
+        result.push({ role, content: "" });
+      }
     }
   }
 
