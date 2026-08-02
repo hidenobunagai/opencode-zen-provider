@@ -43,10 +43,7 @@ interface SkippedToolCall {
   missing: string[];
 }
 
-function calculateThinkingBudget(
-  reasoningEffort: string,
-  maxTokens: number,
-): number | undefined {
+function calculateThinkingBudget(reasoningEffort: string, maxTokens: number): number | undefined {
   const ratios: Record<string, number> = {
     low: 0.2,
     medium: 0.4,

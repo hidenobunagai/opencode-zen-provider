@@ -117,9 +117,7 @@ describe("streamChatCompletion", () => {
       { model: "kimi-k2.6", messages: [], stream: true },
       endpoint,
     );
-    await expect(gen.next()).rejects.toThrow(
-      "OpenCode Zen API authentication failed (401)"
-    );
+    await expect(gen.next()).rejects.toThrow("OpenCode Zen API authentication failed (401)");
   });
 
   it("retries on 429 and eventually throws after exhausting retries", async () => {

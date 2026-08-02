@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.41] - 2026-06-27
+
+### Added
+
+- **Thinking Effort dropdown is now available for ALL models.** Previously only 6 reasoning models showed the Thinking Effort option. Now every model in the catalog (GPT, Claude, Gemini, GLM, DeepSeek, Kimi, Qwen, Grok, MiniMax, free models, etc.) has `supportsThinking` enabled.
+- **Anthropic extended thinking support.** Claude models and other Anthropic-format models (qwen3.5-plus, qwen3.7-max, qwen3.7-plus) now pass the `thinking` parameter with a proportional `budget_tokens` when Thinking Effort is set (low=20%, medium=40%, high=60%, xhigh=80% of max_tokens).
+
 ## [0.1.40] - 2026-06-27
 
 ### Added

@@ -1,7 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
-import { MAX_STREAM_RETRIES, REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
+import { REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
 import {
@@ -65,6 +65,23 @@ function normalizeReasoningEffort(reasoningEffort: string | undefined): string |
   return reasoningEffort;
 }
 
+function getRetryReasoningEffort(
+  reasoningEffort: string | undefined,
+  attempt: number,
+): string | undefined {
+  if (!reasoningEffort || attempt <= 0) {
+    return reasoningEffort;
+  }
+
+  const fallbackOrder = ["xhigh", "high", "medium", "low"] as const;
+  const index = fallbackOrder.indexOf(reasoningEffort as (typeof fallbackOrder)[number]);
+  if (index === -1) {
+    return reasoningEffort;
+  }
+
+  return fallbackOrder[Math.min(index + attempt, fallbackOrder.length - 1)];
+}
+
 export async function processOpenAIStream(
   model: OpenAIModelInfo,
   apiMessages: readonly vscode.LanguageModelChatMessage[],
@@ -99,27 +116,21 @@ export async function processOpenAIStream(
 
   const toolConfig = convertTools(requestOptions);
   const isReasoningModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
+  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
+
+  // Reasoning models may consume the entire output budget on internal thinking
+  // before producing any visible text/tool calls.  Allow multiple retries with
+  // exponentially increasing budgets so the model has room to reason AND respond.
+  const MAX_RETRIES = 3;
+  let currentMaxTokens = requestedMaxTokens;
   const requestBody: ZenChatRequest = {
     model: model.id,
     messages: convertedMessages,
     stream: true,
     temperature: temperatureVal,
   };
-  // Reasoning/thinking models receive the full declared maxOutput budget
-  // (e.g. 262144 for Kimi K2.6) instead of the DEFAULT_MAX_OUTPUT_TOKENS cap.
-  // If we omit max_tokens entirely, the model may consume its entire budget on
-  // internal reasoning, leaving zero visible output. If we clamp to 65536, the
-  // model hits the limit mid-response. Using the full declared budget gives the
-  // model headroom for both reasoning and visible text.
-  if (isReasoningModel) {
-    requestBody.max_tokens = model.maxOutputTokens;
-  } else {
-    requestBody.max_tokens = requestedMaxTokens;
-  }
   if (toolConfig.tools) requestBody.tools = toolConfig.tools;
   if (toolConfig.tool_choice) requestBody.tool_choice = toolConfig.tool_choice;
-  const normalizedEffort = normalizeReasoningEffort(reasoningEffort);
-  if (normalizedEffort) requestBody.reasoning_effort = normalizedEffort;
 
   debugLog("Outgoing request messages", {
     messages: requestBody.messages,
@@ -129,14 +140,53 @@ export async function processOpenAIStream(
 
   /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
   let snapshotEmittedKeys = getCompletedToolCallKeys(apiMessages, requestContext, toolSchemas);
-
-  // Reasoning/thinking models self-regulate output budget via the API
-  // even with max_tokens set. Retrying is unlikely to change the outcome.
-  const maxRetries = isReasoningModel ? 1 : MAX_STREAM_RETRIES;
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
+
+    // When the user left Thinking Effort at "default", retries force "low" so a
+    // thinking model cannot burn the whole budget on reasoning again — this is
+    // what breaks reasoning-only retry storms.  An explicitly configured effort
+    // keeps its step-down schedule (xhigh → high → medium → low).
+    const attemptReasoningEffort =
+      normalizedEffort !== undefined
+        ? getRetryReasoningEffort(normalizedEffort, attempt)
+        : attempt > 0 && isReasoningModel
+          ? "low"
+          : undefined;
+
+    if (attempt > 0) {
+      // Reasoning-only retry: the model produced thinking but no text/tool
+      // calls, so the reasoning likely consumed the output budget.  Increase
+      // output tokens significantly so the model has room to reason AND respond.
+      currentMaxTokens = isReasoningModel
+        ? currentMaxTokens * 2
+        : Math.min(currentMaxTokens * 2, model.maxOutputTokens);
+      debugLog("processOpenAIStream retry", {
+        attempt,
+        reasoning_effort: attemptReasoningEffort,
+      });
+    }
+
+    // Thinking models receive max_completion_tokens (min 16K, capped at the
+    // model's declared max output) so reasoning tokens do not eat the visible
+    // output budget.  Non-thinking models keep max_tokens.
+    if (isReasoningModel) {
+      requestBody.max_completion_tokens = Math.min(
+        Math.max(currentMaxTokens, 16384),
+        model.maxOutputTokens,
+      );
+      delete requestBody.max_tokens;
+    } else {
+      requestBody.max_tokens = currentMaxTokens;
+      delete requestBody.max_completion_tokens;
+    }
+    if (attemptReasoningEffort) {
+      requestBody.reasoning_effort = attemptReasoningEffort;
+    } else {
+      delete requestBody.reasoning_effort;
+    }
 
     const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
     const completedToolCallIndices = new Set<number>();
@@ -344,10 +394,15 @@ export async function processOpenAIStream(
       }
 
       // Mid-response stop detection: model generated tool calls but didn't complete them
-      if (!emittedToolCall && sawToolCall && toolCallBuffers.size > 0 && attempt + 1 < maxRetries) {
+      if (
+        !emittedToolCall &&
+        sawToolCall &&
+        toolCallBuffers.size > 0 &&
+        attempt + 1 < MAX_RETRIES
+      ) {
         debugLog(
           "processOpenAIStream",
-          `Mid-response stop detected (attempt ${attempt + 1}/${maxRetries}), retrying...`,
+          `Mid-response stop detected (attempt ${attempt + 1}/${MAX_RETRIES}), retrying...`,
         );
         snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
         continue;
@@ -382,10 +437,10 @@ export async function processOpenAIStream(
         throw new vscode.CancellationError();
       }
       // Retry on stream errors if we haven't exceeded max retries
-      if (receivedAnyOutput && attempt + 1 < maxRetries) {
+      if (receivedAnyOutput && attempt + 1 < MAX_RETRIES) {
         debugLog(
           "processOpenAIStream",
-          `Stream error (attempt ${attempt + 1}/${maxRetries}), retrying: ${err}`,
+          `Stream error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying: ${err}`,
         );
         snapshotEmittedKeys = new Set(emittedTextToolCallKeys);
         continue;
