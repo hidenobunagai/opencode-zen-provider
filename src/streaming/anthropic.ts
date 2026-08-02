@@ -2,7 +2,7 @@
 import * as vscode from "vscode";
 import { convertMessagesToAnthropic, convertToolsToAnthropic } from "../anthropic-conversion";
 import { fetchWithRetry, resolveApiEndpoint } from "../api";
-import { MAX_STREAM_RETRIES, REASONING_MODEL_IDS } from "../constants";
+import { MAX_STREAM_RETRIES, REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { buildProviderIdentityGuidance, sanitizeSystemPromptForModel } from "../guidance";
 import type { ZenModelInfo } from "../model-catalog";
 import { convertTools } from "../openai-conversion";
@@ -107,7 +107,7 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
     throw new Error("No messages to send to Anthropic API");
   }
 
-  const isReasoningModel = REASONING_MODEL_IDS.has(modelId);
+  const isReasoningModel = REASONING_CONTENT_WORKAROUND_MODELS.has(modelId);
   const thinkingBudget = reasoningEffort
     ? calculateThinkingBudget(reasoningEffort, requestedMaxTokens)
     : undefined;

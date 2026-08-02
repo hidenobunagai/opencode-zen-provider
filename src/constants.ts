@@ -55,12 +55,57 @@ export const CJK_MODEL_PREFIXES = ["kimi", "qwen", "glm", "hy3", "ling"];
 export const CJK_CHARS_PER_TOKEN = 0.8;
 
 /**
- * Reasoning/thinking model IDs that emit internal "thinking" tokens as part of
- * their output stream. Sending an explicit max_tokens to these models causes
- * them to consume the entire budget on reasoning, leaving zero visible output.
- * These models must be called WITHOUT max_tokens — they self-regulate output.
+ * Explicit model IDs that require the reasoning_content workaround.
  */
-export const REASONING_MODEL_IDS = new Set(["kimi-k2.6"]);
+const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
+  "kimi-k2.6",
+  "kimi-k2.7-code",
+  "deepseek-v4-pro",
+  "deepseek-v4-flash",
+]);
+
+/**
+ * Models that internally reason even though they do not need the
+ * reasoning_content workaround (e.g. Responses API models). They still
+ * consume part of the output budget on reasoning, so they get the same
+ * minimum output budget floor as workaround models.
+ */
+const THINKING_MODEL_STATIC_SET = new Set([
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+]);
+
+/** Models that require the reasoning_content workaround */
+export const REASONING_CONTENT_WORKAROUND_MODELS = {
+  has(modelId: string): boolean {
+    if (REASONING_CONTENT_WORKAROUND_STATIC_SET.has(modelId)) {
+      return true;
+    }
+    if (modelId.startsWith("kimi-")) {
+      return !modelId.includes("k2.5");
+    }
+    if (modelId.startsWith("deepseek-")) {
+      const match = modelId.match(/deepseek-v(\d+)/);
+      if (match) {
+        const version = parseInt(match[1], 10);
+        return version >= 4;
+      }
+      return modelId.includes("-r1") || modelId.includes("-r2");
+    }
+    return false;
+  },
+};
+
+/** Models with internal reasoning that need a minimum output budget */
+export const THINKING_MODELS = {
+  has(modelId: string): boolean {
+    return (
+      THINKING_MODEL_STATIC_SET.has(modelId) || REASONING_CONTENT_WORKAROUND_MODELS.has(modelId)
+    );
+  },
+};
+
 /** Minimum output token budget for reasoning/thinking models when max_tokens is omitted.
  * This is used as a safety floor in context window calculations to ensure
  * the model has enough headroom after input tokens. */

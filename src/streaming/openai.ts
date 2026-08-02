@@ -1,7 +1,7 @@
 // streaming/openai.ts — OpenAI-format SSE streaming + tool call assembly
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../api";
-import { MAX_STREAM_RETRIES, REASONING_MODEL_IDS } from "../constants";
+import { MAX_STREAM_RETRIES, REASONING_CONTENT_WORKAROUND_MODELS } from "../constants";
 import { applyOpenAiSystemPromptGuidance, calculateMaxToolResultChars } from "../guidance";
 import type { ZenModelInfo, ZenRouteKind } from "../model-catalog";
 import {
@@ -89,10 +89,7 @@ export async function processOpenAIStream(
   const endpoint = resolveApiEndpoint(model.routeKind, model.id);
 
   let convertedMessages = convertMessages(apiMessages, { maxToolResultChars });
-  convertedMessages = applyReasoningContentWorkaround(
-    convertedMessages,
-    !!model.modelInfo?.needsReasoningContentWorkaround,
-  );
+  convertedMessages = applyReasoningContentWorkaround(convertedMessages, model.id);
   convertedMessages = applyOpenAiSystemPromptGuidance(
     convertedMessages,
     model.id,
@@ -101,7 +98,7 @@ export async function processOpenAIStream(
   );
 
   const toolConfig = convertTools(requestOptions);
-  const isReasoningModel = REASONING_MODEL_IDS.has(model.id);
+  const isReasoningModel = REASONING_CONTENT_WORKAROUND_MODELS.has(model.id);
   const requestBody: ZenChatRequest = {
     model: model.id,
     messages: convertedMessages,

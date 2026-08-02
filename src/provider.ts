@@ -15,8 +15,8 @@ import {
 import {
   calculateSafetyMargin,
   DEFAULT_MAX_OUTPUT_TOKENS,
-  REASONING_MODEL_IDS,
   REASONING_MODEL_MIN_OUTPUT_BUDGET,
+  THINKING_MODELS,
 } from "./constants";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
 import { ZenMcpClient } from "./mcp";
@@ -243,7 +243,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         supportsVision: false,
         supportsThinking: false,
       };
-      const isReasoning = REASONING_MODEL_IDS.has(model.id);
+      const isReasoning = THINKING_MODELS.has(model.id);
       // Reasoning/thinking models self-regulate output via the API.
       // Use the minimum output budget as a fixed headroom instead of the
       // model's declared maxOutput (which may equal the full context window).
@@ -337,7 +337,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
       // Enforce a minimum output budget so the model has enough room to reason AND produce a visible response.
       const MIN_THINKING_MODEL_OUTPUT_TOKENS = 16384;
       const resolvedModelId = this.resolveApiModelId(model.id);
-      const isThinkingModel = REASONING_MODEL_IDS.has(resolvedModelId);
+      const isThinkingModel = THINKING_MODELS.has(resolvedModelId);
       const effectiveMaxTokens = isThinkingModel
         ? Math.max(
             requestedMaxTokens,

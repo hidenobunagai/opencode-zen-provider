@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { REASONING_CONTENT_WORKAROUND_MODELS } from "./constants";
 import {
   extractImageData,
   getDataPartTextValue,
@@ -167,9 +168,9 @@ export function convertMessages(
 
 export function applyReasoningContentWorkaround(
   messages: ZenChatMessage[],
-  needsWorkaround: boolean,
+  modelId: string,
 ): ZenChatMessage[] {
-  if (!needsWorkaround) {
+  if (!REASONING_CONTENT_WORKAROUND_MODELS.has(modelId)) {
     return messages;
   }
 

@@ -314,14 +314,14 @@ describe("applyReasoningContentWorkaround", () => {
   it("adds reasoning_content when workaround is needed", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
     const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
-    const result = applyReasoningContentWorkaround(messages, true);
+    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
     expect(result[0].reasoning_content).toBe(" ");
   });
 
   it("does not add reasoning_content when workaround is not needed", () => {
     const { applyReasoningContentWorkaround } = require("../src/utils");
     const messages: ZenChatMessage[] = [{ role: "assistant", content: "Hello" }];
-    const result = applyReasoningContentWorkaround(messages, false);
+    const result = applyReasoningContentWorkaround(messages, "gpt-5.5");
     expect(result[0].reasoning_content).toBeUndefined();
   });
 
@@ -330,7 +330,7 @@ describe("applyReasoningContentWorkaround", () => {
     const messages: ZenChatMessage[] = [
       { role: "assistant", content: "Hello", reasoning_content: "existing" },
     ];
-    const result = applyReasoningContentWorkaround(messages, true);
+    const result = applyReasoningContentWorkaround(messages, "kimi-k2.6");
     expect(result[0].reasoning_content).toBe("existing");
   });
 });
