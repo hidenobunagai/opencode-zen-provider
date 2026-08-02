@@ -31,26 +31,30 @@ VS Code extension project for using curated OpenCode Zen models in Copilot Chat 
 
 ## Supported Models
 
-V1 uses a checked-in static catalog. The initial catalog includes:
+The extension bundles a static `ZEN_MODEL_CATALOG` (in `src/model-catalog.ts`) that mirrors the current OpenCode Zen API model lineup, including:
 
-- Big Pickle
-- MiniMax M2.5, MiniMax M2.5 Free, MiniMax M2.7
-- Claude Opus 4.7, Claude Sonnet 4.6
-- GPT 5.4, GPT 5.4 Mini, GPT 5.4 Nano, GPT 5.4 Pro
-- GPT 5.5, GPT 5.5 Pro
-- Gemini 3 Flash, Gemini 3.1 Pro
-- GLM 5.1
-- Hy3 Preview Free
-- Kimi K2.6
-- Ling 2.6 Flash Free
-- Nemotron 3 Super Free
-- Qwen3.6 Plus
+- Claude: Haiku 4.5, Sonnet 4/4.5/4.6/**5**, Opus 4.1/4.5/4.6/4.7/4.8/**5**, Fable 5
+- DeepSeek: V4 Pro, V4 Flash, V4 Flash Free
+- Gemini: 3 Flash, 3.1 Pro, 3.5 Flash, **3.5 Flash Lite**, **3.6 Flash**
+- GPT: 5/5.1/5.2/5.3/5.4/5.5 series, **5.6 Luna / Sol / Terra**, Codex variants
+- Grok: Build 0.1, **4.5**
+- Kimi: K2.5, K2.6, **K2.7 Code**, **K3**
+- GLM: 5, 5.1, 5.2
+- MiniMax: M2.5, M2.7, **M3**
+- Qwen: 3.5 Plus, 3.6 Plus
+- Free models: Big Pickle, MiMo V2.5 Free, Nemotron 3 Ultra Free, North Mini Code Free, **Ling 3.0 Flash Free**, **Laguna S 2.1 Free**
+
+For the full table of capabilities (context window, vision, tools, thinking, API format), see [docs/models.md](docs/models.md).
+
+## Documentation
+
+- [Supported Models](docs/models.md) — Full model list, capabilities, context window, and model quirks
 
 ## Current V1 Scope
 
 - Provider registration, API key management, static model catalog, and core chat-provider wiring are included.
-- The custom image-analysis tool from the Go reference project is intentionally excluded.
-- Non-vision models reject image input explicitly in V1.
+- The custom image-analysis tool is available via `opencode_zen_analyze_image` and automatic image fallback for non-vision models.
+- Non-vision models either switch to a vision-capable fallback model or delegate to the image-analysis tool when images are attached.
 
 ## Development
 

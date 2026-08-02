@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.1.42] - 2026-08-02
+
+### Added
+
+- **New models from the Zen API**: Claude Opus 5, Claude Sonnet 5, Gemini 3.6 Flash, Gemini 3.5 Flash Lite, GPT 5.6 Luna / Sol / Terra, Grok 4.5, Kimi K2.7 Code, Kimi K3, MiniMax M3, Ling 3.0 Flash Free, Laguna S 2.1 Free.
+- **Removed deprecated models** no longer served by the Zen API: Qwen3.7 Max, Qwen3.7 Plus, Qwen3.6 Plus Free, MiniMax M3 Free, Nemotron 3 Super Free.
+- **Dynamic reasoning-content workaround detection.** `REASONING_CONTENT_WORKAROUND_MODELS` now detects workaround-required models by ID pattern (all Kimi except K2.5, DeepSeek V4+) instead of a single hardcoded `kimi-k2.6` entry, so newly released reasoning models work correctly out of the box.
+- **CJK-aware token estimation.** Japanese/Chinese/Korean and full-width characters are now counted as ~1 token each instead of the Latin ratio of 2 chars/token, preventing over-limit requests from slipping through for CJK-heavy conversations.
+- **`max_completion_tokens` for thinking models.** OpenAI-format thinking models (Kimi, DeepSeek V4+) now receive `max_completion_tokens` (min 16K, capped at the model's declared max output) instead of `max_tokens`, so internal reasoning no longer eats the visible output budget. Retries step the reasoning effort down (xhigh → high → medium → low) and double the output budget when the model only reasoned without producing visible output.
+- **docs/models.md** documenting the full model catalog, capabilities, quirks, and how to add models.
+- **`check-changelog` script** verifying package.json version matches CHANGELOG.md before packaging.
+
 ## [0.1.41] - 2026-06-27
 
 ### Added
