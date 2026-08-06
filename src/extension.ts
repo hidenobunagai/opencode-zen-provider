@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { EXTENSION_VERSION } from "./constants";
 import { debugLog, getOutputChannel } from "./output-channel";
 import { ZenChatModelProvider } from "./provider";
-import { disposeTokenizerCache } from "./tokenizer";
 import { registerZenTools } from "./tools";
 
 let _provider: ZenChatModelProvider | null = null;
@@ -87,6 +86,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-  disposeTokenizerCache();
   _provider = null;
 }

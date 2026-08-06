@@ -11,19 +11,6 @@ import { getDataPartTextValue, getTextPartValue, type LegacyPart } from "./messa
 const CJK_CHAR_PATTERN =
   /[\u1100-\u11FF\u2E80-\u9FFF\uAC00-\uD7AF\uF900-\uFAFF\uFF00-\uFF60\uFFE0-\uFFE6]/;
 
-/** Release all cached encodings. Safe to call during extension deactivation. */
-export function disposeTokenizerCache(): void {
-  // no-op: lightweight fallback tokenizer has no native/WASM cache
-}
-
-export function releaseCachedEncoding(): void {
-  // no-op: kept for compatibility
-}
-
-export function preloadTiktoken(): void {
-  // no-op: kept for compatibility
-}
-
 /**
  * Estimate tokens for a piece of text.
  * - CJK / full-width characters count as ~1 token each.

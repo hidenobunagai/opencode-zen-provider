@@ -7,35 +7,7 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { buildToolDescription } from "./openai-conversion";
-import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, Json, JsonObject } from "./types";
-
-export function tryParseJSONObject<T extends Json = Json>(
-  text: string,
-): { ok: true; value: T } | { ok: false; error: string } {
-  if (!text || !text.trim()) {
-    return { ok: false, error: "Empty string" };
-  }
-  try {
-    return { ok: true, value: JSON.parse(text) as T };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) };
-  }
-}
-
-export function validateRequest(
-  messages:
-    | readonly vscode.LanguageModelChatMessage[]
-    | readonly { role: string; content: (vscode.LanguageModelInputPart | LegacyPart)[] }[],
-): void {
-  if (!messages || messages.length === 0) {
-    throw new Error("Messages array is empty");
-  }
-  for (const message of messages) {
-    if (!message.content || message.content.length === 0) {
-      throw new Error("Message has no content");
-    }
-  }
-}
+import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, JsonObject } from "./types";
 
 function mergeConsecutiveAnthropicMessages(messages: AnthropicMessage[]): AnthropicMessage[] {
   if (messages.length === 0) return messages;
