@@ -7,7 +7,7 @@ import {
 } from "./constants";
 import type { ZenRouteKind } from "./model-catalog";
 import { debugLog } from "./output-channel";
-import { ZenChatCompletionResponse, ZenChatRequest, ZenStreamResponse } from "./types";
+import type { ZenChatCompletionResponse, ZenChatRequest, ZenStreamResponse } from "./types";
 
 /**
  * Determine whether an HTTP status code is safe to retry.

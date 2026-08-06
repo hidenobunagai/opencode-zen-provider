@@ -24,7 +24,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import { ZenChatMessage, ZenChatRequest } from "../types";
+import type { ZenChatMessage, ZenChatRequest } from "../types";
 
 /** Check if a JSON string has balanced braces/brackets (optimistic preflight before JSON.parse) */
 function isBalancedBraces(json: string): boolean {

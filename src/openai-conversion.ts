@@ -9,7 +9,7 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { debugLog } from "./output-channel";
-import { JsonObject, ZenChatMessage, ZenContentPart, ZenTool } from "./types";
+import type { JsonObject, ZenChatMessage, ZenContentPart, ZenTool } from "./types";
 
 function asObjectRecord(value: unknown): Record<string, unknown> | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {

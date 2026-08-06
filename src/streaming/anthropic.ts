@@ -19,7 +19,7 @@ import {
   isToolCallInput,
   repairToolArguments,
 } from "../tool-repair";
-import { AnthropicMessage, AnthropicSSEEvent, type Json } from "../types";
+import type { AnthropicMessage, AnthropicSSEEvent, Json } from "../types";
 
 export interface AnthropicRequestParams {
   modelId: string;

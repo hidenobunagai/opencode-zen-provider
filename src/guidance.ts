@@ -1,7 +1,7 @@
 // guidance.ts — system prompt sanitization, identity & tool-use grounding guidance
-import { ProvideLanguageModelChatResponseOptions } from "vscode";
+import type { ProvideLanguageModelChatResponseOptions } from "vscode";
 import type { ZenModelInfo } from "./model-catalog";
-import { ZenChatMessage } from "./types";
+import type { ZenChatMessage } from "./types";
 
 export function sanitizeSystemPromptForModel(
   system: string | undefined,

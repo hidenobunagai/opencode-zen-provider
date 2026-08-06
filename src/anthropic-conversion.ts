@@ -7,7 +7,7 @@ import {
   type LegacyPart,
 } from "./message-parts";
 import { buildToolDescription } from "./openai-conversion";
-import { AnthropicContentBlock, AnthropicMessage, AnthropicTool, JsonObject } from "./types";
+import type { AnthropicContentBlock, AnthropicMessage, AnthropicTool, JsonObject } from "./types";
 
 function mergeConsecutiveAnthropicMessages(messages: AnthropicMessage[]): AnthropicMessage[] {
   if (messages.length === 0) return messages;

@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import {
+import { EventEmitter } from "vscode";
+import type {
   CancellationToken,
   Event,
-  EventEmitter,
   LanguageModelChatInformation,
   LanguageModelChatMessage,
   LanguageModelChatProvider,
@@ -19,7 +19,7 @@ import {
   THINKING_MODELS,
 } from "./constants";
 import { extractImageData, getTextPartValue, type LegacyPart } from "./message-parts";
-import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
+import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, type ZenModelInfo } from "./model-catalog";
 import { ZenMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
 import { handleAnthropicRequest } from "./streaming/anthropic";
