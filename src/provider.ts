@@ -18,6 +18,7 @@ import {
   REASONING_MODEL_MIN_OUTPUT_BUDGET,
   THINKING_MODELS,
 } from "./constants";
+import { extractImageData, getTextPartValue, type LegacyPart } from "./message-parts";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, ZenModelInfo } from "./model-catalog";
 import { ZenMcpClient } from "./mcp";
 import { debugLog } from "./output-channel";
@@ -142,31 +143,14 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
     for (const msg of messages) {
       const textParts: string[] = [];
       for (const part of msg.content) {
-        if (part instanceof vscode.LanguageModelTextPart) {
-          textParts.push(part.value);
-        } else if (
-          typeof part === "object" &&
-          part !== null &&
-          "value" in part &&
-          typeof (part as { value?: unknown }).value === "string"
-        ) {
-          textParts.push((part as { value: string }).value);
-        }
+        const textValue = getTextPartValue(part);
+        if (textValue !== undefined) textParts.push(textValue);
       }
 
       const images: Array<{ mimeType: string; data: Uint8Array }> = [];
       for (const part of msg.content) {
-        const p = part as { mimeType?: unknown; data?: unknown; bytes?: unknown; buffer?: unknown };
-        if (typeof p.mimeType !== "string" || !p.mimeType.startsWith("image/")) continue;
-        let data: Uint8Array | undefined;
-        if (p.data instanceof Uint8Array && p.data.length > 0) data = p.data;
-        else if (p.bytes instanceof Uint8Array && (p.bytes as Uint8Array).length > 0)
-          data = p.bytes as Uint8Array;
-        else if (Array.isArray(p.data) && p.data.length > 0)
-          data = new Uint8Array(p.data as number[]);
-        else if (Array.isArray(p.bytes) && (p.bytes as unknown[]).length > 0)
-          data = new Uint8Array(p.bytes as number[]);
-        if (data) images.push({ mimeType: p.mimeType, data });
+        const image = extractImageData(part);
+        if (image) images.push(image);
       }
 
       if (images.length === 0) {
@@ -335,13 +319,12 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
 
       // Thinking models consume part of the max_tokens budget for internal reasoning.
       // Enforce a minimum output budget so the model has enough room to reason AND produce a visible response.
-      const MIN_THINKING_MODEL_OUTPUT_TOKENS = 16384;
       const resolvedModelId = this.resolveApiModelId(model.id);
       const isThinkingModel = THINKING_MODELS.has(resolvedModelId);
       const effectiveMaxTokens = isThinkingModel
         ? Math.max(
             requestedMaxTokens,
-            Math.min(MIN_THINKING_MODEL_OUTPUT_TOKENS, model.maxOutputTokens),
+            Math.min(REASONING_MODEL_MIN_OUTPUT_BUDGET, model.maxOutputTokens),
           )
         : requestedMaxTokens;
 
@@ -461,16 +444,8 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
     }
     const textParts: string[] = [];
     for (const part of text.content) {
-      if (part instanceof vscode.LanguageModelTextPart) {
-        textParts.push(part.value);
-      } else if (
-        typeof part === "object" &&
-        part !== null &&
-        "value" in part &&
-        typeof (part as Record<string, unknown>).value === "string"
-      ) {
-        textParts.push((part as { value: string }).value);
-      }
+      const textValue = getTextPartValue(part as vscode.LanguageModelInputPart | LegacyPart);
+      if (textValue !== undefined) textParts.push(textValue);
     }
     if (textParts.length === 0) {
       return Promise.resolve(2 * text.content.length);
