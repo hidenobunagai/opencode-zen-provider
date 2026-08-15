@@ -86,8 +86,18 @@ Press `F5` in VS Code to launch the Extension Development Host.
 
 ## Marketplace Packaging
 
+Build the VSIX package:
+
 ```bash
 bun run package:vsix
+```
+
+This extension integrates with **GitHub Copilot Chat** (`languageModelChatProviders`) and is therefore published **only to the VS Code Marketplace** — do not publish it to Open VSX or other registries, which do not target Copilot Chat.
+
+Publish to the VS Code Marketplace (requires `VSCE_PAT`):
+
+```bash
+vsce publish --packagePath opencode-zen-provider-<version>.vsix --allow-missing-repository
 ```
 
 ## Privacy
