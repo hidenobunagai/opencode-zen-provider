@@ -17,3 +17,6 @@ coverage/
 *.log
 .worktrees/
 AGENTS.md
+.bun-cache/
+# Added by code-review-graph
+.code-review-graph/
