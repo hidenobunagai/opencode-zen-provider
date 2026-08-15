@@ -33,16 +33,17 @@ VS Code extension project for using curated OpenCode Zen models in Copilot Chat 
 
 The extension bundles a static `ZEN_MODEL_CATALOG` (in `src/model-catalog.ts`) that mirrors the current OpenCode Zen API model lineup, including:
 
-- Claude: Haiku 4.5, Sonnet 4/4.5/4.6/**5**, Opus 4.1/4.5/4.6/4.7/4.8/**5**, Fable 5
+- Claude: Haiku 4.5, Sonnet 4/4.5/4.6/**5**, Opus 4.5/4.6/4.7/4.8/**5**, Fable 5
 - DeepSeek: V4 Pro, V4 Flash, V4 Flash Free
-- Gemini: 3 Flash, 3.1 Pro, 3.5 Flash, **3.5 Flash Lite**, **3.6 Flash**
+- Gemini: 3 Flash, 3.1 Pro, 3.5 Flash, 3.5 Flash Lite, 3.6 Flash, **3.7 Flash**
 - GPT: 5/5.1/5.2/5.3/5.4/5.5 series, **5.6 Luna / Sol / Terra**, Codex variants
-- Grok: Build 0.1, **4.5**
-- Kimi: K2.5, K2.6, **K2.7 Code**, **K3**
+- Grok: Build 0.1, 4.5, **4.6**
+- Kimi: K2.5, K2.6, K2.7 Code, K3
 - GLM: 5, 5.1, 5.2
-- MiniMax: M2.5, M2.7, **M3**
+- MiniMax: M2.5, M2.7, M3
+- **Muse: Spark 1.2**
 - Qwen: 3.5 Plus, 3.6 Plus
-- Free models: Big Pickle, MiMo V2.5 Free, Nemotron 3 Ultra Free, North Mini Code Free, **Ling 3.0 Flash Free**, **Laguna S 2.1 Free**
+- Free models: Big Pickle, **Hy3 Free**, MiMo V2.5 Free, Nemotron 3 Ultra Free, **Nemotron 3.5 Lightning Free**, Laguna S 2.1 Free
 
 For the full table of capabilities (context window, vision, tools, thinking, API format), see [docs/models.md](docs/models.md).
 

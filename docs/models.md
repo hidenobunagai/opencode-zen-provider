@@ -10,7 +10,6 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 |-------|---------|------------|--------|-------|----------|-----|
 | Claude Fable 5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
 | Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 4.1 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
 | Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
 | Claude Opus 4.6 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
 | Claude Opus 4.7 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
@@ -42,6 +41,7 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 | Gemini 3.5 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 
 > **Note**: Gemini models use a model-specific route (`/models/{id}`).
 
@@ -84,8 +84,11 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Grok Build 0.1 | 131,072 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
-| Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Grok Build 0.1 | 131,072 | 65,536 | ✗ | ✓ | ✓ | Responses |
+| Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
+| Grok 4.6 | 500,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
+
+> **Note**: Grok models use the **Responses API** route (`/responses`). They internally reason, so they are treated as thinking models (`THINKING_MODELS`) for output budget purposes.
 
 ### Kimi Series (Moonshot AI)
 
@@ -103,11 +106,11 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Big Pickle | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
+| Hy3 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 | Laguna S 2.1 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| Ling 3.0 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 | MiMo V2.5 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 | Nemotron 3 Ultra Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| North Mini Code Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
+| Nemotron 3.5 Lightning Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 
 > **Note**: Free models do not support tool/function calling. They still declare `toolCalling` capability so they appear in the model picker, but the provider strips tools from requests before sending to the API (`NO_TOOL_MODEL_IDS`).
 
@@ -119,12 +122,20 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 | MiniMax M2.7 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | MiniMax M3 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 
+### Muse Series (ByteDance)
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
+
+> **Note**: Muse Spark 1.2 uses the **Responses API** route (`/responses`) and is treated as a thinking model (`THINKING_MODELS`) for output budget purposes.
+
 ### Qwen Series (Alibaba)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Qwen3.5 Plus | 262,144 | 65,536 | ✗ | ✓ | ✓ | Anthropic |
-| Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
 
 ## Model Quirks & Workarounds
 
@@ -133,8 +144,8 @@ The extension applies several model-behavior workarounds while streaming. This m
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
 | `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
-| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.x models (`routeKind: "responses"`) | `api.ts` |
-| Anthropic Messages API instead of OpenAI format | Claude, Qwen3.5 Plus (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
+| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.x, Grok, Muse Spark 1.2 (`routeKind: "responses"`) | `api.ts` |
+| Anthropic Messages API instead of OpenAI format | Claude, Qwen3.5 Plus, Qwen3.6 Plus (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `model-catalog.ts` |
 | System prompt sanitization and provider identity guidance | Model-specific (`guidance.ts`) | `guidance.ts` |
 | Tool-use grounding guidance injected into the system prompt | All models, when tools are present | `guidance.ts` |

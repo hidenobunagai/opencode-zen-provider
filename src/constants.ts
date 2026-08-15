@@ -50,7 +50,14 @@ const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
  * consume part of the output budget on reasoning, so they get the same
  * minimum output budget floor as workaround models.
  */
-const THINKING_MODEL_STATIC_SET = new Set(["gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra"]);
+const THINKING_MODEL_STATIC_SET = new Set([
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "grok-4.5",
+  "grok-4.6",
+  "muse-spark-1.2",
+]);
 
 /** Models that require the reasoning_content workaround */
 export const REASONING_CONTENT_WORKAROUND_MODELS = {

@@ -8,6 +8,18 @@
 
 - **Replaced legacy tiktoken fallback test.** `utils-tiktoken-fallback.test.ts` attempted to mock `@dqbd/tiktoken`, which is no longer used (the extension now uses pure character-based estimation). Replaced with `utils-tokenizer.test.ts` that directly tests the current tokenizer implementation.
 
+## [0.1.43] - 2026-08-15
+
+### Added
+
+- **New models from the Zen API**: Gemini 3.7 Flash, Grok 4.6, Muse Spark 1.2, Hy3 Free, Nemotron 3.5 Lightning Free.
+- **Grok 4.5 / Grok Build 0.1 moved to the Responses API route** and **Qwen3.6 Plus moved to the Anthropic Messages API** to match the current Zen API endpoints (`/responses` and `/messages` respectively).
+- **Grok 4.5 / 4.6 and Muse Spark 1.2 are treated as thinking models** (`THINKING_MODELS`) for output budget purposes, matching the existing GPT 5.6 handling.
+
+### Removed
+
+- **Removed models no longer served by the Zen API**: Claude Opus 4.1 (deprecated 2026-08-05), Ling 3.0 Flash Free, North Mini Code Free.
+
 ## [0.1.42] - 2026-08-02
 
 ### Added
