@@ -9,6 +9,7 @@ __mocks__/**
 node_modules/**
 coverage/**
 .headroom/**
+.code-review-graph/**
 .gitignore
 AGENTS.md
 .env
