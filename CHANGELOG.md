@@ -18,6 +18,7 @@
 ### Fixed
 
 - **Smoke test script now reads `ZEN_MODEL_CATALOG` directly** instead of maintaining a duplicate hardcoded list, and sends correct Responses API payloads (`input` / `max_output_tokens`) so all live models can be verified.
+- **VSIX packaging**: excluded agent-config files/directories (`.claude/`, `.gemini/`, `.codebuddy/`, `.kiro/`, `.qoder/`, `GEMINI.md`, etc.) and the local `.bun-cache/` (815 files / 15.6 MB) from the package; the VSIX is now ~70 KB with 28 files instead of hundreds of files.
 
 ### Removed
 

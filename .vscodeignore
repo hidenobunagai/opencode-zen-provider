@@ -23,3 +23,17 @@ eslint.config.mjs
 .prettierrc
 .DS_Store
 out/**/*.map
+.cursorrules
+.windsurfrules
+.mcp.json
+GEMINI.md
+CODEBUDDY.md
+QODER.md
+.claude/**
+.codebuddy/**
+.gemini/**
+.kiro/**
+.qoder/**
+.cursor/**
+opencode.jsonc
+.bun-cache/**
