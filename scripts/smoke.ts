@@ -9,156 +9,12 @@
 
 const BASE_URL = "https://opencode.ai/zen/v1";
 
-interface ZenModelEntry {
-  id: string;
-  requestModelId: string;
-  displayName: string;
-  routeKind: "responses" | "messages" | "chat_completions" | "model_specific";
-  apiFormat: "openai" | "anthropic";
-}
+// Responses-route models spend output tokens on reasoning before any text.
+const MAX_TOKENS_BY_ROUTE: Record<string, number> = {
+  responses: 2000,
+};
 
-const MODELS: ZenModelEntry[] = [
-  {
-    id: "big-pickle",
-    requestModelId: "big-pickle",
-    displayName: "Big Pickle",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "claude-opus-4-7",
-    requestModelId: "claude-opus-4-7",
-    displayName: "Claude Opus 4.7",
-    routeKind: "messages",
-    apiFormat: "anthropic",
-  },
-  {
-    id: "claude-sonnet-4-6",
-    requestModelId: "claude-sonnet-4-6",
-    displayName: "Claude Sonnet 4.6",
-    routeKind: "messages",
-    apiFormat: "anthropic",
-  },
-  {
-    id: "gemini-3-flash",
-    requestModelId: "gemini-3-flash",
-    displayName: "Gemini 3 Flash",
-    routeKind: "model_specific",
-    apiFormat: "openai",
-  },
-  {
-    id: "gemini-3.1-pro",
-    requestModelId: "gemini-3.1-pro",
-    displayName: "Gemini 3.1 Pro",
-    routeKind: "model_specific",
-    apiFormat: "openai",
-  },
-  {
-    id: "glm-5.1",
-    requestModelId: "glm-5.1",
-    displayName: "GLM 5.1",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.4",
-    requestModelId: "gpt-5.4",
-    displayName: "GPT 5.4",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.4-mini",
-    requestModelId: "gpt-5.4-mini",
-    displayName: "GPT 5.4 Mini",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.4-nano",
-    requestModelId: "gpt-5.4-nano",
-    displayName: "GPT 5.4 Nano",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.4-pro",
-    requestModelId: "gpt-5.4-pro",
-    displayName: "GPT 5.4 Pro",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.5",
-    requestModelId: "gpt-5.5",
-    displayName: "GPT 5.5",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "gpt-5.5-pro",
-    requestModelId: "gpt-5.5-pro",
-    displayName: "GPT 5.5 Pro",
-    routeKind: "responses",
-    apiFormat: "openai",
-  },
-  {
-    id: "hy3-preview-free",
-    requestModelId: "hy3-preview-free",
-    displayName: "Hy3 Preview Free",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "kimi-k2.6",
-    requestModelId: "kimi-k2.6",
-    displayName: "Kimi K2.6",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "ling-2.6-flash-free",
-    requestModelId: "ling-2.6-flash-free",
-    displayName: "Ling 2.6 Flash Free",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "minimax-m2.5",
-    requestModelId: "minimax-m2.5",
-    displayName: "MiniMax M2.5",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "minimax-m2.5-free",
-    requestModelId: "minimax-m2.5-free",
-    displayName: "MiniMax M2.5 Free",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "minimax-m2.7",
-    requestModelId: "minimax-m2.7",
-    displayName: "MiniMax M2.7",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "nemotron-3-super-free",
-    requestModelId: "nemotron-3-super-free",
-    displayName: "Nemotron 3 Super Free",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-  {
-    id: "qwen3.6-plus",
-    requestModelId: "qwen3.6-plus",
-    displayName: "Qwen3.6 Plus",
-    routeKind: "chat_completions",
-    apiFormat: "openai",
-  },
-];
+import { ZEN_MODEL_CATALOG, type ZenModelInfo } from "../src/model-catalog";
 
 function resolveEndpoint(routeKind: string, modelId: string): string {
   switch (routeKind) {
@@ -176,7 +32,7 @@ function resolveEndpoint(routeKind: string, modelId: string): string {
 }
 
 async function testModel(
-  entry: ZenModelEntry,
+  entry: ZenModelInfo,
   apiKey: string,
   verbose: boolean,
 ): Promise<{ ok: boolean; error?: string; text?: string }> {
@@ -185,12 +41,19 @@ async function testModel(
   const body: Record<string, unknown> = {
     model: entry.requestModelId,
     messages: [{ role: "user", content: "Reply with exactly: OK" }],
-    max_tokens: 10,
+    max_tokens: MAX_TOKENS_BY_ROUTE[entry.routeKind] ?? 10,
     stream: false,
   };
 
+  if (entry.routeKind === "responses") {
+    // Responses API uses input/max_output_tokens instead of messages/max_tokens.
+    delete body.messages;
+    delete body.max_tokens;
+    body.input = [{ role: "user", content: "Reply with exactly: OK" }];
+    body.max_output_tokens = MAX_TOKENS_BY_ROUTE.responses;
+  }
+
   if (entry.routeKind === "messages") {
-    body.max_tokens = 10;
     body.messages = [{ role: "user", content: "Reply with exactly: OK" }];
   }
 
@@ -254,7 +117,7 @@ async function main() {
   const verbose = args.includes("--verbose");
   const modelFilter = args.find((a) => a.startsWith("--model="))?.split("=")[1];
 
-  const targets = modelFilter ? MODELS.filter((m) => m.id === modelFilter) : MODELS;
+  const targets = modelFilter ? ZEN_MODEL_CATALOG.filter((m) => m.id === modelFilter) : ZEN_MODEL_CATALOG;
 
   if (targets.length === 0) {
     console.error(`No models found matching "${modelFilter}"`);
