@@ -2,25 +2,9 @@
 
 The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` that mirrors the models served by the OpenCode Zen API (`https://opencode.ai/zen/v1`). Each model entry specifies its route kind (`responses` / `messages` / `chat_completions` / `model_specific`), API format (`openai` / `anthropic`), context window, max output, vision/tool/thinking support, and any fixed temperature.
 
+Catalog last synced with the API on 2026-08-22.
+
 ## Model List
-
-### Claude Series (Anthropic)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| Claude Fable 5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 4.6 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 4.7 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 4.8 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Opus 5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Sonnet 4 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Sonnet 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Sonnet 4.6 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-| Claude Sonnet 5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
-
-> **Note**: Claude models use the **Anthropic Messages API** (`apiFormat: "anthropic"`). Extended thinking is supported: when Thinking Effort is set, the `thinking` parameter is sent with a proportional `budget_tokens` (low=20%, medium=40%, high=60%, xhigh=80% of max_tokens).
 
 ### DeepSeek Series
 
@@ -37,8 +21,6 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Gemini 3.1 Pro | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Gemini 3.5 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
 | Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
@@ -49,31 +31,12 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GLM-5 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| GLM-5.1 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | GLM-5.2 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 
 ### GPT Series (OpenAI)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GPT 5 | 128,000 | 16,384 | ✓ | ✓ | ✓ | Responses |
-| GPT 5 Codex | 128,000 | 16,384 | ✓ | ✓ | ✓ | Responses |
-| GPT 5 Nano | 128,000 | 8,192 | ✗ | ✓ | ✓ | Responses |
-| GPT 5.1 | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.1 Codex | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.1 Codex Max | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.1 Codex Mini | 272,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.2 | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.2 Codex | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.3 Codex | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.3 Codex Spark | 272,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.4 | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.4 Mini | 272,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.4 Nano | 272,000 | 32,768 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.4 Pro | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.5 | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.5 Pro | 272,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
 | GPT 5.6 Luna | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
 | GPT 5.6 Sol | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
 | GPT 5.6 Terra | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
@@ -94,12 +57,9 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Kimi K2.5 | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.6 | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 | Kimi K3 | 1,000,000 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 
-> **Note**: Kimi models use `fixedTemperature: 1` for optimal performance. Kimi models other than K2.5 (K2.6, K2.7 Code, K3, ...) require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
+> **Note**: Kimi models use `fixedTemperature: 1` for optimal performance and require `REASONING_CONTENT_WORKAROUND_MODELS` (all Kimi except K2.5) for correct streaming output.
 
 ### Free Models
 
@@ -112,17 +72,24 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 | Nemotron 3 Ultra Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 | Nemotron 3.5 Lightning Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 
-> **Note**: Free models do not support tool/function calling. They still declare `toolCalling` capability so they appear in the model picker, but the provider strips tools from requests before sending to the API (`NO_TOOL_MODEL_IDS`).
+> **Note**: These free models do not support tool/function calling. They still declare `toolCalling` capability so they appear in the model picker, but the provider strips tools from requests before sending to the API (`NO_TOOL_MODEL_IDS`). The free-tier additions below DO support tools/vision despite their `-free` suffix.
+
+| Model | Context | Max Output | Vision | Tools | Thinking | API |
+|-------|---------|------------|--------|-------|----------|-----|
+| Muse Spark 1.2 Contributor Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
+| X Preview F Free | 262,144* | 65,536* | ✓ | ✓ | ✓ | OpenAI |
+
+> **Muse Spark 1.2 Contributor Free**: contributor variant — request data may be used by upstream for model training. Uses the Responses API like Muse Spark 1.2.
+>
+> **X Preview F Free**: unnamed preview model; capabilities verified live (tools / vision / `reasoning_content` streaming) but context figures are family defaults (*), pending an official spec sheet.
 
 ### MiniMax Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| MiniMax M2.5 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| MiniMax M2.7 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | MiniMax M3 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 
-### Muse Series (ByteDance)
+### Muse Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
@@ -130,12 +97,9 @@ The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` tha
 
 > **Note**: Muse Spark 1.2 uses the **Responses API** route (`/responses`) and is treated as a thinking model (`THINKING_MODELS`) for output budget purposes.
 
-### Qwen Series (Alibaba)
+## Removed from the API (2026-08-22)
 
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| Qwen3.5 Plus | 262,144 | 65,536 | ✗ | ✓ | ✓ | Anthropic |
-| Qwen3.6 Plus | 1,000,000 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
+The following previously listed models now return "Model is disabled" and were dropped from the catalog: all Claude models (Fable 5, Haiku 4.5, Sonnet 4/4.5/4.6/5, Opus 4.5–4.8/5), Gemini 3.1 Pro / 3.5 Flash, GPT 5 / 5.1 series / 5.2 series / 5.3 Codex / Spark / 5.4 series / 5.5 / 5.5 Pro, GLM 5 / 5.1, Kimi K2.5 / K2.6 / K2.7 Code, MiniMax M2.5 / M2.7, Qwen3.5 Plus / Qwen3.6 Plus. The Anthropic Messages conversion path is retained in the codebase for when Anthropic-format models return to the lineup.
 
 ## Model Quirks & Workarounds
 
@@ -143,9 +107,9 @@ The extension applies several model-behavior workarounds while streaming. This m
 
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
-| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
-| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.x, Grok, Muse Spark 1.2 (`routeKind: "responses"`) | `api.ts` |
-| Anthropic Messages API instead of OpenAI format | Claude, Qwen3.5 Plus, Qwen3.6 Plus (`apiFormat: "anthropic"`) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
+| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+, X Preview F Free (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
+| Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6, Grok, Muse Spark 1.2 + Contributor Free (`routeKind: "responses"`) | `api.ts` |
+| Anthropic Messages API instead of OpenAI format | Anthropic-format models (`apiFormat: "anthropic"`, none currently live) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `model-catalog.ts` |
 | System prompt sanitization and provider identity guidance | Model-specific (`guidance.ts`) | `guidance.ts` |
 | Tool-use grounding guidance injected into the system prompt | All models, when tools are present | `guidance.ts` |
@@ -168,7 +132,7 @@ Models with `supportsThinking: true` show a **Thinking Effort** dropdown in the 
 - `medium` — Balanced (default)
 - `low` — Reduced reasoning
 
-All models in the current lineup support thinking. For Anthropic-format models (Claude), the effort maps to a `thinking.budget_tokens` ratio instead.
+All models in the current lineup support thinking. For Anthropic-format models, the effort maps to a `thinking.budget_tokens` ratio instead.
 
 ### Vision
 
@@ -181,7 +145,7 @@ For non-vision models, the `opencode_zen_analyze_image` language model tool prov
 
 ### Tools (Function Calling)
 
-All models except free models support tool/function calling. The extension:
+All models except the tool-less free models (Big Pickle, Hy3 Free, Laguna S 2.1 Free, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, DeepSeek V4 Flash Free) support tool/function calling. The extension:
 - Parses tool calls from streaming text output (`tool-parser.ts`)
 - Deduplicates repeated tool calls (`tool-repair.ts`)
 - Repairs missing/invalid arguments using `inputSchema` and chat context

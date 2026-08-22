@@ -419,8 +419,26 @@ describe("ZenChatModelProvider", () => {
       onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
     };
 
+    // No Anthropic-format models remain in the live catalog; inject a synthetic
+    // entry to keep exercising the Messages API streaming path.
+    (provider as unknown as { _modelMap: Map<string, unknown> })._modelMap.set(
+      "test-anthropic-model",
+      {
+        id: "test-anthropic-model",
+        requestModelId: "test-anthropic-model",
+        name: "Test Anthropic",
+        displayName: "Test Anthropic",
+        routeKind: "messages",
+        apiFormat: "anthropic",
+        contextWindow: 200000,
+        maxOutput: 64000,
+        supportsTools: true,
+        supportsVision: true,
+      },
+    );
+
     await provider.provideLanguageModelChatResponse(
-      { id: "claude-sonnet-4-6", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
+      { id: "test-anthropic-model", maxInputTokens: 100000, maxOutputTokens: 65536 } as any,
       [{ role: 1, content: [{ value: "Hi" }] }] as any,
       { modelOptions: {} } as any,
       progress,

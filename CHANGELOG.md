@@ -8,6 +8,20 @@
 
 - **Replaced legacy tiktoken fallback test.** `utils-tiktoken-fallback.test.ts` attempted to mock `@dqbd/tiktoken`, which is no longer used (the extension now uses pure character-based estimation). Replaced with `utils-tokenizer.test.ts` that directly tests the current tokenizer implementation.
 
+## [0.1.44] - 2026-08-22
+
+### Added
+
+- **New models from the Zen API**: Muse Spark 1.2 Contributor Free (Responses API route, contributor variant — request data may be used for upstream model training) and X Preview F Free (unnamed preview model; tools / vision / reasoning verified live).
+- **X Preview F Free added to `REASONING_CONTENT_WORKAROUND_MODELS`** (emits `reasoning_content`) and **Muse Spark 1.2 Contributor Free added to `THINKING_MODELS`**.
+
+### Fixed
+
+- **Smoke test script now reads `ZEN_MODEL_CATALOG` directly** instead of maintaining a duplicate hardcoded list, and sends correct Responses API payloads (`input` / `max_output_tokens`) so all live models can be verified.
+
+### Removed
+
+- **Removed 39 models now disabled on the Zen API** (verified via live probes returning "Model is disabled"): all Claude models (Fable 5, Haiku 4.5, Sonnet 4/4.5/4.6/5, Opus 4.5–4.8/5), Gemini 3.1 Pro / 3.5 Flash, GPT 5 / 5.1 series / 5.2 series / 5.3 Codex / Spark / 5.4 series / 5.5 / 5.5 Pro, GLM 5 / 5.1, Kimi K2.5 / K2.6 / K2.7 Code, MiniMax M2.5 / M2.7, Qwen3.5 Plus / Qwen3.6 Plus. The Anthropic Messages conversion path is retained in the codebase for when Anthropic-format models return.
 ## [0.1.43] - 2026-08-15
 
 ### Added

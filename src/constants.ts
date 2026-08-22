@@ -38,8 +38,7 @@ export const REQUEST_TIMEOUT_MS = 60000;
  * Explicit model IDs that require the reasoning_content workaround.
  */
 const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
-  "kimi-k2.6",
-  "kimi-k2.7-code",
+  "x-preview-f-free",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
 ]);
@@ -57,6 +56,7 @@ const THINKING_MODEL_STATIC_SET = new Set([
   "grok-4.5",
   "grok-4.6",
   "muse-spark-1.2",
+  "muse-spark-1.2-contributor-free",
 ]);
 
 /** Models that require the reasoning_content workaround */
