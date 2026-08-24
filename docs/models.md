@@ -10,8 +10,8 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| DeepSeek V4 Pro | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
-| DeepSeek V4 Flash | 262,144 | 65,536 | ✗ | ✓ | ✓ | OpenAI |
+| DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 
 > **Note**: DeepSeek V4+ models require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output. System prompts are sanitized to replace "Claude"/"Anthropic" references.
@@ -20,10 +20,10 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 
 > **Note**: Gemini models use a model-specific route (`/models/{id}`).
 
@@ -31,15 +31,15 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GLM-5.2 | 202,752 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM-5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 
 ### GPT Series (OpenAI)
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| GPT 5.6 Luna | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.6 Sol | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
-| GPT 5.6 Terra | 400,000 | 128,000 | ✓ | ✓ | ✓ | Responses |
+| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT 5.6 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT 5.6 Terra | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 
 > **Note**: GPT models use the **Responses API** route (`/responses`). GPT 5.6 models have a 400K context window and are treated as thinking models (`THINKING_MODELS`) for output budget purposes.
 
@@ -47,9 +47,9 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Grok Build 0.1 | 131,072 | 65,536 | ✗ | ✓ | ✓ | Responses |
-| Grok 4.5 | 500,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
-| Grok 4.6 | 500,000 | 65,536 | ✓ | ✓ | ✓ | Responses |
+| Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
+| Grok 4.5 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 
 > **Note**: Grok models use the **Responses API** route (`/responses`). They internally reason, so they are treated as thinking models (`THINKING_MODELS`) for output budget purposes.
 
@@ -57,7 +57,7 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Kimi K3 | 1,000,000 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
 
 > **Note**: Kimi models use `fixedTemperature: 1` for optimal performance and require `REASONING_CONTENT_WORKAROUND_MODELS` (all Kimi except K2.5) for correct streaming output.
 
@@ -65,19 +65,19 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Big Pickle | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| Hy3 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
+| Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✓ | OpenAI |
+| Hy3 Free | 190,000 | 64,000 | ✗ | ✗ | ✓ (`low,medium,high`) | OpenAI |
 | Laguna S 2.1 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| MiMo V2.5 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| Nemotron 3 Ultra Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-| Nemotron 3.5 Lightning Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
+| MiMo V2.5 Free | 200,000 | 32,000 | ✓ | ✗ | ✓ | OpenAI |
+| Nemotron 3 Ultra Free | 1,000,000 | 128,000 | ✗ | ✗ | ✓ | OpenAI |
+| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ | OpenAI |
 
 > **Note**: These free models do not support tool/function calling. They still declare `toolCalling` capability so they appear in the model picker, but the provider strips tools from requests before sending to the API (`NO_TOOL_MODEL_IDS`). The free-tier additions below DO support tools/vision despite their `-free` suffix.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Muse Spark 1.2 Contributor Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
-| X Preview F Free | 262,144* | 65,536* | ✓ | ✓ | ✓ | OpenAI |
+| Muse Spark 1.2 Contributor Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
+| X Preview F Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Muse Spark 1.2 Contributor Free**: contributor variant — request data may be used by upstream for model training. Uses the Responses API like Muse Spark 1.2.
 >
@@ -87,13 +87,13 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| MiniMax M3 | 196,608 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ | OpenAI |
 
 ### Muse Series
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ | Responses |
+| Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 
 > **Note**: Muse Spark 1.2 uses the **Responses API** route (`/responses`) and is treated as a thinking model (`THINKING_MODELS`) for output budget purposes.
 

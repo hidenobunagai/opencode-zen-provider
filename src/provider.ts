@@ -18,6 +18,7 @@ import {
   REASONING_MODEL_MIN_OUTPUT_BUDGET,
   THINKING_MODELS,
 } from "./constants";
+import { REASONING_EFFORT_ORDER, type ReasoningEffort } from "./model-catalog";
 import { extractImageData, getTextPartValue, type LegacyPart } from "./message-parts";
 import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG, type ZenModelInfo } from "./model-catalog";
 import { ZenMcpClient } from "./mcp";
@@ -249,27 +250,51 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
           imageInput: info.supportsVision,
         },
         ...(info.supportsThinking
-          ? {
-              configurationSchema: {
-                properties: {
-                  reasoningEffort: {
-                    type: "string",
-                    title: "Thinking Effort",
-                    enum: ["default", "max", "high", "medium", "low"],
-                    enumItemLabels: ["Default", "Max", "High", "Medium", "Low"],
-                    enumDescriptions: [
-                      "Let the model decide the reasoning effort",
-                      "Maximum reasoning effort (xhigh)",
-                      "High reasoning effort",
-                      "Medium reasoning effort",
-                      "Low reasoning effort",
-                    ],
-                    default: "default",
-                    group: "navigation",
+          ? (() => {
+              const supported = info.supportedReasoningEfforts;
+              const order = REASONING_EFFORT_ORDER;
+              const efforts: ReasoningEffort[] =
+                supported && supported.length > 0
+                  ? [...supported].sort((a, b) => order.indexOf(a) - order.indexOf(b))
+                  : (["low", "medium", "high", "max"] as ReasoningEffort[]);
+              const labels: Record<ReasoningEffort, string> = {
+                minimal: "Minimal",
+                low: "Low",
+                medium: "Medium",
+                high: "High",
+                xhigh: "XHigh",
+                max: "Max",
+              };
+              const descriptions: Record<ReasoningEffort, string> = {
+                minimal: "Minimal reasoning effort",
+                low: "Low reasoning effort",
+                medium: "Medium reasoning effort",
+                high: "High reasoning effort",
+                xhigh: "Maximum reasoning effort (xhigh)",
+                max: "Maximum reasoning effort",
+              };
+              const enumValues = ["default", ...efforts];
+              const enumItemLabels = ["Default", ...efforts.map((e) => labels[e])];
+              const enumDescriptions = [
+                "Let the model decide the reasoning effort",
+                ...efforts.map((e) => descriptions[e]),
+              ];
+              return {
+                configurationSchema: {
+                  properties: {
+                    reasoningEffort: {
+                      type: "string",
+                      title: "Thinking Effort",
+                      enum: enumValues,
+                      enumItemLabels,
+                      enumDescriptions,
+                      default: "default",
+                      group: "navigation",
+                    },
                   },
                 },
-              },
-            }
+              };
+            })()
           : {}),
       };
     });
@@ -337,7 +362,8 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
         typeof modelConfig?.reasoningEffort === "string"
           ? (modelConfig.reasoningEffort as string)
           : undefined;
-      const reasoningEffort = rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
+      let reasoningEffort: string | undefined =
+        rawReasoningEffort === "default" ? undefined : rawReasoningEffort;
       const temperatureVal =
         typeof modelInfo?.fixedTemperature === "number"
           ? modelInfo.fixedTemperature
@@ -377,6 +403,34 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
             return;
           }
         }
+      }
+
+      // Validate reasoningEffort against the effective model (accounts for vision fallback)
+      if (reasoningEffort && effectiveModelInfo?.supportedReasoningEfforts) {
+        const supported = effectiveModelInfo.supportedReasoningEfforts as string[];
+        if (!supported.includes(reasoningEffort)) {
+          if (reasoningEffort === "max" && supported.includes("xhigh")) {
+            reasoningEffort = "xhigh";
+          } else if (reasoningEffort === "xhigh" && supported.includes("max")) {
+            reasoningEffort = "max";
+          } else {
+            debugLog(
+              "reasoningEffort",
+              `Dropping unsupported reasoningEffort "${reasoningEffort}" for ${effectiveModelId} (supported: ${supported.join(",")})`,
+            );
+            reasoningEffort = undefined;
+          }
+        }
+      } else if (
+        reasoningEffort &&
+        effectiveModelInfo &&
+        !effectiveModelInfo.supportsThinking
+      ) {
+        debugLog(
+          "reasoningEffort",
+          `Dropping reasoningEffort "${reasoningEffort}" for non-thinking model ${effectiveModelId}`,
+        );
+        reasoningEffort = undefined;
       }
 
       const requestOptions = NO_TOOL_MODEL_IDS.has(model.id)

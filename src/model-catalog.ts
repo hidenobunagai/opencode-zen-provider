@@ -1,5 +1,14 @@
 export type ZenRouteKind = "responses" | "messages" | "chat_completions" | "model_specific";
 export type ZenApiFormat = "openai" | "anthropic";
+export type ReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+export const REASONING_EFFORT_ORDER: readonly ReasoningEffort[] = [
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+];
 
 export interface ZenModelInfo {
   id: string;
@@ -14,6 +23,7 @@ export interface ZenModelInfo {
   supportsVision: boolean;
   fixedTemperature?: number;
   supportsThinking?: boolean;
+  supportedReasoningEfforts?: ReasoningEffort[];
   needsReasoningContentWorkaround?: boolean;
 }
 
@@ -38,8 +48,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "Big Pickle",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 200000,
+    maxOutput: 32000,
     supportsTools: false,
     supportsVision: false,
     supportsThinking: true,
@@ -51,11 +61,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "DeepSeek V4 Flash",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 384000,
     supportsTools: true,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
   },
   {
     id: "deepseek-v4-flash-free",
@@ -77,11 +88,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "DeepSeek V4 Pro",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 384000,
     supportsTools: true,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "gemini-3-flash",
@@ -94,7 +106,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "gemini-3.5-flash-lite",
@@ -107,7 +119,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "gemini-3.6-flash",
@@ -120,7 +132,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "gemini-3.7-flash",
@@ -133,7 +145,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "glm-5.2",
@@ -142,11 +154,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "GLM 5.2",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 202752,
+    contextWindow: 1000000,
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["high", "max"],
   },
   {
     id: "gpt-5.6-luna",
@@ -155,11 +168,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "GPT 5.6 Luna",
     routeKind: "responses",
     apiFormat: "openai",
-    contextWindow: 400000,
+    contextWindow: 1050000,
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
   {
     id: "gpt-5.6-sol",
@@ -168,11 +182,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "GPT 5.6 Sol",
     routeKind: "responses",
     apiFormat: "openai",
-    contextWindow: 400000,
+    contextWindow: 1050000,
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
   {
     id: "gpt-5.6-terra",
@@ -181,11 +196,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "GPT 5.6 Terra",
     routeKind: "responses",
     apiFormat: "openai",
-    contextWindow: 400000,
+    contextWindow: 1050000,
     maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
   {
     id: "grok-build-0.1",
@@ -194,11 +210,11 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "Grok Build 0.1",
     routeKind: "responses",
     apiFormat: "openai",
-    contextWindow: 131072,
-    maxOutput: 65536,
+    contextWindow: 256000,
+    maxOutput: 256000,
     supportsTools: true,
-    supportsVision: false,
-    supportsThinking: true,
+    supportsVision: true,
+    supportsThinking: false,
   },
   {
     id: "grok-4.5",
@@ -208,10 +224,11 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     routeKind: "responses",
     apiFormat: "openai",
     contextWindow: 500000,
-    maxOutput: 65536,
+    maxOutput: 500000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "grok-4.6",
@@ -221,10 +238,11 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     routeKind: "responses",
     apiFormat: "openai",
     contextWindow: 500000,
-    maxOutput: 65536,
+    maxOutput: 500000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
   {
     id: "hy3-free",
@@ -233,11 +251,12 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "Hy3 Free",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 190000,
+    maxOutput: 64000,
     supportsTools: false,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "kimi-k3",
@@ -246,13 +265,14 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "Kimi K3",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 1000000,
-    maxOutput: 262144,
+    contextWindow: 1048576,
+    maxOutput: 131072,
     supportsTools: true,
     supportsVision: true,
     fixedTemperature: 1,
     needsReasoningContentWorkaround: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["max"],
   },
   {
     id: "laguna-s-2.1-free",
@@ -274,10 +294,10 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "MiMo V2.5 Free",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 200000,
+    maxOutput: 32000,
     supportsTools: false,
-    supportsVision: false,
+    supportsVision: true,
     supportsThinking: true,
   },
   {
@@ -287,10 +307,10 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "MiniMax M3",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 196608,
-    maxOutput: 131072,
+    contextWindow: 512000,
+    maxOutput: 128000,
     supportsTools: true,
-    supportsVision: false,
+    supportsVision: true,
     supportsThinking: true,
   },
   {
@@ -305,6 +325,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   },
   {
     // Contributor variant: requests may be used by upstream for model training.
@@ -341,8 +362,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     displayName: "Nemotron 3 Ultra Free",
     routeKind: "chat_completions",
     apiFormat: "openai",
-    contextWindow: 262144,
-    maxOutput: 65536,
+    contextWindow: 1000000,
+    maxOutput: 128000,
     supportsTools: false,
     supportsVision: false,
     supportsThinking: true,
@@ -355,7 +376,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     routeKind: "chat_completions",
     apiFormat: "openai",
     contextWindow: 262144,
-    maxOutput: 65536,
+    maxOutput: 262144,
     supportsTools: false,
     supportsVision: false,
     supportsThinking: true,
