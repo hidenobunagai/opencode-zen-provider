@@ -46,6 +46,10 @@ The extension bundles a static `ZEN_MODEL_CATALOG` (in `src/model-catalog.ts`) t
 
 For the full table of capabilities (context window, vision, tools, thinking, API format), see [docs/models.md](docs/models.md).
 
+## Architecture
+
+- [Interactive architecture diagram](docs/architecture.html) — Request path, key storage, model routing, and image-analysis fallback
+
 ## Documentation
 
 - [Supported Models](docs/models.md) — Full model list, capabilities, context window, and model quirks

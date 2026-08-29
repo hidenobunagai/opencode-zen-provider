@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenCode Zen Provider Architecture",
+    "output": "docs/architecture.html",
+    "repository": {
+      "url": "https://github.com/hidenobunagai/opencode-zen-provider",
+      "revision": "abd6454fcff1ba4cfeabe519d6ba0960f3b96099"
+    },
+    "quality_profile": "showcase",
+    "viewBox": [1380, 700],
+    "views": [
+      {
+        "id": "chat-request",
+        "label": "Chat request path",
+        "focus": ["copilot-chat", "extension-host", "chat-provider", "openai-adapter", "anthropic-adapter", "zen-api"],
+        "note": "Follow a Copilot Chat request through provider selection, format conversion, and streaming API transport."
+      },
+      {
+        "id": "key-and-models",
+        "label": "Keys and model metadata",
+        "focus": ["extension-host", "chat-provider", "secret-storage", "model-catalog"],
+        "note": "See how SecretStorage and the static model catalog shape provider behavior."
+      },
+      {
+        "id": "image-path",
+        "label": "Image analysis path",
+        "focus": ["copilot-chat", "chat-provider", "image-tool", "zen-api"],
+        "note": "Trace vision fallback and the registered image-analysis tool for image inputs."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "copilot-chat",
+      "type": "external",
+      "label": "GitHub Copilot Chat",
+      "pos": [60, 300],
+      "size": [200, 80],
+      "sources": [{ "path": "package.json", "line": 39, "end_line": 57, "label": "provider contract" }]
+    },
+    {
+      "id": "extension-host",
+      "type": "backend",
+      "label": "VS Code Extension Host",
+      "sublabel": "activation + registrations",
+      "pos": [300, 300],
+      "size": [220, 80],
+      "sources": [{ "path": "src/extension.ts", "line": 10, "end_line": 86, "label": "activation" }]
+    },
+    {
+      "id": "chat-provider",
+      "type": "backend",
+      "label": "ZenChatModelProvider",
+      "sublabel": "model + request orchestration",
+      "tag": "LanguageModelChatProvider",
+      "pos": [560, 300],
+      "size": [240, 80],
+      "sources": [{ "path": "src/provider.ts", "line": 28, "end_line": 451, "label": "provider flow" }]
+    },
+    {
+      "id": "secret-storage",
+      "type": "security",
+      "label": "VS Code SecretStorage",
+      "sublabel": "OpenCode Zen API key",
+      "pos": [300, 80],
+      "size": [220, 70],
+      "sources": [{ "path": "src/extension.ts", "line": 20, "end_line": 55, "label": "key management" }]
+    },
+    {
+      "id": "model-catalog",
+      "type": "backend",
+      "label": "ZEN_MODEL_CATALOG",
+      "sublabel": "capabilities + API route kind",
+      "pos": [560, 80],
+      "size": [240, 70],
+      "sources": [{ "path": "src/model-catalog.ts", "label": "model metadata" }]
+    },
+    {
+      "id": "openai-adapter",
+      "type": "backend",
+      "label": "OpenAI stream adapter",
+      "sublabel": "conversion + tool calls + SSE",
+      "pos": [820, 180],
+      "size": [240, 80],
+      "sources": [{ "path": "src/streaming/openai.ts", "line": 87, "end_line": 498, "label": "streaming" }]
+    },
+    {
+      "id": "anthropic-adapter",
+      "type": "backend",
+      "label": "Anthropic stream adapter",
+      "sublabel": "messages conversion + SSE",
+      "pos": [820, 400],
+      "size": [240, 80],
+      "sources": [{ "path": "src/streaming/anthropic.ts", "line": 59, "end_line": 243, "label": "streaming" }]
+    },
+    {
+      "id": "image-tool",
+      "type": "backend",
+      "label": "Image analysis tool",
+      "sublabel": "opencode_zen_analyze_image",
+      "tag": "vision fallback",
+      "pos": [560, 540],
+      "size": [240, 80],
+      "sources": [
+        { "path": "src/tools.ts", "line": 8, "end_line": 89, "label": "tool registration" },
+        { "path": "src/mcp.ts", "line": 32, "end_line": 72, "label": "vision request" }
+      ]
+    },
+    {
+      "id": "zen-api",
+      "type": "cloud",
+      "label": "OpenCode Zen API",
+      "sublabel": "https://opencode.ai/zen/v1",
+      "tag": "OpenAI + Anthropic routes",
+      "pos": [1110, 300],
+      "size": [240, 90],
+      "sources": [{ "path": "src/api.ts", "line": 103, "end_line": 327, "label": "HTTP + SSE transport" }]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "VS Code extension trust boundary",
+      "wraps": ["extension-host", "chat-provider", "secret-storage", "model-catalog", "openai-adapter", "anthropic-adapter", "image-tool"],
+      "pad": 28
+    }
+  ],
+  "connections": [
+    {
+      "id": "chat-to-extension",
+      "from": "copilot-chat",
+      "to": "extension-host",
+      "label": "Language Model API",
+      "variant": "emphasis",
+      "labelDy": -34
+    },
+    {
+      "id": "extension-to-provider",
+      "from": "extension-host",
+      "to": "chat-provider",
+      "label": "register + dispatch",
+      "labelDy": -34
+    },
+    {
+      "id": "extension-to-secrets",
+      "from": "extension-host",
+      "to": "secret-storage",
+      "label": "read / store key",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "provider-to-catalog",
+      "from": "chat-provider",
+      "to": "model-catalog",
+      "label": "resolve capabilities",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "provider-to-openai",
+      "from": "chat-provider",
+      "to": "openai-adapter",
+      "label": "apiFormat = openai",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": 15
+    },
+    {
+      "id": "provider-to-anthropic",
+      "from": "chat-provider",
+      "to": "anthropic-adapter",
+      "label": "apiFormat = anthropic",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [745, 296]
+    },
+    {
+      "id": "provider-to-image-tool",
+      "from": "chat-provider",
+      "to": "image-tool",
+      "label": "non-vision image path",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "openai-to-api",
+      "from": "openai-adapter",
+      "to": "zen-api",
+      "label": "HTTPS + Bearer",
+      "labelAt": [1085, 296]
+    },
+    {
+      "id": "anthropic-to-api",
+      "from": "anthropic-adapter",
+      "to": "zen-api",
+      "label": "HTTPS + x-api-key",
+      "labelDx": -100
+    },
+    {
+      "id": "image-tool-to-api",
+      "from": "image-tool",
+      "to": "zen-api",
+      "label": "vision analysis",
+      "variant": "dashed",
+      "labelAt": [1086, 494]
+    }
+  ]
+}
