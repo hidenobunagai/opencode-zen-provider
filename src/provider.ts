@@ -348,8 +348,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
       const modelInfo = this.getModelInfo(model.id);
       const apiFormat = modelInfo?.apiFormat ?? "openai";
       const modelConfig = (options as unknown as Record<string, unknown>).modelConfiguration as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       const rawReasoningEffort =
         typeof modelConfig?.reasoningEffort === "string"
           ? (modelConfig.reasoningEffort as string)

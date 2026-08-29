@@ -1,4 +1,12 @@
 # Change Log
+## [0.1.43] - 2026-08-29
+
+### Fixed
+
+- **Formatting in provider.ts and tool-repair.ts.** Removed incorrectly formatted multi-line union type expressions that were introduced by a prior formatting pass.
+### Changed
+
+- **Replaced legacy tiktoken fallback test.** `utils-tiktoken-fallback.test.ts` attempted to mock `@dqbd/tiktoken`, which is no longer used (the extension now uses pure character-based estimation). Replaced with `utils-tokenizer.test.ts` that directly tests the current tokenizer implementation.
 
 ## [0.1.42] - 2026-08-02
 
