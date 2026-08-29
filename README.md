@@ -48,7 +48,9 @@ For the full table of capabilities (context window, vision, tools, thinking, API
 
 ## Architecture
 
-- [Interactive architecture diagram](docs/architecture.html) — Request path, key storage, model routing, and image-analysis fallback
+[![OpenCode Zen Provider architecture overview](docs/architecture.png)](docs/architecture.html)
+
+- [Open the interactive architecture diagram](docs/architecture.html) — Request path, key storage, model routing, and image-analysis fallback
 
 ## Documentation
 
