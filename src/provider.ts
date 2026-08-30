@@ -421,11 +421,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
             reasoningEffort = undefined;
           }
         }
-      } else if (
-        reasoningEffort &&
-        effectiveModelInfo &&
-        !effectiveModelInfo.supportsThinking
-      ) {
+      } else if (reasoningEffort && effectiveModelInfo && !effectiveModelInfo.supportsThinking) {
         debugLog(
           "reasoningEffort",
           `Dropping reasoningEffort "${reasoningEffort}" for non-thinking model ${effectiveModelId}`,
