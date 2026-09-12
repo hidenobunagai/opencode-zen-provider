@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.47] - 2026-09-12
+
+### Changed
+
+- **README publishing notes now match the publish workflow: releases go to the VS Code Marketplace *and* Open VSX.** The README claimed the extension is published "**only** to the VS Code Marketplace — do not publish it to Open VSX" (written 2026-08-15), but `.github/workflows/publish.yml` (2026-08-30) publishes the same VSIX to both registries via `VSCE_PAT` / `OVSX_PAT`, and 0.1.45 / 0.1.46 are live on Open VSX. The workflow is the deliberate, newer decision and is left unchanged; only the stale documentation was corrected.
+
 ## [0.1.46] - 2026-09-12
 
 ### Fixed
