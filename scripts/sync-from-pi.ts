@@ -19,9 +19,12 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { spawnSync } from "child_process";
+import { fileURLToPath } from "url";
 
 const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 type PiModel = {
   id: string;
@@ -49,7 +52,10 @@ function vlog(...args: unknown[]) {
 function findPiJsonLocal(): string | null {
   const homedir = os.homedir();
   const candidates = [
-    path.join(homedir, ".bun/install/global/node_modules/@earendil-works/pi-ai/dist/providers/data/opencode.json"),
+    path.join(
+      homedir,
+      ".bun/install/global/node_modules/@earendil-works/pi-ai/dist/providers/data/opencode.json",
+    ),
     path.join(homedir, ".bun/install/cache"),
   ];
   for (const c of candidates) {
@@ -78,10 +84,15 @@ function findPiJsonLocal(): string | null {
     if (found && found.includes("pi-ai")) return found;
   }
   try {
-    const proc = Bun.spawnSync(["find", homedir + "/.bun", "-name", "opencode.json", "-path", "*pi-ai*"], {
-      stdout: "pipe",
-    });
-    const out = proc.stdout.toString().trim().split("\n").filter(Boolean);
+    const proc = spawnSync(
+      "find",
+      [homedir + "/.bun", "-name", "opencode.json", "-path", "*pi-ai*"],
+      { encoding: "utf8" },
+    );
+    const out = String(proc.stdout ?? "")
+      .trim()
+      .split("\n")
+      .filter(Boolean);
     if (out.length > 0) {
       const sorted = out.sort((a, b) => a.length - b.length);
       return sorted[0];
@@ -189,7 +200,10 @@ function syncCatalog(
     const idRegex = new RegExp(`id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
     if (!idRegex.test(content)) continue;
 
-    const blockRegex = new RegExp(`\\{\\s*id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?\\},`, "m");
+    const blockRegex = new RegExp(
+      `\\{\\s*id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?\\},`,
+      "m",
+    );
     const match = content.match(blockRegex);
     if (!match) continue;
     let block = match[0];
@@ -241,7 +255,10 @@ function syncCatalog(
       if (curThinking !== targetThinking) {
         diffs.push(`${piId}: supportsThinking ${curThinking} -> ${targetThinking}`);
         if (thinkingMatch) {
-          block = block.replace(/supportsThinking:\s*(true|false),?/, `supportsThinking: ${targetThinking},`);
+          block = block.replace(
+            /supportsThinking:\s*(true|false),?/,
+            `supportsThinking: ${targetThinking},`,
+          );
         }
       }
     } else if (curThinking !== expThinking) {
@@ -252,7 +269,10 @@ function syncCatalog(
         if (!expThinking && curThinking) {
           diffs.push(`${piId}: supportsThinking ${curThinking} -> ${expThinking}`);
           if (thinkingMatch) {
-            block = block.replace(/supportsThinking:\s*(true|false),?/, `supportsThinking: ${expThinking},`);
+            block = block.replace(
+              /supportsThinking:\s*(true|false),?/,
+              `supportsThinking: ${expThinking},`,
+            );
           }
         }
       }
@@ -276,14 +296,23 @@ function syncCatalog(
           const expNorm = expEfforts.join(",");
           if (curNorm !== expNorm) {
             diffs.push(`${piId}: supportedReasoningEfforts [${cur}] -> [${expEfforts.join(",")}]`);
-            block = block.replace(/supportedReasoningEfforts:\s*\[[^\]]*\],?/, `supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /supportedReasoningEfforts:\s*\[[^\]]*\],?/,
+              `supportedReasoningEfforts: ${expStr},`,
+            );
           }
         } else {
           diffs.push(`${piId}: add supportedReasoningEfforts ${expStr}`);
           if (block.includes("supportsThinking:")) {
-            block = block.replace(/(supportsThinking:\s*(true|false),?)/, `$1\n    supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /(supportsThinking:\s*(true|false),?)/,
+              `$1\n    supportedReasoningEfforts: ${expStr},`,
+            );
           } else {
-            block = block.replace(/(apiFormat:\s*"[^"]+",)/, `$1\n    supportedReasoningEfforts: ${expStr},`);
+            block = block.replace(
+              /(apiFormat:\s*"[^"]+",)/,
+              `$1\n    supportedReasoningEfforts: ${expStr},`,
+            );
           }
         }
       }
@@ -340,13 +369,10 @@ function syncDocs(
     const expCtxStr = formatNumber(piModel.contextWindow);
     const expMaxStr = formatNumber(piModel.maxTokens);
     const expVision = piModel.input.includes("image") ? "✓" : "✗";
-    const { apiFormat: expApiRaw } = piApiToZen(piModel.api);
-    const expApi =
-      expApiRaw === "anthropic" ? "Anthropic" : piModel.api === "openai-responses" ? "Responses" : "OpenAI";
-    // Responses detection needs routeKind check, but for docs API column: Responses vs OpenAI vs Anthropic
     // Use piApiToZen routeKind to decide: responses => Responses, anthropic => Anthropic, else OpenAI
     const { routeKind } = piApiToZen(piModel.api);
-    const expApiDisplay = routeKind === "responses" ? "Responses" : routeKind === "messages" ? "Anthropic" : "OpenAI";
+    const expApiDisplay =
+      routeKind === "responses" ? "Responses" : routeKind === "messages" ? "Anthropic" : "OpenAI";
 
     const expEfforts = piThinkingToEfforts(piModel);
     let expThinking: string;
@@ -358,7 +384,6 @@ function syncDocs(
     const curCtx = cells[2];
     const curMax = cells[3];
     const curVision = cells[4];
-    const curTools = cells[5];
     const curThinking = cells[6];
     const curApi = cells[7];
 
@@ -390,7 +415,7 @@ function syncDocs(
       newCells[6] = expThinking;
       rowChanged = true;
     }
-    // Tools column stays as-is (newCells[5] = curTools)
+    // Tools column (newCells[5]) stays as-is
 
     if (rowChanged) {
       const newRow = `| ${newCells.slice(1, 8).join(" | ")} |\n`;
@@ -407,8 +432,8 @@ function syncDocs(
 }
 
 async function main() {
-  const catalogPath = path.resolve(import.meta.dir, "../src/model-catalog.ts");
-  const docsPath = path.resolve(import.meta.dir, "../docs/models.md");
+  const catalogPath = path.resolve(HERE, "../src/model-catalog.ts");
+  const docsPath = path.resolve(HERE, "../docs/models.md");
 
   log(`🔍 Sync from Pi (opencode) — ${WRITE ? "WRITE" : "CHECK"} mode`);
   const { data, source } = await loadPiData();

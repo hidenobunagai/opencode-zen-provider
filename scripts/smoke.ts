@@ -117,7 +117,9 @@ async function main() {
   const verbose = args.includes("--verbose");
   const modelFilter = args.find((a) => a.startsWith("--model="))?.split("=")[1];
 
-  const targets = modelFilter ? ZEN_MODEL_CATALOG.filter((m) => m.id === modelFilter) : ZEN_MODEL_CATALOG;
+  const targets = modelFilter
+    ? ZEN_MODEL_CATALOG.filter((m) => m.id === modelFilter)
+    : ZEN_MODEL_CATALOG;
 
   if (targets.length === 0) {
     console.error(`No models found matching "${modelFilter}"`);
