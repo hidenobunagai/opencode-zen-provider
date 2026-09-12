@@ -1,0 +1,46 @@
+// Fixture for tests/sync-from-pi.test.ts — mirrors the shape of src/model-catalog.ts.
+// `deepseek-v4-flash` and `deepseek-v4-flash-free` are deliberately prefix-adjacent ids so
+// the tests catch a block regex that rewrites the wrong entry.
+export const ZEN_MODEL_CATALOG = [
+  {
+    id: "deepseek-v4-flash",
+    requestModelId: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    displayName: "DeepSeek V4 Flash",
+    routeKind: "chat_completions",
+    apiFormat: "openai",
+    contextWindow: 1000000,
+    maxOutput: 384000,
+    supportsTools: true,
+    supportsVision: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "high", "max"],
+  },
+  {
+    id: "deepseek-v4-flash-free",
+    requestModelId: "deepseek-v4-flash-free",
+    name: "DeepSeek V4 Flash Free",
+    displayName: "DeepSeek V4 Flash Free",
+    routeKind: "chat_completions",
+    apiFormat: "openai",
+    contextWindow: 262144,
+    maxOutput: 65536,
+    supportsTools: false,
+    supportsVision: false,
+    supportsThinking: true,
+  },
+  {
+    id: "gpt-5.6-luna",
+    requestModelId: "gpt-5.6-luna",
+    name: "GPT 5.6 Luna",
+    displayName: "GPT 5.6 Luna",
+    routeKind: "responses",
+    apiFormat: "openai",
+    contextWindow: 1050000,
+    maxOutput: 128000,
+    supportsTools: true,
+    supportsVision: true,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
+  },
+];
