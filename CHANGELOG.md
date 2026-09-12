@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.46] - 2026-09-12
+
+### Fixed
+
+- **VSIX packaging no longer picks up the local `.commandcode/` directory.** `.commandcode/**` was missing from the agent-config exclusion list in `.vscodeignore`, so locally built VSIX packages contained `extension/.commandcode/taste/taste.md` (confirmed in the 0.1.45 artifact). The directory is untracked and synced from the Mac, so CI-built packages were unaffected — only local artifacts were polluted.
+
 ## [0.1.45] - 2026-09-12
 
 ### Fixed
