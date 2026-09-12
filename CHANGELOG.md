@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.48] - 2026-09-12
+
+### Fixed
+
+- **Duplicate `## [0.1.43]` sections in `CHANGELOG.md` merged into a single entry.** Two commits that were rebased onto the same line both claimed version 0.1.43: the Zen catalog sync (2026-08-15) and the provider/tool-repair formatting fix plus legacy tiktoken test replacement (2026-08-29). `package.json` went 0.1.42 → 0.1.43 in the earlier-committed of the two (`abd6454`), so the later commit's "Bump version to 0.1.43" was a no-op and `package.json` stayed 0.1.43 until the 0.1.44 bump (`b7ce569`). Both sets of changes shipped in the 0.1.43 line, so they are now documented in one section; the merged section keeps the 2026-08-15 date because 0.1.43 precedes 0.1.44 (2026-08-22) and this file lists versions and dates in descending order.
+
 ## [0.1.47] - 2026-09-12
 
 ### Changed
@@ -17,15 +23,6 @@
 
 - **`bun run package:vsix` no longer fails with `npm error code ELSPROBLEMS`.** `vsce` detected dependencies with `npm list --production`, which reported leftover packages in `node_modules` (e.g. `uuid`, `@isaacs/cliui`, `jackspeak` from the 2026-08-30 dependency set) as extraneous and aborted packaging. This extension has no runtime dependencies and `.vscodeignore` already excludes `node_modules/**`, so packaging now passes `--no-dependencies` and produces the identical VSIX regardless of the state of the local `node_modules` — matching CI, which installs cleanly with `bun install --ignore-scripts`.
 
-## [0.1.43] - 2026-08-29
-
-### Fixed
-
-- **Formatting in provider.ts and tool-repair.ts.** Removed incorrectly formatted multi-line union type expressions that were introduced by a prior formatting pass.
-### Changed
-
-- **Replaced legacy tiktoken fallback test.** `utils-tiktoken-fallback.test.ts` attempted to mock `@dqbd/tiktoken`, which is no longer used (the extension now uses pure character-based estimation). Replaced with `utils-tokenizer.test.ts` that directly tests the current tokenizer implementation.
-
 ## [0.1.44] - 2026-08-22
 
 ### Added
@@ -41,6 +38,7 @@
 ### Removed
 
 - **Removed 39 models now disabled on the Zen API** (verified via live probes returning "Model is disabled"): all Claude models (Fable 5, Haiku 4.5, Sonnet 4/4.5/4.6/5, Opus 4.5–4.8/5), Gemini 3.1 Pro / 3.5 Flash, GPT 5 / 5.1 series / 5.2 series / 5.3 Codex / Spark / 5.4 series / 5.5 / 5.5 Pro, GLM 5 / 5.1, Kimi K2.5 / K2.6 / K2.7 Code, MiniMax M2.5 / M2.7, Qwen3.5 Plus / Qwen3.6 Plus. The Anthropic Messages conversion path is retained in the codebase for when Anthropic-format models return.
+
 ## [0.1.43] - 2026-08-15
 
 ### Added
@@ -48,6 +46,14 @@
 - **New models from the Zen API**: Gemini 3.7 Flash, Grok 4.6, Muse Spark 1.2, Hy3 Free, Nemotron 3.5 Lightning Free.
 - **Grok 4.5 / Grok Build 0.1 moved to the Responses API route** and **Qwen3.6 Plus moved to the Anthropic Messages API** to match the current Zen API endpoints (`/responses` and `/messages` respectively).
 - **Grok 4.5 / 4.6 and Muse Spark 1.2 are treated as thinking models** (`THINKING_MODELS`) for output budget purposes, matching the existing GPT 5.6 handling.
+
+### Fixed
+
+- **Formatting in provider.ts and tool-repair.ts.** Removed incorrectly formatted multi-line union type expressions that were introduced by a prior formatting pass.
+
+### Changed
+
+- **Replaced legacy tiktoken fallback test.** `utils-tiktoken-fallback.test.ts` attempted to mock `@dqbd/tiktoken`, which is no longer used (the extension now uses pure character-based estimation). Replaced with `utils-tokenizer.test.ts` that directly tests the current tokenizer implementation.
 
 ### Removed
 
