@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.45] - 2026-09-12
+
+### Fixed
+
+- **`bun run package:vsix` no longer fails with `npm error code ELSPROBLEMS`.** `vsce` detected dependencies with `npm list --production`, which reported leftover packages in `node_modules` (e.g. `uuid`, `@isaacs/cliui`, `jackspeak` from the 2026-08-30 dependency set) as extraneous and aborted packaging. This extension has no runtime dependencies and `.vscodeignore` already excludes `node_modules/**`, so packaging now passes `--no-dependencies` and produces the identical VSIX regardless of the state of the local `node_modules` — matching CI, which installs cleanly with `bun install --ignore-scripts`.
+
 ## [0.1.43] - 2026-08-29
 
 ### Fixed

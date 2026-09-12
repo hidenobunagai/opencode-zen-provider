@@ -3,7 +3,7 @@
   "publisher": "HidenobuNagai",
   "displayName": "OpenCode Zen Provider for Copilot Chat",
   "description": "OpenCode Zen chat provider for VS Code Copilot Chat",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -101,7 +101,7 @@
     "check-changelog": "bun scripts/check-changelog.ts",
     "sync:pi": "bun scripts/sync-from-pi.ts",
     "sync:pi:write": "bun scripts/sync-from-pi.ts --write",
-    "package:vsix": "bun run check-changelog && bun run compile && vsce package --allow-missing-repository"
+    "package:vsix": "bun run check-changelog && bun run compile && vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
