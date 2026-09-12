@@ -20,3 +20,8 @@ AGENTS.md
 .bun-cache/
 # Added by code-review-graph
 .code-review-graph/
+
+# env files: real values are never committed (dotenvx-encrypted files are added explicitly)
+.env
+.env.*
+!.env.example
