@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.49] - 2026-09-12
+
+### Changed
+
+- **`check-changelog` now validates the whole version history, not just the current version.** It previously only checked that `package.json`'s version had a `## [X.Y.Z]` heading somewhere in `CHANGELOG.md`, so two sections claiming the same version — what a rebase produces when both sides bump to the same number, as happened with `0.1.43` — passed every gate and shipped. The script now collects every `^## \[(\d+\.\d+\.\d+)\]` heading and fails on duplicate versions and on sections that are not in descending order by version and by date (equal dates are allowed, since several versions can share a release day, and missing intermediate versions stay allowed), so this class of accident stops at `bun run package:vsix`.
+
 ## [0.1.48] - 2026-09-12
 
 ### Fixed

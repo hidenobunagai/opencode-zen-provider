@@ -32,11 +32,54 @@ function main() {
 
   const changelog = fs.readFileSync(changelogPath, "utf8");
 
-  // Escaping special characters in version for the regex matching ## [X.Y.Z]
-  const escapedVersion = version.replace(/\./g, "\\.");
-  const versionHeaderRegex = new RegExp(`^##\\s*\\[\\s*${escapedVersion}\\s*\\]`, "m");
+  // Collect every "## [X.Y.Z] - YYYY-MM-DD" heading: the whole version history must stay
+  // unique and newest-first, otherwise a rebase silently produces two sections with the
+  // same version (as happened with 0.1.43) and later edits reorder the file unnoticed.
+  const headingRegex = /^##\s*\[\s*(\d+\.\d+\.\d+)\s*\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?/gm;
+  const headings = [...changelog.matchAll(headingRegex)].map((match) => ({
+    version: match[1],
+    date: match[2],
+  }));
 
-  if (!versionHeaderRegex.test(changelog)) {
+  const compareVersions = (a: string, b: string) => {
+    const [aMajor, aMinor, aPatch] = a.split(".").map(Number);
+    const [bMajor, bMinor, bPatch] = b.split(".").map(Number);
+    return aMajor - bMajor || aMinor - bMinor || aPatch - bPatch;
+  };
+
+  const seenVersions = new Set<string>();
+  const duplicates = headings
+    .map((heading) => heading.version)
+    .filter((seen) => (seenVersions.has(seen) ? true : (seenVersions.add(seen), false)));
+  const outOfOrder = headings.slice(1).flatMap((heading, index) => {
+    const previous = headings[index];
+    if (compareVersions(heading.version, previous.version) > 0) {
+      return [`## [${heading.version}] appears after ## [${previous.version}]`];
+    }
+    if (previous.date && heading.date && heading.date > previous.date) {
+      return [
+        `## [${heading.version}] is dated ${heading.date}, after ## [${previous.version}] dated ${previous.date}`,
+      ];
+    }
+    return [];
+  });
+
+  if (duplicates.length > 0 || outOfOrder.length > 0) {
+    console.error("================================================================================");
+    console.error("❌ RELEASE CHECK FAILED: CHANGELOG.md version sections are duplicated or unsorted");
+    console.error("================================================================================");
+    for (const duplicated of duplicates) {
+      console.error(`Duplicate section: ## [${duplicated}] appears more than once.`);
+    }
+    for (const problem of outOfOrder) {
+      console.error(`Not in descending order: ${problem}.`);
+    }
+    console.error("Each version must appear exactly once, in descending version and date order.");
+    console.error("================================================================================");
+    process.exit(1);
+  }
+
+  if (!headings.some((heading) => heading.version === version)) {
     console.error("================================================================================");
     console.error("❌ RELEASE CHECK FAILED: package.json version is ahead of CHANGELOG.md");
     console.error("================================================================================");
