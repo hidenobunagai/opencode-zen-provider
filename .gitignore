@@ -20,6 +20,9 @@ coverage/
 *.log
 .worktrees/
 AGENTS.md
+# Local agent configs synced from the Mac (kept out of the VSIX by .vscodeignore)
+.commandcode/
+opencode.jsonc
 .bun-cache/
 # Added by code-review-graph
 .code-review-graph/
