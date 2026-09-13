@@ -13,8 +13,8 @@ module.exports = {
   // cover the rest.
   collectCoverageFrom: ["src/**/*.ts"],
   // Same global floor as commandcode-goat-provider (opencode-go-provider raises branches
-  // to 65). The suite currently covers src at 76.6% lines / 75.5% statements / 83.2%
-  // functions / 61.1% branches, so the floor catches a regression instead of failing on
+  // to 65). The suite currently covers src at 82.75% lines / 81.65% statements / 85.47%
+  // functions / 68.14% branches, so the floor catches a regression instead of failing on
   // the baseline it was added at.
   coverageThreshold: {
     global: {
