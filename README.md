@@ -91,13 +91,12 @@ Build the VSIX package:
 bun run package:vsix
 ```
 
-Publishing is automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml): pushing a `v*` tag publishes the VSIX to the **VS Code Marketplace** and to **Open VSX** (repository secrets `VSCE_PAT` and `OVSX_PAT`). Open VSX serves VS Code-compatible editors, where this extension is only functional if **GitHub Copilot Chat** (`languageModelChatProviders`) is available.
+Publishing is automated by [`.github/workflows/publish.yml`](.github/workflows/publish.yml): pushing a `v*` tag publishes the VSIX to the **VS Code Marketplace** (repository secret `VSCE_PAT`). This extension only registers a **GitHub Copilot Chat** model provider (`languageModelChatProviders`), and Copilot Chat does not exist in the editors Open VSX serves, so it is not published there.
 
 To publish a VSIX manually:
 
 ```bash
 vsce publish --packagePath opencode-zen-provider-<version>.vsix --allow-missing-repository   # VSCE_PAT
-ovsx publish opencode-zen-provider-<version>.vsix -p "$OVSX_PAT"
 ```
 
 ## Privacy
