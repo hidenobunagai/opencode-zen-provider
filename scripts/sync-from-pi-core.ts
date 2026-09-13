@@ -34,8 +34,13 @@ export function flattenPi(data: PiData): Map<string, PiModel> {
   return map;
 }
 
+/**
+ * Levels Pi declares for a model. `[]` means Pi says there are none (non-reasoning, or a map
+ * with no usable level) and callers must clear stale details. `null` means Pi is generic
+ * (reasoning with no level map) and callers must leave existing details alone.
+ */
 export function piThinkingToEfforts(m: PiModel): string[] | null {
-  if (!m.reasoning) return null;
+  if (!m.reasoning) return [];
   const map = m.thinkingLevelMap;
   if (!map) return null;
   const efforts: string[] = [];
@@ -87,7 +92,6 @@ export function syncCatalog(
     const expMax = piModel.maxTokens;
     const expVision = piModel.input.includes("image");
     const { routeKind: expRoute, apiFormat: expApi } = piApiToZen(piModel.api);
-    const expThinking = piModel.reasoning;
     const expEfforts = piThinkingToEfforts(piModel);
 
     const ctxMatch = block.match(/contextWindow:\s*(\d+),/);
@@ -123,7 +127,8 @@ export function syncCatalog(
 
     const thinkingMatch = block.match(/supportsThinking:\s*(true|false),?/);
     const curThinking = thinkingMatch ? thinkingMatch[1] === "true" : false;
-    // Determine target thinking: if Pi has explicit map, use it; else keep current if generic null
+    // null = Pi is generic (reasoning, no level map): keep the current flag. Otherwise Pi is
+    // explicit, so a model with no levels (including a non-reasoning one) turns thinking off.
     if (expEfforts !== null) {
       const targetThinking = expEfforts.length > 0;
       if (curThinking !== targetThinking) {
@@ -133,21 +138,6 @@ export function syncCatalog(
             /supportsThinking:\s*(true|false),?/,
             `supportsThinking: ${targetThinking},`,
           );
-        }
-      }
-    } else if (curThinking !== expThinking) {
-      // No explicit map, but Pi reasoning differs
-      if (expThinking !== curThinking) {
-        // For big-pickle etc where Pi reasoning true but map null, we keep true (generic)
-        // So only diff if Pi says false but we have true
-        if (!expThinking && curThinking) {
-          diffs.push(`${piId}: supportsThinking ${curThinking} -> ${expThinking}`);
-          if (thinkingMatch) {
-            block = block.replace(
-              /supportsThinking:\s*(true|false),?/,
-              `supportsThinking: ${expThinking},`,
-            );
-          }
         }
       }
     }

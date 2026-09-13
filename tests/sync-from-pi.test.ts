@@ -58,8 +58,8 @@ const blockOf = (content: string, id: string): string => {
 };
 
 describe("sync-from-pi helpers", () => {
-  it("returns no effort list without reasoning or without a level map", () => {
-    expect(piThinkingToEfforts(piModel({ id: "a", name: "A" }))).toBeNull();
+  it("returns an empty list for a non-reasoning model and null for a generic one", () => {
+    expect(piThinkingToEfforts(piModel({ id: "a", name: "A" }))).toEqual([]);
     expect(piThinkingToEfforts(piModel({ id: "a", name: "A", reasoning: true }))).toBeNull();
   });
 
@@ -201,6 +201,28 @@ describe("syncCatalog", () => {
     expect(block).not.toMatch(/\n\s*\n/);
   });
 
+  it("drops supportedReasoningEfforts when Pi says the model is not reasoning", () => {
+    const models = [
+      piModel({
+        id: "deepseek-v4-flash",
+        name: "DeepSeek V4 Flash",
+        contextWindow: 1000000,
+        maxTokens: 384000,
+      }),
+    ];
+    const res = syncCatalog(piMap(...models), catalogPath, true);
+
+    expect(res.diffs).toEqual([
+      "deepseek-v4-flash: supportsThinking true -> false",
+      "deepseek-v4-flash: remove supportedReasoningEfforts (Pi has no levels)",
+    ]);
+    const block = blockOf(read(catalogPath), "deepseek-v4-flash");
+    expect(block).toContain("supportsThinking: false,");
+    expect(block).not.toContain("supportedReasoningEfforts");
+    expect(block).not.toMatch(/\n\s*\n/);
+    expect(syncCatalog(piMap(...models), catalogPath, true)).toEqual({ changed: 0, diffs: [] });
+  });
+
   it("reports diffs without touching the file in check mode", () => {
     const before = read(catalogPath);
     const res = syncCatalog(
@@ -331,6 +353,30 @@ describe("syncDocs", () => {
     expect(read(docsPath)).toContain(
       "| Claude Sonnet 5 | 1,000,000 | 64,000 | ✓ | ✗ | ✓ | Anthropic |",
     );
+  });
+
+  it("clears the Thinking column when Pi says the model is not reasoning", () => {
+    const before = read(docsPath);
+    const res = syncDocs(
+      piMap(
+        piModel({
+          id: "deepseek-v4-flash",
+          name: "DeepSeek V4 Flash",
+          contextWindow: 1000000,
+          maxTokens: 384000,
+        }),
+      ),
+      docsPath,
+      true,
+    );
+
+    expect(res.diffs).toEqual(["deepseek-v4-flash: docs Thinking ✓ (`low,high,max`) -> ✗"]);
+    const oldRow =
+      "| DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |";
+    const newRow = "| DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✗ | OpenAI |";
+    const after = read(docsPath);
+    expect(after).toContain(newRow);
+    expect(after.replace(newRow, "")).toBe(before.replace(oldRow, ""));
   });
 
   it("leaves the Thinking column alone when Pi reports only generic reasoning", () => {
