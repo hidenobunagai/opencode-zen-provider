@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.50] - 2026-09-13
+
+### Changed
+
+- **CI and Publish now use Node.js 24 actions, clearing the Node.js 20 deprecation annotation.** Every run carried `Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4` (run 34723067973, and `actions/checkout@v4` alone on Publish runs such as 34710144255). Measured per action with `gh api repos/<owner>/<repo>/contents/action.yml`: `runs.using` is `node20` for `actions/checkout` v4 and `actions/upload-artifact` v4/v5, and `node24` for `actions/checkout` v5-v7 and `actions/upload-artifact` v6/v7. `ci.yml` now pins `actions/checkout@v7` / `actions/upload-artifact@v7` and `publish.yml` pins `actions/checkout@v7`; `oven-sh/setup-bun@v2` already declares `node24` and `google/osv-scanner-action` is not a JavaScript action, so no annotation source remains. The `allow-unsafe-pr-checkout` breaking change backported to checkout v5+ only affects `pull_request_target` / `workflow_run` checkouts, which neither workflow uses.
+
 ## [0.1.49] - 2026-09-12
 
 ### Changed
