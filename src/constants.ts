@@ -36,8 +36,10 @@ export const REQUEST_TIMEOUT_MS = 60000;
 
 /**
  * Explicit model IDs that require the reasoning_content workaround.
+ * Exported for the catalog gate in tests/model-catalog.test.ts: every id here must name an
+ * entry in ZEN_MODEL_CATALOG, so retiring a model cannot leave its id behind in this set.
  */
-const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
+export const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
   "x-preview-f-free",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
@@ -48,8 +50,10 @@ const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
  * reasoning_content workaround (e.g. Responses API models). They still
  * consume part of the output budget on reasoning, so they get the same
  * minimum output budget floor as workaround models.
+ * Exported for the catalog gate in tests/model-catalog.test.ts: every id here must name an
+ * entry in ZEN_MODEL_CATALOG, so retiring a model cannot leave its id behind in this set.
  */
-const THINKING_MODEL_STATIC_SET = new Set([
+export const THINKING_MODEL_STATIC_SET = new Set([
   "gpt-5.6-luna",
   "gpt-5.6-sol",
   "gpt-5.6-terra",

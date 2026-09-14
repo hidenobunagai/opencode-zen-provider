@@ -30,6 +30,8 @@ export interface ZenModelInfo {
 // Models that do not actually support tool/function calling.
 // These still declare toolCalling capability so they appear in the model picker,
 // but the provider strips tools from requests before sending to the API.
+// Every id here must name an entry below: the catalog gate in tests/model-catalog.test.ts
+// fails when a retired model leaves its id behind in this set (and in the constants.ts sets).
 export const NO_TOOL_MODEL_IDS = new Set([
   "big-pickle",
   "deepseek-v4-flash-free",

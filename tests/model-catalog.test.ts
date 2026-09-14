@@ -1,4 +1,8 @@
-import { ZEN_MODEL_CATALOG } from "../src/model-catalog";
+import { NO_TOOL_MODEL_IDS, ZEN_MODEL_CATALOG } from "../src/model-catalog";
+import {
+  REASONING_CONTENT_WORKAROUND_STATIC_SET,
+  THINKING_MODEL_STATIC_SET,
+} from "../src/constants";
 
 describe("ZEN_MODEL_CATALOG", () => {
   it("defines the OpenCode Zen model set with explicit route kinds", () => {
@@ -89,5 +93,17 @@ describe("ZEN_MODEL_CATALOG", () => {
       (m) => m.supportedReasoningEfforts?.length && !m.supportsThinking,
     ).map((m) => m.id);
     expect(staleEfforts).toEqual([]);
+  });
+
+  // The sets below are keyed by id, so retiring a model used to leave its id behind in them
+  // with nothing to fail: they do not read the catalog, and `bun run sync:pi` only warns
+  // about catalog entries. Deleting the catalog entry alone trips this instead.
+  it.each([
+    ["NO_TOOL_MODEL_IDS", NO_TOOL_MODEL_IDS],
+    ["REASONING_CONTENT_WORKAROUND_STATIC_SET", REASONING_CONTENT_WORKAROUND_STATIC_SET],
+    ["THINKING_MODEL_STATIC_SET", THINKING_MODEL_STATIC_SET],
+  ])("keeps every %s id in the catalog", (_name, set) => {
+    const ids = new Set(ZEN_MODEL_CATALOG.map((m) => m.id));
+    expect([...set].filter((id) => !ids.has(id))).toEqual([]);
   });
 });
