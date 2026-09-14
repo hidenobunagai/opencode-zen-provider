@@ -83,4 +83,11 @@ describe("ZEN_MODEL_CATALOG", () => {
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
   });
+
+  it("keeps supportedReasoningEfforts only on thinking models", () => {
+    const staleEfforts = ZEN_MODEL_CATALOG.filter(
+      (m) => m.supportedReasoningEfforts?.length && !m.supportsThinking,
+    ).map((m) => m.id);
+    expect(staleEfforts).toEqual([]);
+  });
 });
