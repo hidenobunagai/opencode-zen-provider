@@ -196,6 +196,7 @@ export async function processOpenAIStream(
     const emittedTextToolCallKeys = new Set(snapshotEmittedKeys);
     let pendingTextEmbeddedContent = "";
     let pendingText = "";
+    let emittedVisibleText = false;
     let sawToolCall = false;
     let emittedToolCall = false;
     let reasoningContent = "";
@@ -214,6 +215,7 @@ export async function processOpenAIStream(
       if (!pendingText) return;
       progress.report(new vscode.LanguageModelTextPart(pendingText));
       pendingText = "";
+      emittedVisibleText = true;
     };
 
     const emitTextToolCall = (toolCall: ParsedTextToolCall, toolId?: string): void => {
@@ -456,9 +458,12 @@ export async function processOpenAIStream(
 
       // Reasoning model produced internal thinking but no visible output.
       // Emit the reasoning content so the user can see what the model thought.
+      // `pendingText` is already cleared by the flush above, so track what was
+      // actually reported: otherwise a reasoning model that answered normally
+      // gets this notice appended to its visible answer.
       if (
         !receivedAnyOutput ||
-        (reasoningContent && !pendingText && !emittedToolCall && !sawToolCall)
+        (reasoningContent && !emittedVisibleText && !emittedToolCall && !sawToolCall)
       ) {
         progress.report(
           new vscode.LanguageModelTextPart(
