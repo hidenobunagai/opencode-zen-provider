@@ -461,4 +461,16 @@ describe("processOpenAIStream — transport failures", () => {
     await expect(run()).rejects.toThrow("boom");
     expect(streamMock).toHaveBeenCalledTimes(1);
   });
+
+  it("throws the last attempt's error once every retry is exhausted", async () => {
+    // Each attempt emits output first, so all three are retryable until the
+    // final one has nowhere left to go.
+    streamMock
+      .mockImplementationOnce(() => failingStream(new Error("boom-1"), textChunk("part")))
+      .mockImplementationOnce(() => failingStream(new Error("boom-2"), textChunk("part")))
+      .mockImplementationOnce(() => failingStream(new Error("boom-3"), textChunk("part")));
+
+    await expect(run()).rejects.toThrow("boom-3");
+    expect(streamMock).toHaveBeenCalledTimes(3);
+  });
 });

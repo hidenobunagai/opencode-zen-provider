@@ -142,8 +142,10 @@ export async function processOpenAIStream(
 
   /** Snapshot of emitted tool call keys to prevent re-emitting on retry */
   let snapshotEmittedKeys = getCompletedToolCallKeys(apiMessages, requestContext, toolSchemas);
-  let lastError: unknown;
 
+  // Every iteration returns or throws, so there is deliberately no
+  // "all retries failed" statement after the loop: the last attempt rethrows
+  // its own error, and each earlier attempt either continues or returns.
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
 
@@ -488,7 +490,6 @@ export async function processOpenAIStream(
 
       return; // Success — exit retry loop
     } catch (err) {
-      lastError = err;
       if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
         throw new vscode.CancellationError();
       }
@@ -504,6 +505,4 @@ export async function processOpenAIStream(
       throw err;
     }
   }
-
-  throw lastError ?? new Error("OpenAI stream failed after all retries");
 }

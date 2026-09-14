@@ -164,8 +164,10 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
   // Retrying is pointless: we can't increase max_tokens (we omit it),
   // and the model will repeat the same self-regulated stop.
   const maxRetries = isReasoningModel ? 1 : MAX_STREAM_RETRIES;
-  let lastError: unknown;
 
+  // Every iteration returns or throws, so there is deliberately no
+  // "all retries failed" statement after the loop: the last attempt rethrows
+  // its own error, and each earlier attempt either continues or returns.
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     if (token.isCancellationRequested) throw new vscode.CancellationError();
 
@@ -225,7 +227,6 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
 
       return; // Success
     } catch (err) {
-      lastError = err;
       if (token.isCancellationRequested || (err instanceof Error && err.name === "AbortError")) {
         throw new vscode.CancellationError();
       }
@@ -239,8 +240,6 @@ export async function handleAnthropicRequest(params: AnthropicRequestParams): Pr
       throw err;
     }
   }
-
-  throw lastError ?? new Error("Anthropic request failed after all retries");
 }
 
 interface StreamingResult {

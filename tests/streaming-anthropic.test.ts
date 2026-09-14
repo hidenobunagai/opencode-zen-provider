@@ -307,6 +307,31 @@ describe("handleAnthropicRequest — transport failures", () => {
     await expect(handleAnthropicRequest(params)).rejects.toBeInstanceOf(vscode.CancellationError);
     expect(fetchWithRetryMock).not.toHaveBeenCalled();
   });
+
+  it("throws the last attempt's error once every retry is exhausted", async () => {
+    fetchWithRetryMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        body: failingBody(new Error("boom-1")),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        body: failingBody(new Error("boom-2")),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        body: failingBody(new Error("boom-3")),
+      });
+
+    await expect(handleAnthropicRequest(baseParams(progress))).rejects.toThrow("boom-3");
+    expect(fetchWithRetryMock).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe("handleAnthropicRequest — Anthropic tool_use blocks", () => {
