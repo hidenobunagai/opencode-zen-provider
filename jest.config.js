@@ -2,19 +2,23 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/tests"],
+  // tests finds the suites; src lets Jest's haste map see src/**/*.ts so
+  // collectCoverageFrom can report a module no test imports yet at 0%, instead of
+  // silently leaving it out of the report (CoverageReporter._addUntestedFiles walks
+  // context.hasteFS, which `roots` scopes).
+  roots: ["<rootDir>/tests", "<rootDir>/src"],
   testMatch: ["**/*.test.ts"],
   moduleFileExtensions: ["ts", "js"],
   // src/**/*.ts only, on purpose. Adding scripts/**/*.ts would not reach the CLI entries
-  // anyway: Jest collects untested files from its haste map, which `roots` scopes to
-  // tests, so only scripts a test imports can appear. Re-measured 2026-09-13 with this
-  // suite (208 tests): adding the glob moves the totals to 82.39% lines / 81.46%
-  // statements from 82.75% / 81.65% and lists just check-changelog.ts and
+  // anyway: Jest collects untested files from its haste map, which `roots` scopes, and
+  // scripts is not in it, so only scripts a test imports can appear. Re-measured
+  // 2026-09-14 with this suite (230 tests): adding the glob moves the totals to 85.09%
+  // lines / 84.03% statements from 85.79% / 84.57% and lists just check-changelog.ts and
   // sync-from-pi-core.ts, both pulled in by their tests. smoke.ts is instrumentable but
   // never loaded; sync-from-pi.ts does not even compile under ts-jest (TS1343 import.meta,
   // TS1378 top-level await — bun runs it with tsconfig.scripts.json). Measuring all of
-  // scripts for real needs a wider `roots` too, which reports smoke.ts at 0% and drops
-  // sync-from-pi.ts with a "Failed to collect coverage" warning: 79.59% lines / 78.71%
+  // scripts for real needs scripts in `roots` too, which reports smoke.ts at 0% and drops
+  // sync-from-pi.ts with a "Failed to collect coverage" warning: 82.2% lines / 81.2%
   // statements combined. Lint / tsc / sync:pi cover the rest.
   collectCoverageFrom: ["src/**/*.ts"],
   // Same global floor as commandcode-goat-provider (opencode-go-provider raises branches
