@@ -23,6 +23,7 @@ import {
   hasRequiredToolArguments,
   isToolCallInput,
   repairToolArguments,
+  type SkippedToolCall,
 } from "../tool-repair";
 import type { ZenChatMessage, ZenChatRequest } from "../types";
 
@@ -194,7 +195,7 @@ export async function processOpenAIStream(
 
     const toolCallBuffers = new Map<number, { id?: string; name?: string; args: string }>();
     const completedToolCallIndices = new Set<number>();
-    const skippedToolCalls: { name: string; required: string[]; missing: string[] }[] = [];
+    const skippedToolCalls: SkippedToolCall[] = [];
     const emittedTextToolCallKeys = new Set(snapshotEmittedKeys);
     let pendingTextEmbeddedContent = "";
     let pendingText = "";
@@ -268,6 +269,33 @@ export async function processOpenAIStream(
           emitTextToolCall(segment.toolCall);
         }
       }
+    };
+
+    /**
+     * Record a buffered tool call whose arguments never parsed, so a turn that
+     * only carried broken arguments still explains itself through
+     * `buildInvalidToolCallFallback` instead of reporting nothing at all.
+     * Returns false for a call the model never named, which cannot be explained.
+     */
+    const recordMalformedToolCall = (buf: {
+      id?: string;
+      name?: string;
+      args: string;
+    }): boolean => {
+      if (!buf.name) return false;
+      const schema = toolSchemas.get(buf.name);
+      skippedToolCalls.push({
+        name: buf.name,
+        required: schema?.required ?? [],
+        missing: schema?.required ?? [],
+        malformed: true,
+      });
+      debugLog("Skipped tool call with malformed JSON arguments", {
+        id: buf.id,
+        name: buf.name,
+        args: buf.args,
+      });
+      return true;
     };
 
     try {
@@ -353,10 +381,12 @@ export async function processOpenAIStream(
                 toolCallBuffers.delete(idx);
               }
             } catch {
-              debugLog(
-                "processOpenAIStream",
-                "Failed to parse tool call JSON, waiting for next chunk",
-              );
+              // Balanced braces mean no later chunk can make these arguments
+              // parse, so drop the call and let the fallback explain it.
+              if (recordMalformedToolCall(buf)) {
+                completedToolCallIndices.add(idx);
+                toolCallBuffers.delete(idx);
+              }
             }
           }
         }
@@ -394,7 +424,10 @@ export async function processOpenAIStream(
             });
           }
         } catch {
-          debugLog("processOpenAIStream", "Failed to parse incomplete JSON at stream end");
+          // The stream ended mid-arguments: keep the buffer so the retry gives
+          // the model another chance, but record the failure so the last
+          // attempt explains it instead of ending the turn with no output.
+          recordMalformedToolCall(buf);
         }
       }
 

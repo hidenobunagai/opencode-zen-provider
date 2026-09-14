@@ -330,20 +330,71 @@ describe("processOpenAIStream — chunk handling", () => {
     expect(reportedText()).toContain("filePath");
   });
 
-  it("retries a stream whose buffered tool call arguments are not JSON, then gives up silently", async () => {
+  it("reports brace-balanced arguments that are not JSON instead of ending the turn silently", async () => {
     // "{oops}" is brace-balanced, so it reaches JSON.parse and fails there.
-    const unbalanced = toolCallChunk({
+    const malformed = toolCallChunk({
       id: "call_1",
       function: { name: "read_file", arguments: "{oops}" },
     });
-    streamMock.mockImplementation(() => streamOf(unbalanced));
+    streamMock.mockImplementation(() => streamOf(malformed));
+
+    await run({ options: toolOptions(READ_FILE_TOOL) });
+
+    // Balanced braces mean no later chunk can make it parse, so there is
+    // nothing to retry: the call is reported as invalid right away.
+    expect(streamMock).toHaveBeenCalledTimes(1);
+    expect(reportedToolCalls()).toHaveLength(0);
+    expect(reportedText()).toContain("not valid JSON");
+  });
+
+  it("reports single-quoted tool arguments the model wrote instead of JSON", async () => {
+    streamMock.mockImplementation(() =>
+      streamOf(
+        textChunk("Reading the file. "),
+        toolCallChunk({
+          id: "call_1",
+          function: { name: "read_file", arguments: "{'filePath':'a.ts'}" },
+        }),
+      ),
+    );
+
+    await run({ options: toolOptions(READ_FILE_TOOL) });
+
+    expect(reportedToolCalls()).toHaveLength(0);
+    expect(reportedText()).toContain("Reading the file. ");
+    expect(reportedText()).toContain("not valid JSON");
+  });
+
+  it("reports malformed arguments seen only by the end-of-stream flush", async () => {
+    // Unbalanced, so the mid-stream parse is skipped and the flush after the
+    // stream ends is the only place that tries to parse it.
+    streamMock.mockImplementation(() =>
+      streamOf(
+        toolCallChunk({
+          id: "call_1",
+          function: { name: "read_file", arguments: "{'filePath':'a.ts'" },
+        }),
+      ),
+    );
 
     await run({ options: toolOptions(READ_FILE_TOOL) });
 
     expect(streamMock).toHaveBeenCalledTimes(3);
     expect(reportedToolCalls()).toHaveLength(0);
-    // Nothing was reported, not even a fallback: the user gets an empty turn.
-    expect(progress.report).not.toHaveBeenCalled();
+    expect(reportedText()).toContain("not valid JSON");
+  });
+
+  it("reports malformed arguments for a tool whose schema requires none", async () => {
+    streamMock.mockImplementation(() =>
+      streamOf(
+        toolCallChunk({ id: "call_1", function: { name: "list_dir", arguments: "{oops}" } }),
+      ),
+    );
+
+    await run({ options: toolOptions(LIST_DIR_TOOL) });
+
+    expect(reportedToolCalls()).toHaveLength(0);
+    expect(reportedText()).toContain("not valid JSON");
   });
 
   it("emits a buffered argument-less tool call at stream end when the schema requires nothing", async () => {

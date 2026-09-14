@@ -162,21 +162,28 @@ export function getMissingRequiredToolArguments(
   );
 }
 
+export interface SkippedToolCall {
+  name: string;
+  required: string[];
+  missing: string[];
+  /** The buffered arguments never parsed as JSON, so no argument names could be read. */
+  malformed?: boolean;
+}
+
 export function buildInvalidToolCallFallback(
-  skippedToolCalls: readonly { name: string; required: string[]; missing: string[] }[],
+  skippedToolCalls: readonly SkippedToolCall[],
 ): string | undefined {
-  const skippedWithRequiredArgs = skippedToolCalls.find(
-    (tc) => tc.missing.length > 0 || tc.required.length > 0,
+  const skipped = skippedToolCalls.find(
+    (tc) => tc.malformed || tc.missing.length > 0 || tc.required.length > 0,
   );
-  if (!skippedWithRequiredArgs) return undefined;
-  const missingArgs = (
-    skippedWithRequiredArgs.missing.length > 0
-      ? skippedWithRequiredArgs.missing
-      : skippedWithRequiredArgs.required
-  )
+  if (!skipped) return undefined;
+  if (skipped.malformed) {
+    return `The model tried to call \`${skipped.name}\` with arguments that were not valid JSON, so the call could not be run. Please retry the request.`;
+  }
+  const missingArgs = (skipped.missing.length > 0 ? skipped.missing : skipped.required)
     .map((a) => `\`${a}\``)
     .join(", ");
-  return `The model tried to call \`${skippedWithRequiredArgs.name}\` without the required argument(s) ${missingArgs}. Please retry the request and provide those arguments explicitly.`;
+  return `The model tried to call \`${skipped.name}\` without the required argument(s) ${missingArgs}. Please retry the request and provide those arguments explicitly.`;
 }
 
 export function extractChatRequestContext(

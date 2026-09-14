@@ -48,4 +48,15 @@ describe("buildInvalidToolCallFallback", () => {
       ]),
     ).toContain("`query`");
   });
+
+  it("explains arguments that never parsed as JSON", () => {
+    const fallback = buildInvalidToolCallFallback([
+      { name: "read_file", required: [], missing: [], malformed: true },
+    ]);
+
+    // A malformed call is reportable even when the tool requires no arguments
+    // and no argument name could be read out of the broken JSON.
+    expect(fallback).toContain("not valid JSON");
+    expect(fallback).toContain("`read_file`");
+  });
 });
