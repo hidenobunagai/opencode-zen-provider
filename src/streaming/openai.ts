@@ -196,6 +196,7 @@ export async function processOpenAIStream(
     const emittedTextToolCallKeys = new Set(snapshotEmittedKeys);
     let pendingTextEmbeddedContent = "";
     let pendingText = "";
+    let flushedText = "";
     let emittedVisibleText = false;
     let sawToolCall = false;
     let emittedToolCall = false;
@@ -214,6 +215,7 @@ export async function processOpenAIStream(
       }
       if (!pendingText) return;
       progress.report(new vscode.LanguageModelTextPart(pendingText));
+      flushedText += pendingText;
       pendingText = "";
       emittedVisibleText = true;
     };
@@ -476,9 +478,12 @@ export async function processOpenAIStream(
 
       // Cache reasoning content so later turns can restore it in assistant
       // history (the API requires reasoning_content on follow-up assistant
-      // messages for workaround models).
-      if (reasoningContent && pendingText.trim().length > 0) {
-        reasoningCache.set(pendingText.trim(), reasoningContent.trim());
+      // messages for workaround models).  The key is every visible chunk
+      // reported this turn, not `pendingText`: the flush above already cleared
+      // `pendingText`, and convertMessages looks the cache up by the
+      // assistant's whole raw text.
+      if (reasoningContent && flushedText.trim()) {
+        reasoningCache.set(flushedText.trim(), reasoningContent.trim());
       }
 
       return; // Success — exit retry loop

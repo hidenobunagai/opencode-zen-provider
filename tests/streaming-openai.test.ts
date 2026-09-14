@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { resolveApiEndpoint, streamChatCompletion } from "../src/api";
-import { reasoningCache } from "../src/openai-conversion";
+import { reasoningCache, convertMessages } from "../src/openai-conversion";
 import { processOpenAIStream, type OpenAIModelInfo } from "../src/streaming/openai";
 import type { ZenStreamResponse } from "../src/types";
 
@@ -292,9 +292,31 @@ describe("processOpenAIStream — chunk handling", () => {
 
     // The reasoning-only notice must not be appended to a real answer.
     expect(reportedText()).toBe("answer");
-    // Known gap, tracked in the improve backlog: reasoningCache.set() is
-    // unreachable because the flush above clears pendingText before it runs.
-    expect(reasoningCache.get("answer")).toBeUndefined();
+  });
+
+  it("caches the reasoning under the turn's whole visible text", async () => {
+    streamMock.mockImplementation(() =>
+      streamOf(reasoningChunk("weighing options"), textChunk("answer", "stop")),
+    );
+
+    await run({ model: { id: "deepseek-v4-pro" } });
+
+    // convertMessages looks the cache up by the assistant's raw text, so the
+    // key must be every reported chunk, not the last one still buffered.
+    expect(reasoningCache.get("answer")).toBe("weighing options");
+  });
+
+  it("restores the cached reasoning in the next turn's assistant history", async () => {
+    streamMock.mockImplementation(() =>
+      streamOf(reasoningChunk("weighing options"), textChunk("answer", "stop")),
+    );
+
+    await run({ model: { id: "deepseek-v4-pro" } });
+
+    const nextTurn = convertMessages([
+      { role: 2, content: [new vscode.LanguageModelTextPart("answer")] },
+    ] as any);
+    expect(nextTurn[0].reasoning_content).toBe("weighing options");
   });
 
   it("reports the invalid-tool-call fallback for a text-embedded call missing a required argument", async () => {
