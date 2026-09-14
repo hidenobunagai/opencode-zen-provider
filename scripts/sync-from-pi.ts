@@ -3,6 +3,9 @@
  * Sync from Pi's opencode.json to opencode-zen-provider.
  * - Compares Pi's provider data (contextWindow/maxTokens/vision/api/thinkingLevelMap)
  *   with ZEN_MODEL_CATALOG in src/model-catalog.ts and docs/models.md tables.
+ * - Also reports catalog ids that Pi does not contain: those entries are skipped by
+ *   syncCatalog, so the live Zen model list is the only thing that can tell a lagging Pi
+ *   (model still served) from a dead entry left behind in the picker.
  * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
  *
  * Pi source resolution:
@@ -21,11 +24,18 @@ import path from "path";
 import os from "os";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
-import { flattenPi, syncCatalog, syncDocs, type PiData } from "./sync-from-pi-core";
+import {
+  flattenPi,
+  syncCatalog,
+  syncDocs,
+  catalogIdsMissingFromPi,
+  type PiData,
+} from "./sync-from-pi-core";
 
 const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ZEN_MODELS_URL = "https://opencode.ai/zen/v1/models";
 
 function log(...args: unknown[]) {
   console.log(...args);
@@ -135,6 +145,28 @@ async function loadPiData(): Promise<{ data: PiData; source: string }> {
   throw new Error("Could not locate Pi opencode.json locally or via CDN");
 }
 
+/**
+ * Ids the Zen API currently serves. `null` means the list could not be read, so callers
+ * report the ids without claiming anything about whether Zen still serves them.
+ */
+async function loadZenModelIds(): Promise<Set<string> | null> {
+  try {
+    const res = await fetch(ZEN_MODELS_URL, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) {
+      vlog(`Zen model list ${ZEN_MODELS_URL} returned ${res.status}`);
+      return null;
+    }
+    const body = (await res.json()) as { data?: { id?: unknown }[] };
+    const ids = (body.data ?? [])
+      .map((m) => m.id)
+      .filter((id): id is string => typeof id === "string");
+    return ids.length > 0 ? new Set(ids) : null;
+  } catch (e) {
+    vlog(`Zen model list fetch failed: ${e}`);
+    return null;
+  }
+}
+
 async function main() {
   const catalogPath = path.resolve(HERE, "../src/model-catalog.ts");
   const docsPath = path.resolve(HERE, "../docs/models.md");
@@ -166,6 +198,21 @@ async function main() {
     }
   }
   if (!WRITE && allDiffs.length > 0) process.exit(1);
+
+  // Warn-only: dropping a model is a product decision (the free tier in particular moves
+  // without Pi), so this stays out of the diffs and cannot fail --check.
+  const catalogOnly = catalogIdsMissingFromPi(fs.readFileSync(catalogPath, "utf8"), piMap);
+  if (catalogOnly.length === 0) return;
+  const zenIds = await loadZenModelIds();
+  log(
+    `\n⚠️  ${catalogOnly.length} catalog entries are absent from Pi, so no field in them (or in their docs row) is checked:`,
+  );
+  if (!zenIds) log(`  (could not read ${ZEN_MODELS_URL} — reporting ids only)`);
+  for (const id of catalogOnly) {
+    if (!zenIds) log(`  - ${id}`);
+    else if (zenIds.has(id)) log(`  - ${id}: still served by Zen (Pi data lags behind)`);
+    else log(`  - ${id}: NOT served by Zen — retire it from src/model-catalog.ts, docs/models.md`);
+  }
 }
 
 await main();

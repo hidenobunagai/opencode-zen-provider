@@ -35,6 +35,20 @@ export function flattenPi(data: PiData): Map<string, PiModel> {
 }
 
 /**
+ * Catalog ids that Pi's map does not contain. `syncCatalog` never sees these (its id regex
+ * matches nothing, so the loop `continue`s) and neither does `syncDocs`, which means no
+ * field in such an entry is ever verified: a model Zen has dropped stays in the catalog and
+ * in the model picker unnoticed. The CLI reports these ids against the live Zen model list.
+ */
+export function catalogIdsMissingFromPi(content: string, piMap: Map<string, PiModel>): string[] {
+  const ids: string[] = [];
+  for (const match of content.matchAll(/^ {4}id: "([^"]+)",/gm)) {
+    if (!piMap.has(match[1])) ids.push(match[1]);
+  }
+  return ids;
+}
+
+/**
  * Levels Pi declares for a model. `[]` means Pi says there are none (non-reasoning, or a map
  * with no usable level) and callers must clear stale details. `null` means Pi is generic
  * (reasoning with no level map) and callers must leave existing details alone.

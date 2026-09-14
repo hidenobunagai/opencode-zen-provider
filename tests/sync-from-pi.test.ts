@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  catalogIdsMissingFromPi,
   flattenPi,
   formatNumber,
   piApiToZen,
@@ -108,6 +109,27 @@ describe("sync-from-pi helpers", () => {
     const map = flattenPi({ openai: { a }, anthropic: { b } });
     expect([...map.keys()]).toEqual(["a", "b"]);
     expect(map.get("b")).toBe(b);
+  });
+
+  it("lists the catalog ids Pi does not know, in file order", () => {
+    const content = read(catalogPath);
+    const map = piMap(piModel({ id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" }));
+
+    expect(catalogIdsMissingFromPi(content, map)).toEqual([
+      "deepseek-v4-flash-free",
+      "gpt-5.6-luna",
+    ]);
+  });
+
+  it("reports nothing when Pi knows every catalog id", () => {
+    const content = read(catalogPath);
+    const map = piMap(
+      piModel({ id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" }),
+      piModel({ id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free" }),
+      piModel({ id: "gpt-5.6-luna", name: "GPT 5.6 Luna" }),
+    );
+
+    expect(catalogIdsMissingFromPi(content, map)).toEqual([]);
   });
 });
 
