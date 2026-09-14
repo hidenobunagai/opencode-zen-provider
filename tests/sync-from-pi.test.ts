@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  catalogDocsDiffs,
   catalogIdsMissingFromPi,
   flattenPi,
   formatNumber,
@@ -130,6 +131,82 @@ describe("sync-from-pi helpers", () => {
     );
 
     expect(catalogIdsMissingFromPi(content, map)).toEqual([]);
+  });
+});
+
+describe("catalogDocsDiffs", () => {
+  it("reports every cell where a docs row disagrees with its catalog entry", () => {
+    const docs = read(docsPath).replace(
+      "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |",
+      "| DeepSeek V4 Flash Free | 131,072 | 32,000 | ✓ | ✗ | ✓ (`low,high`) | OpenAI |",
+    );
+
+    expect(catalogDocsDiffs(read(catalogPath), docs)).toEqual(
+      new Map([
+        [
+          "deepseek-v4-flash-free",
+          [
+            "docs Context 131,072 vs catalog 262,144",
+            "docs Max Output 32,000 vs catalog 65,536",
+            "docs Vision ✓ vs catalog ✗",
+            "docs Thinking ✓ (`low,high`) vs catalog ✓",
+          ],
+        ],
+      ]),
+    );
+  });
+
+  it("maps the catalog route kind onto the API column", () => {
+    const docs = read(docsPath).replace(
+      "### Partial Table",
+      "| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |\n\n### Partial Table",
+    );
+
+    expect(catalogDocsDiffs(read(catalogPath), docs)).toEqual(
+      new Map([["gpt-5.6-luna", ["docs API OpenAI vs catalog Responses"]]]),
+    );
+  });
+
+  it("reads entries whose block carries a leading comment", () => {
+    const catalog = [
+      "export const ZEN_MODEL_CATALOG = [",
+      "  {",
+      "    // Contributor variant: requests may be used by upstream for model training.",
+      '    id: "muse-x-contributor-free",',
+      '    name: "Muse X Contributor Free",',
+      '    routeKind: "responses",',
+      "    contextWindow: 1000,",
+      "    maxOutput: 500,",
+      "    supportsVision: true,",
+      "    supportsThinking: true,",
+      "  },",
+      "];",
+    ].join("\n");
+    const docs = "| Muse X Contributor Free | 1,000 | 500 | ✗ | ✓ | ✓ (`low`) | Responses |\n";
+
+    expect(catalogDocsDiffs(catalog, docs)).toEqual(
+      new Map([
+        [
+          "muse-x-contributor-free",
+          ["docs Vision ✗ vs catalog ✓", "docs Thinking ✓ (`low`) vs catalog ✓"],
+        ],
+      ]),
+    );
+  });
+
+  it("stays quiet for matching rows, missing rows and rows with too few columns", () => {
+    const catalog = read(catalogPath);
+
+    expect(catalogDocsDiffs(catalog, read(docsPath))).toEqual(new Map());
+    // gpt-5.6-luna has no row in the fixture at all.
+    expect(
+      catalogDocsDiffs(
+        catalog,
+        "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |\n",
+      ),
+    ).toEqual(new Map());
+    expect(catalogDocsDiffs(catalog, "| DeepSeek V4 Flash Free | 262,144 |\n")).toEqual(new Map());
+    expect(catalogDocsDiffs(catalog, "")).toEqual(new Map());
   });
 });
 

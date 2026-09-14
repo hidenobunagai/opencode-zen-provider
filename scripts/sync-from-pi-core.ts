@@ -35,17 +35,29 @@ export function flattenPi(data: PiData): Map<string, PiModel> {
 }
 
 /**
+ * Every catalog entry, from its `id:` line to the block's closing `},`, in file order. The
+ * anchor is the same one `catalogIdsMissingFromPi` and the tests use, so the reader sees
+ * every entry — including one whose leading `//` comment `syncCatalog`'s block regex cannot
+ * reach.
+ */
+function catalogEntries(content: string): { id: string; block: string }[] {
+  return [...content.matchAll(/^ {4}id: "([^"]+)",/gm)].map((match) => {
+    const start = match.index ?? 0;
+    const end = content.indexOf("\n  },", start);
+    return { id: match[1], block: content.slice(start, end === -1 ? undefined : end) };
+  });
+}
+
+/**
  * Catalog ids that Pi's map does not contain. `syncCatalog` never sees these (its id regex
  * matches nothing, so the loop `continue`s) and neither does `syncDocs`, which means no
  * field in such an entry is ever verified: a model Zen has dropped stays in the catalog and
  * in the model picker unnoticed. The CLI reports these ids against the live Zen model list.
  */
 export function catalogIdsMissingFromPi(content: string, piMap: Map<string, PiModel>): string[] {
-  const ids: string[] = [];
-  for (const match of content.matchAll(/^ {4}id: "([^"]+)",/gm)) {
-    if (!piMap.has(match[1])) ids.push(match[1]);
-  }
-  return ids;
+  return catalogEntries(content)
+    .map((entry) => entry.id)
+    .filter((id) => !piMap.has(id));
 }
 
 /**
@@ -77,6 +89,84 @@ export function piApiToZen(api: string): { routeKind: string; apiFormat: string 
 
 export function formatNumber(n: number): string {
   return n.toLocaleString("en-US");
+}
+
+/** API column label of docs/models.md for a route kind. */
+function apiDisplay(routeKind: string): string {
+  if (routeKind === "responses") return "Responses";
+  if (routeKind === "messages") return "Anthropic";
+  return "OpenAI";
+}
+
+/** The two spellings of a model the docs tables are looked up with. */
+function docsRowCandidates(id: string, name: string): string[] {
+  return [
+    id
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" "),
+    name,
+  ];
+}
+
+/** The docs table row for a model, trailing newline included, or null. */
+function findDocsRow(content: string, candidates: string[]): string | null {
+  for (const cand of candidates) {
+    const escaped = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const m = content.match(new RegExp(`\\|\\s*${escaped}\\s*\\|([^\\n]*\\n)`, "i"));
+    if (m) return m[0];
+  }
+  return null;
+}
+
+/**
+ * Cells where a catalog entry and its docs row disagree, keyed by entry id. `syncDocs` only
+ * compares the rows of models Pi knows, and `syncCatalog` cannot reach a block that carries
+ * a leading comment, so a row can keep values the catalog no longer states with nothing to
+ * notice. Zen's model list returns ids only, so the catalog values cannot be re-probed
+ * either; which side is stale is a human call, hence the CLI warns and writes nothing.
+ */
+export function catalogDocsDiffs(
+  catalogContent: string,
+  docsContent: string,
+): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  for (const { id, block } of catalogEntries(catalogContent)) {
+    const name = block.match(/name:\s*"([^"]+)",/)?.[1];
+    if (!name) continue;
+    const row = findDocsRow(docsContent, docsRowCandidates(id, name));
+    if (!row) continue;
+    const cells = row.split("|").map((c) => c.trim());
+    if (cells.length < 8) continue;
+
+    const ctx = block.match(/contextWindow:\s*(\d+),/);
+    const max = block.match(/maxOutput:\s*(\d+),/);
+    const vision = block.match(/supportsVision:\s*(true|false),/);
+    const route = block.match(/routeKind:\s*"([^"]+)",/);
+    const efforts = [
+      ...(block.match(/supportedReasoningEfforts:\s*\[([^\]]*)\]/)?.[1] ?? "").matchAll(
+        /"([^"]+)"/g,
+      ),
+    ].map((m) => m[1]);
+    const thinking = !/supportsThinking:\s*true,/.test(block)
+      ? "✗"
+      : efforts.length > 0
+        ? `✓ (\`${efforts.join(",")}\`)`
+        : "✓";
+
+    const diffs: string[] = [];
+    const compare = (column: string, current: string, expected: string | null) => {
+      if (expected !== null && current !== expected)
+        diffs.push(`docs ${column} ${current} vs catalog ${expected}`);
+    };
+    compare("Context", cells[2], ctx ? formatNumber(Number(ctx[1])) : null);
+    compare("Max Output", cells[3], max ? formatNumber(Number(max[1])) : null);
+    compare("Vision", cells[4], vision ? (vision[1] === "true" ? "✓" : "✗") : null);
+    compare("Thinking", cells[6], thinking);
+    compare("API", cells[7], route ? apiDisplay(route[1]) : null);
+    if (diffs.length > 0) result.set(id, diffs);
+  }
+  return result;
 }
 
 // --- src/model-catalog.ts sync ---
@@ -220,26 +310,8 @@ export function syncDocs(
   let changed = 0;
 
   for (const [piId, piModel] of piMap.entries()) {
-    const candidates = [
-      piId
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(" "),
-      piModel.name,
-    ];
-    let rowMatch: RegExpMatchArray | null = null;
-    let fullRow = "";
-    for (const cand of candidates) {
-      const escaped = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const re = new RegExp(`\\|\\s*${escaped}\\s*\\|([^\\n]*\\n)`, "i");
-      const m = content.match(re);
-      if (m) {
-        rowMatch = m;
-        fullRow = m[0];
-        break;
-      }
-    }
-    if (!rowMatch) continue;
+    const fullRow = findDocsRow(content, docsRowCandidates(piId, piModel.name));
+    if (!fullRow) continue;
     const cells = fullRow.split("|").map((c) => c.trim());
     if (cells.length < 8) continue;
 
@@ -248,8 +320,7 @@ export function syncDocs(
     const expVision = piModel.input.includes("image") ? "✓" : "✗";
     // Use piApiToZen routeKind to decide: responses => Responses, anthropic => Anthropic, else OpenAI
     const { routeKind } = piApiToZen(piModel.api);
-    const expApiDisplay =
-      routeKind === "responses" ? "Responses" : routeKind === "messages" ? "Anthropic" : "OpenAI";
+    const expApiDisplay = apiDisplay(routeKind);
 
     const expEfforts = piThinkingToEfforts(piModel);
     let expThinking: string;

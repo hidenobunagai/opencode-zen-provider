@@ -6,6 +6,8 @@
  * - Also reports catalog ids that Pi does not contain: those entries are skipped by
  *   syncCatalog, so the live Zen model list is the only thing that can tell a lagging Pi
  *   (model still served) from a dead entry left behind in the picker.
+ * - Warn-only: also compares every docs row with the catalog entry it documents, since
+ *   syncDocs only reaches rows whose model Pi knows and syncCatalog skips commented blocks.
  * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
  *
  * Pi source resolution:
@@ -29,6 +31,7 @@ import {
   syncCatalog,
   syncDocs,
   catalogIdsMissingFromPi,
+  catalogDocsDiffs,
   type PiData,
 } from "./sync-from-pi-core";
 
@@ -199,19 +202,32 @@ async function main() {
   }
   if (!WRITE && allDiffs.length > 0) process.exit(1);
 
+  const catalogContent = fs.readFileSync(catalogPath, "utf8");
+
   // Warn-only: dropping a model is a product decision (the free tier in particular moves
   // without Pi), so this stays out of the diffs and cannot fail --check.
-  const catalogOnly = catalogIdsMissingFromPi(fs.readFileSync(catalogPath, "utf8"), piMap);
-  if (catalogOnly.length === 0) return;
-  const zenIds = await loadZenModelIds();
-  log(
-    `\n⚠️  ${catalogOnly.length} catalog entries are absent from Pi, so no field in them (or in their docs row) is checked:`,
-  );
-  if (!zenIds) log(`  (could not read ${ZEN_MODELS_URL} — reporting ids only)`);
-  for (const id of catalogOnly) {
-    if (!zenIds) log(`  - ${id}`);
-    else if (zenIds.has(id)) log(`  - ${id}: still served by Zen (Pi data lags behind)`);
-    else log(`  - ${id}: NOT served by Zen — retire it from src/model-catalog.ts, docs/models.md`);
+  const catalogOnly = catalogIdsMissingFromPi(catalogContent, piMap);
+  if (catalogOnly.length > 0) {
+    const zenIds = await loadZenModelIds();
+    log(
+      `\n⚠️  ${catalogOnly.length} catalog entries are absent from Pi, so Pi cannot check any field in them:`,
+    );
+    if (!zenIds) log(`  (could not read ${ZEN_MODELS_URL} — reporting ids only)`);
+    for (const id of catalogOnly) {
+      if (!zenIds) log(`  - ${id}`);
+      else if (zenIds.has(id)) log(`  - ${id}: still served by Zen (Pi data lags behind)`);
+      else
+        log(`  - ${id}: NOT served by Zen — retire it from src/model-catalog.ts, docs/models.md`);
+    }
+  }
+
+  // Warn-only: nothing can pick a winner. `syncDocs` only reaches rows whose model Pi knows
+  // and `syncCatalog` cannot reach a commented block, while Zen returns ids alone, so the
+  // catalog and its own docs row drift apart with no side clearly right.
+  const docsDiffs = catalogDocsDiffs(catalogContent, fs.readFileSync(docsPath, "utf8"));
+  if (docsDiffs.size > 0) {
+    log(`\n⚠️  ${docsDiffs.size} catalog entries disagree with their docs row in docs/models.md:`);
+    for (const [id, diffs] of docsDiffs) for (const d of diffs) log(`  - ${id}: ${d}`);
   }
 }
 
