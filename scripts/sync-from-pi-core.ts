@@ -180,11 +180,15 @@ export function syncCatalog(
   let changed = 0;
 
   for (const [piId, piModel] of piMap.entries()) {
-    const idRegex = new RegExp(`id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`);
+    const escapedId = piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const idRegex = new RegExp(`id:\\s*"${escapedId}"`);
     if (!idRegex.test(content)) continue;
 
+    // `{` may be followed by `//` comment lines before `id:` (muse-spark-1.2-contributor-free
+    // and x-preview-f-free carry those). Without `(?://[^\n]*\n\s*)*` the block is not found,
+    // while the id regex above still matches, so the entry is skipped in silence.
     const blockRegex = new RegExp(
-      `\\{\\s*id:\\s*"${piId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[\\s\\S]*?\\},`,
+      `\\{\\s*(?://[^\\n]*\\n\\s*)*id:\\s*"${escapedId}"[\\s\\S]*?\\},`,
       "m",
     );
     const match = content.match(blockRegex);

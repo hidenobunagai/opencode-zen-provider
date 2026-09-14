@@ -342,6 +342,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   },
   {
     // ponytail: specs (context/vision) probed live on 2026-08-22; no official sheet, revisit when named.

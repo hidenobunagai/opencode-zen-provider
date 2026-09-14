@@ -370,6 +370,46 @@ describe("syncCatalog", () => {
     expect(read(catalogPath)).toContain("contextWindow: 2000,");
   });
 
+  it("reaches a block whose id line carries a leading comment", () => {
+    fs.writeFileSync(
+      catalogPath,
+      [
+        "export const ZEN_MODEL_CATALOG = [",
+        "  {",
+        "    // Contributor variant: requests may be used by upstream for model training.",
+        '    id: "muse-x-contributor-free",',
+        "    contextWindow: 1000,",
+        "    supportsThinking: true,",
+        "  },",
+        "];",
+        "",
+      ].join("\n"),
+    );
+    const models = [
+      piModel({
+        id: "muse-x-contributor-free",
+        name: "Muse X Contributor Free",
+        contextWindow: 2000,
+        reasoning: true,
+        thinkingLevelMap: { minimal: "minimal", high: "high" },
+      }),
+    ];
+    const res = syncCatalog(piMap(...models), catalogPath, true);
+
+    expect(res.diffs).toEqual([
+      "muse-x-contributor-free: contextWindow 1000 -> 2000",
+      'muse-x-contributor-free: add supportedReasoningEfforts ["minimal", "high"]',
+    ]);
+    const after = read(catalogPath);
+    expect(after).toContain("contextWindow: 2000,");
+    expect(after).toContain('supportedReasoningEfforts: ["minimal", "high"],');
+    // The comment that made the block unreachable must survive the rewrite.
+    expect(after).toContain(
+      "    // Contributor variant: requests may be used by upstream for model training.",
+    );
+    expect(syncCatalog(piMap(...models), catalogPath, true)).toEqual({ changed: 0, diffs: [] });
+  });
+
   it("is idempotent: a second write finds nothing to change", () => {
     const models = [
       piModel({
