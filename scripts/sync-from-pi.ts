@@ -9,6 +9,14 @@
  * - Warn-only: also compares every docs row with the catalog entry it documents, since
  *   syncDocs only reaches rows whose model Pi knows and syncCatalog cannot rewrite a block
  *   its regex does not match.
+ * - models.dev is deliberately not a third source (measured 2026-09-15 against
+ *   https://models.dev/api.json, provider `opencode`): it disagrees with the catalog on 8 of
+ *   25 entries, and 5 of those (Gemini 3.x, grok-build-0.1: `reasoning: true` while the
+ *   catalog and docs say Thinking ✗) are entries the two existing sources agree on, so the
+ *   flag means something else. For the 4 entries Pi cannot check it would add 6 lines that
+ *   Zen's id-only list cannot arbitrate: `limit.context` / `limit.output` disagree with both
+ *   the catalog and docs for deepseek-v4-flash-free (200,000/128,000) and laguna-s-2.1-free,
+ *   and side with docs only for x-preview-f-free. Revisit only if a human wants that opinion.
  * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
  *
  * Pi source resolution:
