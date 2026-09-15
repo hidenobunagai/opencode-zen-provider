@@ -121,9 +121,9 @@ function findDocsRow(content: string, candidates: string[]): string | null {
 
 /**
  * Cells where a catalog entry and its docs row disagree, keyed by entry id. `syncDocs` only
- * compares the rows of models Pi knows, and `syncCatalog` cannot reach a block that carries
- * a leading comment, so a row can keep values the catalog no longer states with nothing to
- * notice. Zen's model list returns ids only, so the catalog values cannot be re-probed
+ * compares the rows of models Pi knows, and `syncCatalog` cannot rewrite a block whose shape
+ * its regex does not match, so a row can keep values the catalog no longer states with nothing
+ * else to notice. Zen's model list returns ids only, so the catalog values cannot be re-probed
  * either; which side is stale is a human call, hence the CLI warns and writes nothing.
  */
 export function catalogDocsDiffs(
@@ -186,13 +186,18 @@ export function syncCatalog(
 
     // `{` may be followed by `//` comment lines before `id:` (muse-spark-1.2-contributor-free
     // and x-preview-f-free carry those). Without `(?://[^\n]*\n\s*)*` the block is not found,
-    // while the id regex above still matches, so the entry is skipped in silence.
+    // while the id regex above still matches. Any other leading shape (a `/* */` comment, for
+    // one) is still unreachable, so report it as a diff: --check exits 1 and CI stops instead
+    // of letting the entry go unverified the way 48688c3 did for weeks.
     const blockRegex = new RegExp(
       `\\{\\s*(?://[^\\n]*\\n\\s*)*id:\\s*"${escapedId}"[\\s\\S]*?\\},`,
       "m",
     );
     const match = content.match(blockRegex);
-    if (!match) continue;
+    if (!match) {
+      diffs.push(`${piId}: unreachable block (id matches the catalog, block regex does not)`);
+      continue;
+    }
     let block = match[0];
     const originalBlock = block;
 

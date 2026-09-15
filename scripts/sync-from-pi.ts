@@ -7,7 +7,8 @@
  *   syncCatalog, so the live Zen model list is the only thing that can tell a lagging Pi
  *   (model still served) from a dead entry left behind in the picker.
  * - Warn-only: also compares every docs row with the catalog entry it documents, since
- *   syncDocs only reaches rows whose model Pi knows and syncCatalog skips commented blocks.
+ *   syncDocs only reaches rows whose model Pi knows and syncCatalog cannot rewrite a block
+ *   its regex does not match.
  * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
  *
  * Pi source resolution:

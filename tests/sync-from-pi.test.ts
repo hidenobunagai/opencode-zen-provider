@@ -410,6 +410,34 @@ describe("syncCatalog", () => {
     expect(syncCatalog(piMap(...models), catalogPath, true)).toEqual({ changed: 0, diffs: [] });
   });
 
+  it("reports an entry whose block the regex cannot reach instead of skipping it in silence", () => {
+    const catalog = [
+      "export const ZEN_MODEL_CATALOG = [",
+      "  {",
+      "    /* zen: probed 2026-09-14 */",
+      '    id: "probed-model",',
+      "    contextWindow: 1000,",
+      "    supportsThinking: true,",
+      "  },",
+      "];",
+      "",
+    ].join("\n");
+    fs.writeFileSync(catalogPath, catalog);
+    const models = [piModel({ id: "probed-model", name: "Probed Model", contextWindow: 2000 })];
+
+    // A diff, not a warning: --check turns this into exit 1 so CI fails while the entry
+    // silently keeps values nothing can verify.
+    const check = syncCatalog(piMap(...models), catalogPath, false);
+    expect(check).toEqual({
+      changed: 0,
+      diffs: ["probed-model: unreachable block (id matches the catalog, block regex does not)"],
+    });
+
+    // --write cannot reach the block either, so it must not claim to have applied anything.
+    expect(syncCatalog(piMap(...models), catalogPath, true)).toEqual(check);
+    expect(read(catalogPath)).toBe(catalog);
+  });
+
   it("is idempotent: a second write finds nothing to change", () => {
     const models = [
       piModel({
