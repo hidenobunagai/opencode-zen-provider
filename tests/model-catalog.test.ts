@@ -13,10 +13,6 @@ describe("ZEN_MODEL_CATALOG", () => {
           routeKind: "chat_completions",
         }),
         expect.objectContaining({
-          id: "x-preview-f-free",
-          routeKind: "chat_completions",
-        }),
-        expect.objectContaining({
           id: "muse-spark-1.2-contributor-free",
           routeKind: "responses",
         }),
@@ -51,15 +47,12 @@ describe("ZEN_MODEL_CATALOG", () => {
     expect(
       ZEN_MODEL_CATALOG.find((model) => model.id === "muse-spark-1.2-contributor-free"),
     ).toBeDefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "x-preview-f-free")).toBeDefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "hy3-free")).toBeDefined();
     expect(
       ZEN_MODEL_CATALOG.find((model) => model.id === "nemotron-3.5-lightning-free"),
     ).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "kimi-k3")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "minimax-m3")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "glm-5.2")).toBeDefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "laguna-s-2.1-free")).toBeDefined();
   });
 
   it("does not include models served only by other Zen routes", () => {

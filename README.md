@@ -41,8 +41,7 @@ The extension bundles a static `ZEN_MODEL_CATALOG` (in `src/model-catalog.ts`) t
 - Kimi: K3
 - MiniMax: M3
 - Muse: Spark 1.2, Spark 1.2 Contributor Free
-- X Preview F Free (preview)
-- Free models: Big Pickle, Hy3 Free, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, Laguna S 2.1 Free
+- Free models: Big Pickle, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, DeepSeek V4 Flash Free
 
 For the full table of capabilities (context window, vision, tools, thinking, API format), see [docs/models.md](docs/models.md).
 

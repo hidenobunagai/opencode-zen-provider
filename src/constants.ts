@@ -40,7 +40,6 @@ export const REQUEST_TIMEOUT_MS = 60000;
  * entry in ZEN_MODEL_CATALOG, so retiring a model cannot leave its id behind in this set.
  */
 export const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
-  "x-preview-f-free",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
 ]);

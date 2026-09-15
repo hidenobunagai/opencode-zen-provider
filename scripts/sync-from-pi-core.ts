@@ -185,7 +185,7 @@ export function syncCatalog(
     if (!idRegex.test(content)) continue;
 
     // `{` may be followed by `//` comment lines before `id:` (muse-spark-1.2-contributor-free
-    // and x-preview-f-free carry those). Without `(?://[^\n]*\n\s*)*` the block is not found,
+    // carries one). Without `(?://[^\n]*\n\s*)*` the block is not found,
     // while the id regex above still matches. Any other leading shape (a `/* */` comment, for
     // one) is still unreachable, so report it as a diff: --check exits 1 and CI stops instead
     // of letting the entry go unverified the way 48688c3 did for weeks.

@@ -16,7 +16,8 @@
  *   flag means something else. For the 4 entries Pi cannot check it would add 6 lines that
  *   Zen's id-only list cannot arbitrate: `limit.context` / `limit.output` disagree with both
  *   the catalog and docs for deepseek-v4-flash-free (200,000/128,000) and laguna-s-2.1-free,
- *   and side with docs only for x-preview-f-free. Revisit only if a human wants that opinion.
+ *   and side with docs only for x-preview-f-free (the latter two retired 2026-09-16, so only
+ *   deepseek-v4-flash-free is left to arbitrate). Revisit only if a human wants that opinion.
  * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
  *
  * Pi source resolution:

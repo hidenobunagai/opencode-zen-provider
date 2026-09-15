@@ -66,8 +66,6 @@ Catalog last synced with the API on 2026-08-22.
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✓ | OpenAI |
-| Hy3 Free | 190,000 | 64,000 | ✗ | ✗ | ✓ (`low,medium,high`) | OpenAI |
-| Laguna S 2.1 Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
 | MiMo V2.5 Free | 200,000 | 32,000 | ✓ | ✗ | ✓ | OpenAI |
 | Nemotron 3 Ultra Free | 1,000,000 | 128,000 | ✗ | ✗ | ✓ | OpenAI |
 | Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ | OpenAI |
@@ -77,11 +75,8 @@ Catalog last synced with the API on 2026-08-22.
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Muse Spark 1.2 Contributor Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
-| X Preview F Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 
 > **Muse Spark 1.2 Contributor Free**: contributor variant — request data may be used by upstream for model training. Uses the Responses API like Muse Spark 1.2.
->
-> **X Preview F Free**: unnamed preview model; capabilities verified live (tools / vision / `reasoning_content` streaming) but context figures are family defaults (*), pending an official spec sheet.
 
 ### MiniMax Series
 
@@ -101,13 +96,15 @@ Catalog last synced with the API on 2026-08-22.
 
 The following previously listed models now return "Model is disabled" and were dropped from the catalog: all Claude models (Fable 5, Haiku 4.5, Sonnet 4/4.5/4.6/5, Opus 4.5–4.8/5), Gemini 3.1 Pro / 3.5 Flash, GPT 5 / 5.1 series / 5.2 series / 5.3 Codex / Spark / 5.4 series / 5.5 / 5.5 Pro, GLM 5 / 5.1, Kimi K2.5 / K2.6 / K2.7 Code, MiniMax M2.5 / M2.7, Qwen3.5 Plus / Qwen3.6 Plus. The Anthropic Messages conversion path is retained in the codebase for when Anthropic-format models return to the lineup.
 
+Three further entries — `hy3-free`, `laguna-s-2.1-free` and `x-preview-f-free` — were retired on 2026-09-16: neither Pi's catalog nor Zen's live model list carries them any more, so a picker entry could only fail at request time.
+
 ## Model Quirks & Workarounds
 
 The extension applies several model-behavior workarounds while streaming. This matrix summarizes which workaround applies to which model family, and where it lives:
 
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
-| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+, X Preview F Free (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
+| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
 | Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6, Grok, Muse Spark 1.2 + Contributor Free (`routeKind: "responses"`) | `api.ts` |
 | Anthropic Messages API instead of OpenAI format | Anthropic-format models (`apiFormat: "anthropic"`, none currently live) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `model-catalog.ts` |
@@ -145,7 +142,7 @@ For non-vision models, the `opencode_zen_analyze_image` language model tool prov
 
 ### Tools (Function Calling)
 
-All models except the tool-less free models (Big Pickle, Hy3 Free, Laguna S 2.1 Free, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, DeepSeek V4 Flash Free) support tool/function calling. The extension:
+All models except the tool-less free models (Big Pickle, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, DeepSeek V4 Flash Free) support tool/function calling. The extension:
 - Parses tool calls from streaming text output (`tool-parser.ts`)
 - Deduplicates repeated tool calls (`tool-repair.ts`)
 - Repairs missing/invalid arguments using `inputSchema` and chat context
