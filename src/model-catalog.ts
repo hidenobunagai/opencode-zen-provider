@@ -24,7 +24,6 @@ export interface ZenModelInfo {
   fixedTemperature?: number;
   supportsThinking?: boolean;
   supportedReasoningEfforts?: ReasoningEffort[];
-  needsReasoningContentWorkaround?: boolean;
 }
 
 // Models that do not actually support tool/function calling.
@@ -272,7 +271,6 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     fixedTemperature: 1,
-    needsReasoningContentWorkaround: true,
     supportsThinking: true,
     supportedReasoningEfforts: ["max"],
   },
