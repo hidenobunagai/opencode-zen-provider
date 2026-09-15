@@ -1,4 +1,15 @@
 # Change Log
+## [0.1.52] - 2026-09-16
+
+### Fixed
+
+- **`bun run sync:pi` now reports a catalog entry whose block its regex cannot reach instead of skipping it in silence.** `syncCatalog` tested the id regex first and `continue`d when the block regex found no match, so an entry written in a shape the regex does not accept (e.g. `{ /* zen: probed 2026-09-14 */` before `id:`) was never compared — the same path that left a `//`-commented block unverified until `48688c3` in 0.1.51. The id is now reported as a diff, so `--check` exits 1 and CI's `bun run sync:pi` step stops while the entry keeps values nothing can verify. `--write` cannot reach such a block either, so it lists the same line and applies nothing. Verified against the current catalog: 21 of Pi's 68 ids match it and all 21 blocks are reachable, so this adds no standing diff, and injecting a `/* */` comment before one id makes a scratch copy of the CLI exit 1 with the new line (`0aedad2`).
+
+### Changed
+
+- **`sync:pi` records why models.dev is not a third source.** The backlog asked whether `https://models.dev/api.json` (provider `opencode`) should join the warn-only blocks as a third source for the catalog entries Pi does not carry. Measured 2026-09-15, it should not, and the reason now lives in the `scripts/sync-from-pi.ts` header: it disagrees with the catalog on 8 of 25 entries, and 5 of those (Gemini 3.x, grok-build-0.1: `reasoning: true` while the catalog and docs say Thinking ✗) are entries the two existing sources already agree on — the flag means internal reasoning, not the levels Zen exposes. For the 4 entries Pi cannot check it would add 6 lines and arbitrate none of them: `limit.context` / `limit.output` disagree with both the catalog and docs for `deepseek-v4-flash-free` (200,000 / 128,000; Zen still serves it) and `laguna-s-2.1-free`, and side with docs only for `x-preview-f-free`, which `catalogDocsDiffs` already reports. The warning blocks themselves are untouched (`fea3580`).
+- **Dropped the dead `ZenModelInfo.needsReasoningContentWorkaround` field.** It had no reader — only the declaration (`model-catalog.ts:27`) and its one `kimi-k3` assignment (`:275`), with `tests/` and `scripts/` never mentioning it. The workaround is decided by `REASONING_CONTENT_WORKAROUND_MODELS.has(modelId)` in `constants.ts`, which all three read sites use (`streaming/openai.ts:121`, `streaming/anthropic.ts:107`, `openai-conversion.ts:283`), and the latter two take a bare `modelId`, so the catalog flag could not be consulted without threading the whole entry through. Keeping it was the trap: setting the field read as "this enables the workaround" but did nothing. Deleting it and its assignment changes no behavior — `kimi-k3` still matches the `kimi-` prefix and is not `k2.5`, and `x-preview-f-free` only works through `REASONING_CONTENT_WORKAROUND_STATIC_SET` (`f904463`).
+
 ## [0.1.51] - 2026-09-15
 
 ### Fixed
