@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.53] - 2026-09-17
+
+### Fixed
+
+- **`bun run sync:pi --check` now reaches a docs row the docs spell differently, and reports an entry no row matches at all.** `docsRowCandidates` built the docs lookup from the id (`glm-5.2` → `Glm 5.2`) and from the catalog `name`, and both were matched literally, so the row the docs write `| GLM-5.2 |` was never reached: 21 of 22 entries were compared. A dash and a space are the same separator in a model name now, so either spelling finds the row — `syncDocs` reaches it today only because Pi's name is `GLM-5.2`, and the moment Pi drops the model the row would keep values nothing checks, the same silent skip that let `x-preview-f-free` drift. An entry *no* row matches is now reported too (the one state where even `syncDocs` has nothing to compare against) instead of `continue`-ing past it. Verified against the live sources: 22/22 entries reached, no standing warnings, `bun run sync:pi` exits 0 (`c12696c`).
+
+### Removed
+
+- **Retired the three models Zen no longer serves.** `bun run sync:pi` reported `hy3-free`, `laguna-s-2.1-free` and `x-preview-f-free` as absent from Pi *and* missing from Zen's live model list, so their picker entries could only fail at request time. All three are dropped from `ZEN_MODEL_CATALOG` and from the two id-keyed sets that may only name live entries (`NO_TOOL_MODEL_IDS`, `REASONING_CONTENT_WORKAROUND_STATIC_SET`) — the catalog gate fails when a retired id stays behind in them. `docs/models.md` loses the three table rows plus their mentions in the tool-less list, the `reasoning_content` workaround row and the preview-model note, and gains a line under "Removed from the API"; `README.md` and `tests/model-catalog.test.ts` follow. `deepseek-v4-flash-free` stays: Zen still serves it, Pi's data just lags. The retirement also clears the docs/catalog disagreement the gate reported for `x-preview-f-free` (context 1,000,000 vs 262,144, max output 131,072 vs 65,536) (`f0b4146`).
+
 ## [0.1.52] - 2026-09-16
 
 ### Fixed
