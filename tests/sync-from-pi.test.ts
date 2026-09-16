@@ -158,8 +158,8 @@ describe("catalogDocsDiffs", () => {
 
   it("maps the catalog route kind onto the API column", () => {
     const docs = read(docsPath).replace(
-      "### Partial Table",
-      "| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |\n\n### Partial Table",
+      "| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |",
+      "| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |",
     );
 
     expect(catalogDocsDiffs(read(catalogPath), docs)).toEqual(
@@ -194,19 +194,58 @@ describe("catalogDocsDiffs", () => {
     );
   });
 
-  it("stays quiet for matching rows, missing rows and rows with too few columns", () => {
-    const catalog = read(catalogPath);
+  it("reaches a row the docs spell with a different separator", () => {
+    // The docs write `GLM-5.2` where the catalog says `GLM 5.2`. With the two spellings
+    // matched literally neither candidate found the row, so a stale cell in it had nothing
+    // left to report it.
+    const catalog = [
+      "export const ZEN_MODEL_CATALOG = [",
+      "  {",
+      '    id: "glm-5.2",',
+      '    name: "GLM 5.2",',
+      '    routeKind: "chat_completions",',
+      "    contextWindow: 1000000,",
+      "    maxOutput: 131072,",
+      "    supportsVision: false,",
+      "    supportsThinking: true,",
+      "  },",
+      "];",
+    ].join("\n");
+    const docs = "| GLM-5.2 | 999 | 131,072 | ✗ | ✓ | ✓ | OpenAI |\n";
 
-    expect(catalogDocsDiffs(catalog, read(docsPath))).toEqual(new Map());
-    // gpt-5.6-luna has no row in the fixture at all.
-    expect(
-      catalogDocsDiffs(
-        catalog,
-        "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |\n",
-      ),
-    ).toEqual(new Map());
-    expect(catalogDocsDiffs(catalog, "| DeepSeek V4 Flash Free | 262,144 |\n")).toEqual(new Map());
-    expect(catalogDocsDiffs(catalog, "")).toEqual(new Map());
+    expect([...catalogDocsDiffs(catalog, docs)]).toEqual([
+      ["glm-5.2", ["docs Context 999 vs catalog 1,000,000"]],
+    ]);
+  });
+
+  it("reports a catalog entry no docs row matches", () => {
+    const diffs = catalogDocsDiffs(
+      read(catalogPath),
+      [
+        "| DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |",
+        "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |",
+        "",
+      ].join("\n"),
+    );
+
+    // The two entries with rows are compared and pass; the one without says so out loud
+    // instead of dropping out of the check in silence.
+    expect([...diffs]).toEqual([
+      ["gpt-5.6-luna", ["no docs row matches Gpt 5.6 Luna / GPT 5.6 Luna"]],
+    ]);
+  });
+
+  it("stays quiet when every entry has a matching row", () => {
+    expect(catalogDocsDiffs(read(catalogPath), read(docsPath))).toEqual(new Map());
+  });
+
+  it("stays quiet for a row too short to compare", () => {
+    const docs = read(docsPath).replace(
+      "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |",
+      "| DeepSeek V4 Flash Free | 262,144 |",
+    );
+
+    expect(catalogDocsDiffs(read(catalogPath), docs)).toEqual(new Map());
   });
 });
 

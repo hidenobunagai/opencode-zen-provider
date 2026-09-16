@@ -112,7 +112,10 @@ function docsRowCandidates(id: string, name: string): string[] {
 /** The docs table row for a model, trailing newline included, or null. */
 function findDocsRow(content: string, candidates: string[]): string | null {
   for (const cand of candidates) {
-    const escaped = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // A dash and a space are the same separator in a model name: the docs write `GLM-5.2`
+    // where the catalog says `GLM 5.2`, and neither spelling is the one to force on the
+    // other. Treated as one, either finds the row.
+    const escaped = cand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[-\s]+/g, "[-\\s]+");
     const m = content.match(new RegExp(`\\|\\s*${escaped}\\s*\\|([^\\n]*\\n)`, "i"));
     if (m) return m[0];
   }
@@ -123,8 +126,10 @@ function findDocsRow(content: string, candidates: string[]): string | null {
  * Cells where a catalog entry and its docs row disagree, keyed by entry id. `syncDocs` only
  * compares the rows of models Pi knows, and `syncCatalog` cannot rewrite a block whose shape
  * its regex does not match, so a row can keep values the catalog no longer states with nothing
- * else to notice. Zen's model list returns ids only, so the catalog values cannot be re-probed
- * either; which side is stale is a human call, hence the CLI warns and writes nothing.
+ * else to notice. An entry *no* row matches is reported too: it is the one state where even
+ * `syncDocs` has nothing to compare against, so the entry would go unverified in silence.
+ * Zen's model list returns ids only, so the catalog values cannot be re-probed either; which
+ * side is stale is a human call, hence the CLI warns and writes nothing.
  */
 export function catalogDocsDiffs(
   catalogContent: string,
@@ -134,8 +139,12 @@ export function catalogDocsDiffs(
   for (const { id, block } of catalogEntries(catalogContent)) {
     const name = block.match(/name:\s*"([^"]+)",/)?.[1];
     if (!name) continue;
-    const row = findDocsRow(docsContent, docsRowCandidates(id, name));
-    if (!row) continue;
+    const candidates = docsRowCandidates(id, name);
+    const row = findDocsRow(docsContent, candidates);
+    if (!row) {
+      result.set(id, [`no docs row matches ${candidates.join(" / ")}`]);
+      continue;
+    }
     const cells = row.split("|").map((c) => c.trim());
     if (cells.length < 8) continue;
 

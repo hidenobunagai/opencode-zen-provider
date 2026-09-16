@@ -8,6 +8,7 @@ Fixture for tests/sync-from-pi.test.ts — mirrors the shape of docs/models.md.
 |-------|---------|------------|--------|-------|----------|-----|
 | DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
+| GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | Claude Sonnet 5 | 200,000 | 64,000 | ✗ | ✗ | ✓ | OpenAI |
 
 ### Partial Table
