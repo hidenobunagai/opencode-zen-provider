@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.54] - 2026-09-20
+
+### Changed
+
+- **Gemini 3.x flash models now expose thinking, following Pi's updated level maps.** Pi 0.86.1 (`@earendil-works/pi-ai`) flipped `reasoning` to `true` for `gemini-3-flash`, `gemini-3.5-flash-lite` and `gemini-3.6-flash` and started carrying an explicit `thinkingLevelMap` for all four flash entries, so `bun run sync:pi --write` set `supportsThinking: true` on those four blocks and filled `supportedReasoningEfforts` from the levels Pi maps: `minimal,low,medium,high` for the first three and `low,medium,high` for `gemini-3.7-flash` (Pi maps its `minimal` to null). `gemini-3.8-flash` and `gemini-3.1-pro` already matched and produce no diff. `docs/models.md` follows on all four rows; nothing outside the synced files drifted, so no hand alignment was needed. This is the routine daily sync, applied because the source of truth moved, not because models.dev's bare `reasoning` flag (0.1.52) says anything about the levels — Pi's `thinkingLevelMap` does. The 12 standing diffs reduce to zero after `--write` (`6479f59`). This section covers only the catalog sync — the previous release, 0.1.53, is the last commit before it.
+
 ## [0.1.53] - 2026-09-17
 
 ### Fixed
