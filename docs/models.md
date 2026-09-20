@@ -20,10 +20,10 @@ Catalog last synced with the API on 2026-08-22.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
-| Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
-| Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
-| Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
+| Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
+| Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
+| Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 
 > **Note**: Gemini models use a model-specific route (`/models/{id}`).
 

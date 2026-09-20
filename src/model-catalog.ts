@@ -105,7 +105,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high"],
   },
   {
     id: "gemini-3.5-flash-lite",
@@ -118,7 +119,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high"],
   },
   {
     id: "gemini-3.6-flash",
@@ -131,7 +133,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["minimal", "low", "medium", "high"],
   },
   {
     id: "gemini-3.7-flash",
@@ -144,7 +147,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "glm-5.2",
