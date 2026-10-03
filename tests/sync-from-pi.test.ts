@@ -10,8 +10,10 @@ import {
   piThinkingToEfforts,
   syncCatalog,
   syncDocs,
+  unverifiedEfforts,
   type PiModel,
 } from "../scripts/sync-from-pi-core";
+import { loadDecisions, type EffortDecisionSet } from "../scripts/effort-decisions";
 
 const FIXTURES = path.join(__dirname, "fixtures", "sync-from-pi");
 
@@ -675,5 +677,139 @@ describe("syncDocs", () => {
       true,
     );
     expect(res).toEqual({ changed: 0, diffs: [] });
+  });
+});
+
+describe("effort decisions", () => {
+  const decision = (): EffortDecisionSet => ({
+    "deepseek-v4-flash-free": {
+      efforts: ["low", "high"],
+      source: "fixture: vendor docs say low/high only",
+      decided: "2026-10-04",
+    },
+  });
+
+  const genericFree = () =>
+    piMap(
+      piModel({
+        id: "deepseek-v4-flash-free",
+        name: "DeepSeek V4 Flash Free",
+        contextWindow: 262144,
+        maxTokens: 65536,
+        reasoning: true,
+      }),
+    );
+
+  it("leaves a generic Pi entry untouched when no decision exists", () => {
+    const res = syncCatalog(genericFree(), catalogPath, true);
+    expect(res).toEqual({ changed: 0, diffs: [] });
+  });
+
+  it("applies a recorded decision over Pi's generic reasoning default", () => {
+    const res = syncCatalog(genericFree(), catalogPath, true, decision());
+
+    expect(res.diffs).toEqual([
+      'deepseek-v4-flash-free: add supportedReasoningEfforts ["low", "high"]',
+    ]);
+    const block = blockOf(read(catalogPath), "deepseek-v4-flash-free");
+    expect(block).toContain(
+      'supportsThinking: true,\n    supportedReasoningEfforts: ["low", "high"],',
+    );
+    expect(blockOf(read(catalogPath), "deepseek-v4-flash")).toBe(
+      blockOf(
+        fs.readFileSync(path.join(FIXTURES, "model-catalog.ts"), "utf8"),
+        "deepseek-v4-flash",
+      ),
+    );
+  });
+
+  it("applies a recorded decision over an explicit Pi map, in gateway rung order", () => {
+    const res = syncCatalog(
+      piMap(
+        piModel({
+          id: "deepseek-v4-flash",
+          name: "DeepSeek V4 Flash",
+          contextWindow: 1000000,
+          maxTokens: 384000,
+          reasoning: true,
+          thinkingLevelMap: { minimal: "minimal", high: "high" },
+        }),
+      ),
+      catalogPath,
+      true,
+      {
+        "deepseek-v4-flash": {
+          efforts: ["max", "low"],
+          source: "fixture: probe says low/max",
+          decided: "2026-10-04",
+        },
+      },
+    );
+
+    expect(res.diffs).toEqual([
+      'deepseek-v4-flash: supportedReasoningEfforts ["low", "high", "max"] -> [low,max]',
+    ]);
+    expect(blockOf(read(catalogPath), "deepseek-v4-flash")).toContain(
+      'supportedReasoningEfforts: ["low", "max"],',
+    );
+  });
+
+  it("writes the decided ladder into the docs Thinking column", () => {
+    const res = syncDocs(genericFree(), docsPath, true, decision());
+
+    expect(res.diffs).toEqual(["deepseek-v4-flash-free: docs Thinking ✓ -> ✓ (`low,high`)"]);
+    expect(read(docsPath)).toContain(
+      "| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ (`low,high`) | OpenAI |",
+    );
+  });
+
+  it("reads a valid decisions file, tolerates a missing one and rejects a malformed entry", () => {
+    const good = path.join(dir, "decisions.json");
+    const entry = { efforts: ["low"], source: "vendor doc", decided: "2026-10-04" };
+    fs.writeFileSync(good, JSON.stringify({ "model-a": entry }));
+    expect(loadDecisions(good)).toEqual({ "model-a": entry });
+    expect(loadDecisions(path.join(dir, "missing.json"))).toEqual({});
+
+    const bad = path.join(dir, "bad.json");
+    fs.writeFileSync(bad, JSON.stringify({ "model-a": { ...entry, efforts: ["ultra"] } }));
+    expect(() => loadDecisions(bad)).toThrow(/malformed decision for "model-a"/);
+    fs.writeFileSync(bad, JSON.stringify({ "model-a": { ...entry, source: "  " } }));
+    expect(() => loadDecisions(bad)).toThrow(/malformed decision for "model-a"/);
+  });
+
+  it("lists only catalog models whose ladder has no evidence", () => {
+    const models = [
+      piModel({ id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free", reasoning: true }),
+      piModel({
+        id: "deepseek-v4-flash",
+        name: "DeepSeek V4 Flash",
+        reasoning: true,
+        thinkingLevelMap: { low: "low" },
+      }),
+      piModel({ id: "not-in-catalog", name: "Not In Catalog", reasoning: true }),
+    ];
+
+    expect(unverifiedEfforts(read(catalogPath), piMap(...models), {})).toEqual([
+      "deepseek-v4-flash-free",
+    ]);
+    expect(unverifiedEfforts(read(catalogPath), piMap(...models), decision())).toEqual([]);
+  });
+});
+
+describe("flattenPi", () => {
+  // Regression: pi-ai keys carry a kind prefix (`chat:…`, `classifier:…`) while the catalog
+  // writes the bare model id. Keyed on the raw key every lookup missed and the gate compared
+  // nothing (measured 2026-10-04: 0 of 22 catalog ids matched).
+  it("keys prefixed pi-ai entries by their bare model id", () => {
+    const map = flattenPi({
+      "openai-completions": {
+        "chat:deepseek-v4-flash": piModel({ id: "deepseek-v4-flash", name: "DeepSeek V4 Flash" }),
+      },
+      "typesafe-system-one": {
+        "classifier:jev-1.13": piModel({ id: "jev-1.13", name: "Jev 1.13" }),
+      },
+    });
+
+    expect([...map.keys()].sort()).toEqual(["deepseek-v4-flash", "jev-1.13"]);
   });
 });

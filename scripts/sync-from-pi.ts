@@ -42,8 +42,10 @@ import {
   syncDocs,
   catalogIdsMissingFromPi,
   catalogDocsDiffs,
+  unverifiedEfforts,
   type PiData,
 } from "./sync-from-pi-core";
+import { loadDecisions } from "./effort-decisions";
 
 const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");
@@ -190,9 +192,15 @@ async function main() {
   const piMap = flattenPi(data);
   log(`Pi models: ${piMap.size}`);
 
-  const catalogRes = syncCatalog(piMap, catalogPath, WRITE);
+  // Researched ladders win over Pi's map; without the file every model falls back to Pi.
+  const decisionsPath = path.resolve(HERE, "../docs/effort-decisions.json");
+  const decisions = loadDecisions(decisionsPath);
+  const decided = Object.keys(decisions).length;
+  if (decided > 0) log(`Effort decisions: ${decided} (${decisionsPath})`);
+
+  const catalogRes = syncCatalog(piMap, catalogPath, WRITE, decisions);
   if (WRITE && catalogRes.changed > 0) log(`Updated ${catalogPath} (${catalogRes.changed} blocks)`);
-  const docsRes = syncDocs(piMap, docsPath, WRITE);
+  const docsRes = syncDocs(piMap, docsPath, WRITE, decisions);
   if (WRITE && docsRes.changed > 0) log(`Updated ${docsPath} (${docsRes.changed} rows)`);
 
   const allDiffs = [...catalogRes.diffs, ...docsRes.diffs];
@@ -238,6 +246,20 @@ async function main() {
   if (docsDiffs.size > 0) {
     log(`\n⚠️  ${docsDiffs.size} catalog entries disagree with their docs row in docs/models.md:`);
     for (const [id, diffs] of docsDiffs) for (const d of diffs) log(`  - ${id}: ${d}`);
+  }
+
+  // Warn-only, like the sections above: Pi carries only its generic reasoning default for these
+  // models and no decision records a ladder, so their picker is unverified. Research one model
+  // at a time (see docs/models.md "Thinking efforts") rather than failing the gate over all of them.
+  const unverified = unverifiedEfforts(catalogContent, piMap, decisions);
+  if (unverified.length > 0) {
+    log(
+      `\n⚠️  ${unverified.length} catalog models have no ladder evidence (Pi is generic, no decision):`,
+    );
+    log(`  ${unverified.join(", ")}`);
+    log(
+      `  Record one in docs/effort-decisions.json (docs/models.md "Thinking efforts") when touching them.`,
+    );
   }
 }
 

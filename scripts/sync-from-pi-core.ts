@@ -7,6 +7,7 @@
  * src/model-catalog.ts and docs/models.md.
  */
 import fs from "fs";
+import { resolveEfforts, type EffortDecisionSet } from "./effort-decisions";
 
 export type PiModel = {
   id: string;
@@ -27,8 +28,11 @@ export type PiData = Record<string, Record<string, PiModel>>;
 export function flattenPi(data: PiData): Map<string, PiModel> {
   const map = new Map<string, PiModel>();
   for (const apiGroup of Object.values(data)) {
-    for (const [id, model] of Object.entries(apiGroup)) {
-      map.set(id, model);
+    for (const [key, model] of Object.entries(apiGroup)) {
+      // pi-ai's keys carry a kind prefix (`chat:gpt-5.2`, `classifier:jev-1.13`) while the
+      // catalog writes the bare id. Keyed on the raw key every lookup missed, so the whole
+      // comparison was a silent no-op (measured 2026-10-04: 0 of 22 catalog ids matched).
+      map.set(model.id || key.replace(/^[a-z-]+:/, ""), model);
     }
   }
   return map;
@@ -78,6 +82,27 @@ export function piThinkingToEfforts(m: PiModel): string[] | null {
   const hasMapKeys = Object.keys(map).length > 0;
   if (!hasAnyString && hasMapKeys) return [];
   return efforts;
+}
+
+/**
+ * Catalog ids whose ladder rests on nothing: Pi carries the generic "reasoning: true" default
+ * and no decision is recorded. `syncCatalog`/`syncDocs` leave such entries alone, so this is the
+ * only place they surface. The CLI prints it as a warning (never as drift): a model added in a
+ * hurry keeps its current picker, but the gap stays visible until someone records a decision.
+ */
+export function unverifiedEfforts(
+  catalogContent: string,
+  piMap: Map<string, PiModel>,
+  decisions: EffortDecisionSet,
+): string[] {
+  const inCatalog = new Set(catalogEntries(catalogContent).map((entry) => entry.id));
+  const out: string[] = [];
+  for (const [id, model] of piMap.entries()) {
+    if (!inCatalog.has(id)) continue;
+    const resolved = resolveEfforts(id, model.reasoning, piThinkingToEfforts(model), decisions);
+    if (resolved.evidence === "generic") out.push(id);
+  }
+  return out;
 }
 
 export function piApiToZen(api: string): { routeKind: string; apiFormat: string } {
@@ -183,6 +208,7 @@ export function syncCatalog(
   piMap: Map<string, PiModel>,
   catalogPath: string,
   write: boolean,
+  decisions: EffortDecisionSet = {},
 ): { changed: number; diffs: string[] } {
   let content = fs.readFileSync(catalogPath, "utf8");
   const diffs: string[] = [];
@@ -214,7 +240,12 @@ export function syncCatalog(
     const expMax = piModel.maxTokens;
     const expVision = piModel.input.includes("image");
     const { routeKind: expRoute, apiFormat: expApi } = piApiToZen(piModel.api);
-    const expEfforts = piThinkingToEfforts(piModel);
+    const expEfforts = resolveEfforts(
+      piId,
+      piModel.reasoning,
+      piThinkingToEfforts(piModel),
+      decisions,
+    ).efforts;
 
     const ctxMatch = block.match(/contextWindow:\s*(\d+),/);
     if (ctxMatch && Number(ctxMatch[1]) !== expCtx) {
@@ -321,6 +352,7 @@ export function syncDocs(
   piMap: Map<string, PiModel>,
   docsPath: string,
   write: boolean,
+  decisions: EffortDecisionSet = {},
 ): { changed: number; diffs: string[] } {
   if (!fs.existsSync(docsPath)) return { changed: 0, diffs: [] };
   let content = fs.readFileSync(docsPath, "utf8");
@@ -340,7 +372,12 @@ export function syncDocs(
     const { routeKind } = piApiToZen(piModel.api);
     const expApiDisplay = apiDisplay(routeKind);
 
-    const expEfforts = piThinkingToEfforts(piModel);
+    const expEfforts = resolveEfforts(
+      piId,
+      piModel.reasoning,
+      piThinkingToEfforts(piModel),
+      decisions,
+    ).efforts;
     let expThinking: string;
     if (!piModel.reasoning) expThinking = "✗";
     else if (expEfforts === null) expThinking = "✓";
