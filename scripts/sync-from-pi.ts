@@ -254,12 +254,9 @@ async function main() {
   const unverified = unverifiedEfforts(catalogContent, piMap, decisions);
   if (unverified.length > 0) {
     log(
-      `\n⚠️  ${unverified.length} catalog models have no ladder evidence (Pi is generic, no decision):`,
+      `\n⚠️  ${unverified.length} catalog models rest on no ladder evidence (Pi is generic, no decision) — record one in docs/effort-decisions.json (docs/models.md "Thinking efforts") when touching them:`,
     );
     log(`  ${unverified.join(", ")}`);
-    log(
-      `  Record one in docs/effort-decisions.json (docs/models.md "Thinking efforts") when touching them.`,
-    );
   }
 }
 
