@@ -4,3 +4,25 @@
 [[IgnoredVulns]]
 id = "GHSA-vfj7-8cjw-p6xm"
 reason = "Transitive dev dependency from jest/fast-glob via micromatch; no upstream fix available yet"
+
+# handlebars 4.7.10 fixes these, but it was published on 2026-10-05 and is still
+# inside bun's minimumReleaseAge window (7 days, bunfig.toml). Bump handlebars and
+# drop these entries once 4.7.10 is installable (2026-10-13 or later).
+[[IgnoredVulns]]
+id = "GHSA-8r5x-fm3f-whwj"
+ignoreUntil = 2026-10-13
+reason = "Transitive dev dependency from ts-jest via handlebars; fixed in 4.7.10 but blocked by bun minimum-release-age"
+
+[[IgnoredVulns]]
+id = "GHSA-p8wg-vrv2-v86f"
+ignoreUntil = 2026-10-13
+reason = "Transitive dev dependency from ts-jest via handlebars; fixed in 4.7.10 but blocked by bun minimum-release-age"
+
+[[IgnoredVulns]]
+id = "GHSA-xw65-4hp5-5hc7"
+ignoreUntil = 2026-10-13
+reason = "Transitive dev dependency from ts-jest via handlebars; fixed in 4.7.10 but blocked by bun minimum-release-age"
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+reason = "Transitive dev dependency from istanbuljs/argparse via sprintf-js 1.0.3; no 1.0.x upstream fix"
