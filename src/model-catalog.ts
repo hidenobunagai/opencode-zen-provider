@@ -1017,7 +1017,8 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 32000,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: false,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "minimax-m2.5",

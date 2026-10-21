@@ -5,7 +5,11 @@
     "decided": "2026-10-21"
   },
   "claude-opus-4-5": {
-    "efforts": ["low", "medium", "high"],
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
     "source": "Anthropic Effort docs: 'On Claude Opus 4.5, the only extended-thinking-only model that supports effort'; the level table gates max/xhigh per model and leaves low/medium/high for Opus 4.5. models.dev provider opencode independently lists low/medium/high for this id.",
     "decided": "2026-10-21"
   },
@@ -40,12 +44,20 @@
     "decided": "2026-10-21"
   },
   "mimo-v2.6-flash-free": {
-    "efforts": [],
-    "source": "Xiaomi MiMo API reference (platform.xiaomimimo.com/docs/en-US/api/chat/openai-api, and the anthropic-api page): the request schema defines thinking: { type: enabled | disabled } and nowhere mentions reasoning_effort — a full-text search of both pages returns zero occurrences. Set this empty ladder to match the vendor spec rather than the low/medium/high that had been copied from another gateway. If OpenCode's gateway maps reasoning_effort onto thinking depth itself, that mapping is undocumented and unmeasurable here (the free tier refuses out-of-OpenCode requests).",
+    "efforts": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, with minimal mapped to low and xhigh/max/ultra mapped to high. The page also states intensity is not differentiated yet (none disables, every other level enables), but low/medium/high are all accepted values, so they are the rungs this gateway can send. Corrects the empty ladder recorded earlier from reading only the chat-completions and anthropic pages, which document thinking.enabled|disabled and no effort at all.",
     "decided": "2026-10-21"
   },
   "qwen3.8-flash": {
-    "efforts": ["low", "medium", "xhigh"],
+    "efforts": [
+      "low",
+      "medium",
+      "xhigh"
+    ],
     "source": "models.dev provider opencode — the gateway's own published catalog — lists effort values low/medium/xhigh for this id; pi-ai has no thinkingLevelMap here. Replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
   }

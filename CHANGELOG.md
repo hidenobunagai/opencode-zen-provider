@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.58] - 2026-10-21
+
+### Fixed
+
+- **`mimo-v2.6-flash-free` keeps its `low,medium,high` ladder — 0.1.57 removed it by mistake.** Xiaomi's **Responses API** reference documents `reasoning.effort` with `none, minimal, low, medium, high, xhigh, max, ultra` (`minimal`→`low`, `xhigh`/`max`/`ultra`→`high`). The Chat Completions and Anthropic pages document only `thinking: { type: enabled | disabled }`, and 0.1.57 concluded "no effort parameter" from those two alone. A vendor splits its API reference by protocol and the parameter may be documented on just one page — read every page before deciding.
+
 ## [0.1.57] - 2026-10-21
 
 ### Fixed

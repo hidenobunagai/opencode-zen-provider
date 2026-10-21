@@ -21,7 +21,15 @@ in this order:
    credit, and OpenCode's `#variant` list is itself built from models.dev — so a gap in models.dev
    cannot be arbitrated from here.
 
-   Record a decision only when a primary source states the ladder, and only **this** gateway's.
+   **Read every protocol page, not just one.** A vendor splits its API reference by protocol
+   (Chat Completions / Responses / Anthropic Messages) and the effort parameter can be
+   documented on only one of them. Xiaomi documents `thinking: { type: enabled | disabled }`
+   on the chat-completions and anthropic pages and `reasoning.effort` — with
+   `none,minimal,low,medium,high,xhigh,max,ultra` — only on the Responses page; reading the
+   first two produced an empty ladder for `mimo-v2.6-flash-free`, which was wrong.
+
+   Record a decision only when a primary source states the ladder, and only for this gateway's
+   transport (a ladder from another gateway does not carry over).
    A ladder published for Command Code, OpenRouter, or a vendor's raw API does not transfer: each
    gateway accepts its own set of rungs. Xiaomi, for instance, documents only
    `thinking: { type: enabled | disabled }` — no `reasoning_effort` at all — which is why
@@ -109,7 +117,7 @@ rather than the table.
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
 | LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✗ | OpenAI |
+| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
