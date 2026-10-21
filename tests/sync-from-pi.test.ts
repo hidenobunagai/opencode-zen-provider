@@ -4,10 +4,16 @@ import path from "path";
 import {
   catalogDocsDiffs,
   catalogIdsMissingFromPi,
+  entryFromModelsDev,
   flattenPi,
   formatNumber,
+  mirrorDrift,
   piApiToZen,
   piThinkingToEfforts,
+  removeCatalogEntry,
+  renderCatalogBlock,
+  servableIds,
+  splitUnaddable,
   syncCatalog,
   syncDocs,
   unverifiedEfforts,
@@ -811,5 +817,128 @@ describe("flattenPi", () => {
     });
 
     expect([...map.keys()].sort()).toEqual(["deepseek-v4-flash", "jev-1.13"]);
+  });
+});
+
+describe("mirrorDrift", () => {
+  // The gate compared only the fields of ids already in the catalog, so a model Zen had just
+  // released produced no diff and every daily run reported "in sync with Pi". Measured
+  // 2026-10-21: the catalog held 22 ids while Zen served 86.
+  it("reports both directions", () => {
+    expect(mirrorDrift(["a", "b", "c"], ["b", "c", "d"])).toEqual({
+      missing: ["a"],
+      retired: ["d"],
+    });
+  });
+
+  it("is empty when the sets agree, regardless of order", () => {
+    expect(mirrorDrift(["b", "a"], ["a", "b"])).toEqual({ missing: [], retired: [] });
+  });
+});
+
+describe("servableIds", () => {
+  it("drops the reachability probe and failover copies", () => {
+    expect(servableIds(["gpt-5", "test", "claude-opus-5-5-backup"])).toEqual(["gpt-5"]);
+  });
+});
+
+describe("splitUnaddable", () => {
+  it("separates ids on a transport this extension has no client for", () => {
+    const map = flattenPi({
+      "typesafe-system-one": {
+        "classifier:jev-1.13": piModel({
+          id: "jev-1.13",
+          name: "Jev 1.13",
+          api: "typesafe-system-one",
+        }),
+      },
+      "openai-completions": {
+        "chat:gpt-5": piModel({ id: "gpt-5", name: "GPT 5" }),
+      },
+    });
+    expect(splitUnaddable(["jev-1.13", "gpt-5"], map)).toEqual({
+      addable: ["gpt-5"],
+      unaddable: ["jev-1.13"],
+    });
+  });
+});
+
+describe("entryFromModelsDev", () => {
+  // `@ai-sdk/openai` means the Responses route, not /chat/completions: the two take different
+  // request bodies, so folding them together would list a model that fails on every call.
+  it("maps the OpenAI client to the responses route", () => {
+    const entry = entryFromModelsDev({
+      id: "gpt-5.3-codex-spark",
+      name: "GPT-5.3 Codex Spark",
+      provider: { npm: "@ai-sdk/openai" },
+      limit: { context: 400000, output: 128000 },
+      attachment: false,
+      tool_call: true,
+      reasoning: true,
+      reasoning_options: [{ type: "effort", values: ["low", "high"] }],
+    });
+    expect(entry.routeKind).toBe("responses");
+    expect(entry.contextWindow).toBe(400000);
+    expect(entry.maxOutput).toBe(128000);
+    expect(entry.efforts).toEqual(["low", "high"]);
+  });
+
+  it("maps a missing client to chat_completions and an Anthropic client to messages", () => {
+    expect(entryFromModelsDev({ id: "beam-free", limit: {} }).routeKind).toBe("chat_completions");
+    expect(
+      entryFromModelsDev({ id: "claude-opus-5", provider: { npm: "@ai-sdk/anthropic" } }).routeKind,
+    ).toBe("messages");
+    expect(
+      entryFromModelsDev({ id: "gemini-4-argon", provider: { npm: "@ai-sdk/google" } }).routeKind,
+    ).toBe("model_specific");
+  });
+});
+
+describe("removeCatalogEntry", () => {
+  // Removing only the id line left an empty `{ }` in the array, which fails to typecheck.
+  it("removes the whole block, opening brace and trailing comma included", () => {
+    const src = [
+      "export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [",
+      "  {",
+      '    id: "keep",',
+      '    name: "Keep",',
+      "  },",
+      "  {",
+      '    id: "drop",',
+      '    name: "Drop",',
+      "  },",
+      "];",
+      "",
+    ].join("\n");
+    const out = removeCatalogEntry(src, "drop");
+    expect(out).toContain('id: "keep"');
+    expect(out).not.toContain('id: "drop"');
+    expect(out).not.toMatch(/\{\s*\}/);
+    expect(out.match(/\.\.\.|\[|\]/g)?.length).toBe(src.match(/\.\.\.|\[|\]/g)?.length);
+  });
+
+  it("leaves the text untouched for an unknown id", () => {
+    const src = '  {\n    id: "keep",\n  },\n';
+    expect(removeCatalogEntry(src, "nope")).toBe(src);
+  });
+});
+
+describe("renderCatalogBlock", () => {
+  it("omits an effort list when the model has no ladder", () => {
+    const block = renderCatalogBlock({
+      id: "beam-free",
+      block: "",
+      name: "Beam Free",
+      routeKind: "chat_completions",
+      apiFormat: "openai",
+      contextWindow: 1048576,
+      maxOutput: 131072,
+      supportsTools: true,
+      supportsVision: false,
+      supportsThinking: true,
+      efforts: [],
+    });
+    expect(block).toContain("supportsThinking: true");
+    expect(block).not.toContain("supportedReasoningEfforts");
   });
 });

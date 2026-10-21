@@ -13,7 +13,7 @@ describe("ZEN_MODEL_CATALOG", () => {
           routeKind: "chat_completions",
         }),
         expect.objectContaining({
-          id: "muse-spark-1.2-contributor-free",
+          id: "muse-spark-1.2",
           routeKind: "responses",
         }),
         expect.objectContaining({
@@ -45,9 +45,6 @@ describe("ZEN_MODEL_CATALOG", () => {
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gemini-3.7-flash")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "muse-spark-1.2")).toBeDefined();
     expect(
-      ZEN_MODEL_CATALOG.find((model) => model.id === "muse-spark-1.2-contributor-free"),
-    ).toBeDefined();
-    expect(
       ZEN_MODEL_CATALOG.find((model) => model.id === "nemotron-3.5-lightning-free"),
     ).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "kimi-k3")).toBeDefined();
@@ -60,19 +57,20 @@ describe("ZEN_MODEL_CATALOG", () => {
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "qwen3.7-plus")).toBeUndefined();
   });
 
-  it("does not include disabled models removed from the Zen API", () => {
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "claude-opus-5")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "claude-sonnet-5")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "claude-opus-4-1")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "ling-3.0-flash-free")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "north-mini-code-free")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gpt-5.5-pro")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gpt-5.4")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "glm-5.1")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "kimi-k2.7-code")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "minimax-m2.7")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "qwen3.6-plus")).toBeUndefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gemini-3.1-pro")).toBeUndefined();
+  // The catalog mirrors whatever `GET /zen/v1/models` serves, so an entry comes back when Zen
+  // re-enables it: the Claude, GPT and Gemini families below were recorded as "disabled" in
+  // docs/models.md on 2026-08-22 and are served again as of 2026-10-21. Asserting absence per
+  // id here is what let the catalog drift 60-odd models behind — this test and the docs agreed
+  // with each other while both disagreed with the API.
+  it("does not include ids the Zen API does not serve", () => {
+    for (const id of ["claude-opus-4-1", "ling-3.0-flash-free", "north-mini-code-free"]) {
+      expect(ZEN_MODEL_CATALOG.find((model) => model.id === id)).toBeUndefined();
+    }
+    // A failover copy and a reachability probe are not pickable models.
+    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "test")).toBeUndefined();
+    expect(
+      ZEN_MODEL_CATALOG.find((model) => model.id === "claude-opus-5-5-backup"),
+    ).toBeUndefined();
   });
 
   it("has no duplicate model IDs", () => {

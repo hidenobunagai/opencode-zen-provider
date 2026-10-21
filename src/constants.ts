@@ -59,7 +59,6 @@ export const THINKING_MODEL_STATIC_SET = new Set([
   "grok-4.5",
   "grok-4.6",
   "muse-spark-1.2",
-  "muse-spark-1.2-contributor-free",
 ]);
 
 /** Models that require the reasoning_content workaround */

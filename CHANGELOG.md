@@ -1,4 +1,22 @@
 # Change Log
+## [0.1.55] - 2026-10-21
+
+### Added
+
+- **The catalog now mirrors what the Zen API serves: 60 models that were missing, at 22 entries before and 82 after.** The gap covered the whole Claude family (`claude-fable-5`, `claude-haiku-4-5`/`5-5`, `claude-opus-4-5` through `5-5`, `claude-sonnet-4-5` through `5-5`), GPT-5.x including the Responses-route entries, every Gemini 3.x/4 variant, the GLM 5/5.1/5.3 families, Kimi K2.5–K2.7, MiniMax M2.5–M3.1, Qwen3.5–3.8, plus `deepseek-v4.1-flash`, `grok-4.7`, `mimo-v2.6-flash`/`-pro`, `muse-wonder-1.0`, `hy3`/`hy4-preview`, `longcat-2.5-preview-free` and the free tier (`beam-free`, `glm-5.3-flash-free`, `gpt-5.3-codex-spark`, `minimax-m3.1-flash-free`, `space-bunny-free`, `step-5-preview-free`, `cat-jam-free`). Values come from Pi's `opencode` provider data; the five models Pi does not carry yet (`beam-free`, `glm-5.3-flash-free`, `gpt-5.3-codex-spark`, `minimax-m3.1-flash-free`, `muse-wonder-1.0`) come from models.dev, whose `provider.npm` maps one-to-one onto the transport Pi records (`@ai-sdk/openai` → Responses, absent → `/chat/completions`, `@ai-sdk/anthropic` → Messages, `@ai-sdk/google` → model-specific) across all 84 models both sources describe.
+- **`docs/models.md`'s model list is generated, not hand-maintained.** `sync:pi:write` rewrites the whole `## Model List` section from the catalog, sorted by id, so a catalog entry and its row can no longer disagree.
+
+### Changed
+
+- **Four entries retired, because Zen no longer serves them:** `deepseek-v4-flash-free`, `mimo-v2.5-free`, `muse-spark-1.2-contributor-free`, `nemotron-3-ultra-free`. Their ids are also gone from `NO_TOOL_MODEL_IDS`, which a test pins to the catalog.
+- **`## Removed from the API` now states the rule instead of a stale list.** It claimed the Claude, Gemini 3.1 Pro / 3.5 Flash, GPT-5.x, GLM-5/5.1, Kimi K2.5–K2.7 Code, MiniMax M2.5/M2.7 and Qwen3.5/3.6 Plus families were disabled. Zen serves all of them, and `tests/model-catalog.test.ts` asserted their absence — the test and the docs agreed with each other while both disagreed with the API, which is how the catalog fell 60 models behind. Those per-id absence assertions are replaced by a check that unserved ids and non-model ids (`test`, `claude-opus-5-5-backup`) stay out.
+
+### Fixed
+
+- **`bun run sync:pi` reports catalog-versus-API drift in both directions, so the daily job can no longer report "in sync" over a stale catalog.** The gate compared only the fields of ids the catalog already contained: a model Zen had just released produced no diff and exited 0, and an id Zen had dropped was a `⚠️` that never affected the exit code. It now compares the two id sets directly — `GET /zen/v1/models` against `ZEN_MODEL_CATALOG` — and exits 1 on a missing or a retired id. Measured on 2026-10-21: catalog 22, Zen 86, every daily run green.
+- **Two categories are reported outside the diff, because no run can fix them.** `jev-1.13` and `jev-1.13-free` are System One classifiers on their own route with no client here — folding them into `chat_completions` would list a model that fails on every request — and Zen's id-only list cannot supply limits for an id neither Pi nor models.dev describes. Both are named in the output and kept out of the exit code, so the daily updater is not woken over a dead end.
+- **`removeCatalogEntry` deleted only the id line, leaving an empty `{ }` that failed to typecheck.** It now removes the entry's opening brace, body, comment lines above it, and trailing comma.
+
 ## [0.1.54] - 2026-09-20
 
 ### Changed

@@ -25,6 +25,37 @@ export type PiModel = {
 
 export type PiData = Record<string, Record<string, PiModel>>;
 
+/**
+ * One entry of models.dev's `opencode` provider, reduced to what a catalog block needs.
+ * Zen's own `/models` endpoint returns ids only, so for a model Pi does not carry this is
+ * the only place its context window, output limit, vision flag, and effort ladder come from.
+ */
+export type ModelsDevModel = {
+  id: string;
+  name?: string;
+  attachment?: boolean;
+  reasoning?: boolean;
+  tool_call?: boolean;
+  reasoning_options?: { type?: string; values?: string[] }[];
+  limit?: { context?: number; output?: number };
+  provider?: { npm?: string };
+};
+
+/** What a catalog entry states, once parsed out of its block. */
+export type CatalogEntry = {
+  id: string;
+  block: string;
+  name: string | null;
+  routeKind: string | null;
+  apiFormat: string | null;
+  contextWindow: number | null;
+  maxOutput: number | null;
+  supportsTools: boolean | null;
+  supportsVision: boolean | null;
+  supportsThinking: boolean | null;
+  efforts: string[];
+};
+
 export function flattenPi(data: PiData): Map<string, PiModel> {
   const map = new Map<string, PiModel>();
   for (const apiGroup of Object.values(data)) {
@@ -132,6 +163,311 @@ function docsRowCandidates(id: string, name: string): string[] {
       .join(" "),
     name,
   ];
+}
+
+/**
+ * Route kind for a model only models.dev describes. Its `provider.npm` names the client the
+ * Zen console uses, and across the models both sources describe it maps one-to-one onto the
+ * transport Pi records (measured 2026-10-21 against models.dev api.json, provider `opencode`):
+ * `@ai-sdk/openai` → 30/30 `openai-responses`, absent → 27/27 `openai-completions`,
+ * `@ai-sdk/anthropic` → 18/18 `anthropic-messages`, `@ai-sdk/google` → 8/8 model-specific,
+ * `@ai-sdk/mistral` → 1/1 `openai-completions`. The distinction matters: `/chat/completions`
+ * and `/responses` take different request bodies, so a wrong guess breaks the model outright.
+ */
+function modelsDevRouteKind(m: ModelsDevModel): { routeKind: string; apiFormat: string } {
+  const npm = m.provider?.npm;
+  if (npm === "@ai-sdk/anthropic") return { routeKind: "messages", apiFormat: "anthropic" };
+  if (npm === "@ai-sdk/google") return { routeKind: "model_specific", apiFormat: "openai" };
+  if (npm === "@ai-sdk/openai") return { routeKind: "responses", apiFormat: "openai" };
+  return { routeKind: "chat_completions", apiFormat: "openai" };
+}
+
+/** A catalog entry rendered from models.dev data, for a model Pi does not describe. */
+export function entryFromModelsDev(m: ModelsDevModel): CatalogEntry {
+  const route = modelsDevRouteKind(m);
+  const efforts: string[] = [];
+  for (const opt of m.reasoning_options ?? []) {
+    if (opt?.type === "effort") {
+      for (const v of opt.values ?? []) efforts.push(v);
+    }
+  }
+  const contextWindow = m.limit?.context ?? null;
+  const maxOutput = m.limit?.output ?? null;
+  return {
+    id: m.id,
+    block: "",
+    name: m.name ?? m.id,
+    routeKind: route.routeKind,
+    apiFormat: route.apiFormat,
+    contextWindow,
+    maxOutput,
+    supportsTools: m.tool_call ?? null,
+    supportsVision: m.attachment ?? null,
+    supportsThinking: m.reasoning ?? null,
+    efforts,
+  };
+}
+
+/** A catalog entry rendered from Pi data, for a model models.dev does not describe. */
+export function entryFromPi(m: PiModel): CatalogEntry {
+  const route = piApiToZen(m.api);
+  const efforts = piThinkingToEfforts(m);
+  return {
+    id: m.id,
+    block: "",
+    name: m.name,
+    routeKind: route.routeKind,
+    apiFormat: route.apiFormat,
+    contextWindow: m.contextWindow ?? null,
+    maxOutput: m.maxTokens ?? null,
+    supportsTools: true,
+    supportsVision: m.input.includes("image"),
+    supportsThinking: m.reasoning,
+    efforts: efforts ?? [],
+  };
+}
+
+/** One `ZEN_MODEL_CATALOG` entry, formatted the way the catalog file writes them. */
+export function renderCatalogBlock(entry: CatalogEntry): string {
+  const name = entry.name ?? entry.id;
+  const lines = [
+    "  {",
+    `    id: "${entry.id}",`,
+    `    requestModelId: "${entry.id}",`,
+    `    name: ${JSON.stringify(name)},`,
+    `    displayName: ${JSON.stringify(name)},`,
+    `    routeKind: "${entry.routeKind ?? "chat_completions"}",`,
+    `    apiFormat: "${entry.apiFormat ?? "openai"}",`,
+    `    contextWindow: ${entry.contextWindow ?? 0},`,
+    `    maxOutput: ${entry.maxOutput ?? 0},`,
+    `    supportsTools: ${entry.supportsTools ?? true},`,
+    `    supportsVision: ${entry.supportsVision ?? false},`,
+  ];
+  const thinking = entry.supportsThinking ?? entry.efforts.length > 0;
+  lines.push(`    supportsThinking: ${thinking},`);
+  if (thinking && entry.efforts.length > 0) {
+    lines.push(
+      `    supportedReasoningEfforts: [${entry.efforts.map((e) => `"${e}"`).join(", ")}],`,
+    );
+  }
+  lines.push("  },");
+  return lines.join("\n");
+}
+
+/** Appends rendered blocks to the end of `ZEN_MODEL_CATALOG`, before its closing `];`. */
+export function appendCatalogBlocks(content: string, blocks: string[]): string {
+  if (blocks.length === 0) return content;
+  const close = content.lastIndexOf("\n];");
+  if (close < 0) throw new Error("ZEN_MODEL_CATALOG closing bracket not found");
+  return `${content.slice(0, close)}\n${blocks.join("\n")}${content.slice(close)}`;
+}
+
+/** Ids, in file order, that the given `ZEN_MODEL_CATALOG` text still lists. */
+export function catalogIds(content: string): string[] {
+  return catalogEntries(content).map((entry) => entry.id);
+}
+
+/**
+ * Removes one catalog entry — its opening `{`, body, and closing `},` — from the file text.
+ *
+ * `catalogEntries` anchors a block on its `id:` line, which leaves the `{` and any comment
+ * above it behind; deleting just that slice produced empty `{ }` entries. So the block bounds
+ * are recomputed here, one line at a time: back to the entry's own `  {` (plus comment lines
+ * directly above it), forward to its `  },`.
+ */
+export function removeCatalogEntry(content: string, id: string): string {
+  const lines = content.split("\n");
+  const idLine = new RegExp(`^ {4}id: "${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}",$`);
+  const at = lines.findIndex((l) => idLine.test(l));
+  if (at < 0) return content;
+
+  let start = at;
+  while (start > 0 && lines[start] !== "  {") start--;
+  if (lines[start] !== "  {") return content;
+  // A comment block written above the entry documents that entry, so it goes with it.
+  while (start > 0 && lines[start - 1].trimStart().startsWith("//")) start--;
+
+  let end = at;
+  while (end < lines.length && lines[end] !== "  },") end++;
+  if (end >= lines.length) return content;
+
+  lines.splice(start, end - start + 1);
+  return lines.join("\n");
+}
+
+/** Parses one catalog block into the fields the mirror and the docs table need. */
+function parseCatalogEntry(id: string, block: string): CatalogEntry {
+  const num = (re: RegExp): number | null => {
+    const m = block.match(re);
+    return m ? Number(m[1]) : null;
+  };
+  const bool = (re: RegExp): boolean | null => {
+    const m = block.match(re);
+    return m ? m[1] === "true" : null;
+  };
+  const efforts = [
+    ...(block.match(/supportedReasoningEfforts:\s*\[([^\]]*)\]/)?.[1] ?? "").matchAll(/"([^"]+)"/g),
+  ].map((m) => m[1]);
+  return {
+    id,
+    block,
+    name: block.match(/name:\s*"([^"]+)",/)?.[1] ?? null,
+    routeKind: block.match(/routeKind:\s*"([^"]+)",/)?.[1] ?? null,
+    apiFormat: block.match(/apiFormat:\s*"([^"]+)",/)?.[1] ?? null,
+    contextWindow: num(/contextWindow:\s*(\d+),/),
+    maxOutput: num(/maxOutput:\s*(\d+),/),
+    supportsTools: bool(/supportsTools:\s*(true|false),/),
+    supportsVision: bool(/supportsVision:\s*(true|false),/),
+    supportsThinking: bool(/supportsThinking:\s*(true|false),/),
+    efforts,
+  };
+}
+
+/** Every catalog entry, parsed. */
+export function parseCatalog(content: string): CatalogEntry[] {
+  return catalogEntries(content).map(({ id, block }) => parseCatalogEntry(id, block));
+}
+
+/**
+ * Pi transports this extension has no client for. `jev-1.13` is a System One classifier served
+ * on its own route; `piApiToZen` would fold it into `chat_completions`, and the model would be
+ * listed in the picker and then fail on every request. Such ids are reported as unaddable
+ * instead of being mirrored, and in CHECK mode they do not count as drift — no amount of
+ * `--write` can make an unusable transport work.
+ */
+export const UNSUPPORTED_PI_APIS = new Set(["typesafe-system-one"]);
+
+/**
+ * Ids Zen serves that are not models a user can pick, so neither the mirror nor the docs table
+ * should list them. `test` is a reachability probe sitting in Zen's own list, and `-backup`
+ * marks a failover copy of a model already listed under its own id. Kept explicit rather than
+ * pattern-matched, so a real model cannot be excluded by accident.
+ */
+export const NON_MODEL_ZEN_IDS = new Set(["test", "claude-opus-5-5-backup"]);
+
+/** Served ids that belong in the catalog: not a probe, not a failover copy. */
+export function servableIds(served: Iterable<string>): string[] {
+  return [...served].filter((id) => !NON_MODEL_ZEN_IDS.has(id));
+}
+
+/**
+ * Splits mirror drift into what the gate can fix and what it cannot. A served id that Pi puts
+ * on a transport this extension has no client for (`UNSUPPORTED_PI_APIS`) can never be added
+ * automatically, so it is surfaced separately and kept out of the must-fix set — otherwise
+ * every daily run would wake an agent over a dead end.
+ */
+export function splitUnaddable(
+  missing: string[],
+  piMap: Map<string, PiModel>,
+): { addable: string[]; unaddable: string[] } {
+  const addable: string[] = [];
+  const unaddable: string[] = [];
+  for (const id of missing) {
+    const api = piMap.get(id)?.api;
+    if (api && UNSUPPORTED_PI_APIS.has(api)) unaddable.push(id);
+    else addable.push(id);
+  }
+  return { addable, unaddable };
+}
+
+/**
+ * Models the Zen API serves but the catalog does not list, and the reverse. Both are drift:
+ * the first means Zen released something the extension cannot offer, the second means the
+ * extension still offers an id Zen answers with "Model is disabled". Neither can be noticed
+ * by comparing field values — the id sets have to be compared directly.
+ */
+export function mirrorDrift(
+  served: Iterable<string>,
+  listed: Iterable<string>,
+): { missing: string[]; retired: string[] } {
+  const servedSet = new Set(served);
+  const listedSet = new Set(listed);
+  return {
+    missing: [...servedSet].filter((id) => !listedSet.has(id)).sort(),
+    retired: [...listedSet].filter((id) => !servedSet.has(id)).sort(),
+  };
+}
+
+/** Heading that starts the generated model table, and the heading that ends it. */
+const MODEL_LIST_HEADING = "## Model List";
+const AFTER_MODEL_LIST_HEADING = "## Removed from the API";
+
+/**
+ * The Thinking cell, in exactly the shape `catalogDocsDiffs` compares against, so a generated
+ * table is always in agreement with the catalog it came from.
+ */
+function thinkingCell(entry: CatalogEntry): string {
+  if (entry.supportsThinking !== true) return "✗";
+  if (entry.efforts.length === 0) return "✓";
+  return `✓ (\`${entry.efforts.join(",")}\`)`;
+}
+
+/**
+ * Per-family behaviour the table cannot express. Kept in the generator rather than typed below
+ * the table in docs/models.md, because `sync:pi:write` rewrites this whole section — a note
+ * written by hand there is gone on the next run.
+ */
+const FAMILY_NOTES = [
+  "- **DeepSeek V4+** require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.",
+  '  System prompts are sanitized to replace "Claude"/"Anthropic" references.',
+  '- **Gemini** use the model-specific route (`/models/{id}`) — the API column reads "OpenAI"',
+  "  because that is the request format, not the endpoint.",
+  "- **GPT** and **Grok** use the **Responses API** route (`/responses`) and internally reason, so",
+  "  they count as thinking models (`THINKING_MODELS`) for output budget purposes.",
+  "- **Kimi** use `fixedTemperature: 1` and require `REASONING_CONTENT_WORKAROUND_MODELS` (all but",
+  "  K2.5) for correct streaming output.",
+  "- **Muse Spark 1.2** uses the Responses route and counts as a thinking model.",
+  "- **Tool-less models** (`NO_TOOL_MODEL_IDS`: Big Pickle, Nemotron 3.5 Lightning Free) declare",
+  "  `toolCalling` so they appear in the picker, but the provider strips tools before sending.",
+  "  Other `-free` models do support tools and vision.",
+];
+
+/** The whole `## Model List` section, one row per catalog entry, sorted by id. */
+export function renderModelListSection(entries: CatalogEntry[]): string {
+  const rows = [...entries]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((entry) => {
+      const cells = [
+        entry.name ?? entry.id,
+        entry.contextWindow === null ? "—" : formatNumber(entry.contextWindow),
+        entry.maxOutput === null ? "—" : formatNumber(entry.maxOutput),
+        entry.supportsVision ? "✓" : "✗",
+        entry.supportsTools === false ? "✗" : "✓",
+        thinkingCell(entry),
+        // `catalogDocsDiffs` reads this column through `apiDisplay`, which folds the
+        // model-specific route into "OpenAI"; mirror it so a generated table never disagrees
+        // with its own catalog. The `/models/{id}` detail stays in the family notes.
+        entry.routeKind === null ? "OpenAI" : apiDisplay(entry.routeKind),
+      ];
+      return `| ${cells.join(" | ")} |`;
+    });
+  return [
+    MODEL_LIST_HEADING,
+    "",
+    "One row per entry in `ZEN_MODEL_CATALOG`, sorted by model id. This table is generated:",
+    "`bun run sync:pi:write` rewrites it from the catalog, so edit `src/model-catalog.ts`",
+    "rather than the table.",
+    "",
+    "| Model | Context | Max Output | Vision | Tools | Thinking | API |",
+    "|-------|---------|------------|--------|-------|----------|-----|",
+    ...rows,
+    "",
+    "Family notes (the table above cannot carry them, so they live here):",
+    "",
+    ...FAMILY_NOTES,
+  ].join("\n");
+}
+
+/**
+ * Replaces the `## Model List` section of docs/models.md with `section`, leaving every other
+ * section (notes, quirks, capability matrix) untouched.
+ */
+export function replaceModelListSection(docs: string, section: string): string {
+  const start = docs.indexOf(MODEL_LIST_HEADING);
+  if (start < 0) throw new Error(`${MODEL_LIST_HEADING} not found in docs/models.md`);
+  const end = docs.indexOf(AFTER_MODEL_LIST_HEADING, start);
+  if (end < 0) throw new Error(`${AFTER_MODEL_LIST_HEADING} not found in docs/models.md`);
+  return `${docs.slice(0, start)}${section}\n\n${docs.slice(end)}`;
 }
 
 /** The docs table row for a model, trailing newline included, or null. */

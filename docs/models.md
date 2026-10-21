@@ -24,100 +24,130 @@ in this order:
 The rungs are the gateway's own enum (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the
 provider drops a configured value that is not in `supportedReasoningEfforts` at request time.
 
-
 ## Model List
 
-### DeepSeek Series
+One row per entry in `ZEN_MODEL_CATALOG`, sorted by model id. This table is generated:
+`bun run sync:pi:write` rewrites it from the catalog, so edit `src/model-catalog.ts`
+rather than the table.
 
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
-| DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| Beam Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✓ | OpenAI |
+| Claude Fable 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Fable 5.1 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Haiku 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Opus 4.6 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
+| Claude Opus 4.7 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Opus 4.8 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Opus 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Opus 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Sonnet 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Sonnet 4.6 | 1,000,000 | 64,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
+| Claude Sonnet 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Sonnet 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | DeepSeek V4 Flash | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
-| DeepSeek V4 Flash Free | 262,144 | 65,536 | ✗ | ✗ | ✓ | OpenAI |
-
-> **Note**: DeepSeek V4+ models require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output. System prompts are sanitized to replace "Claude"/"Anthropic" references.
-
-### Gemini Series (Google)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
+| DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| DeepSeek V4.1 Flash | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| DeepSeek V4.1 Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
+| Gemini 3.1 Pro Preview | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Gemini 3.5 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-
-> **Note**: Gemini models use a model-specific route (`/models/{id}`).
-
-### GLM Series (Zhipu AI)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| GLM-5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
-
-### GPT Series (OpenAI)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
+| Gemini 3.8 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Gemini 4 Argon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| GLM-5.3-Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| GLM-5.3-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| GPT-5 | 400,000 | 128,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | Responses |
+| GPT-5 Codex | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| GPT-5 Nano | 400,000 | 128,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | Responses |
+| GPT-5.1 | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| GPT-5.1 Codex | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| GPT-5.1 Codex Max | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.1 Codex Mini | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
+| GPT-5.2 | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.2 Codex | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.3 Codex | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.3 Codex Spark | 128,000 | 128,000 | ✗ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.4 | 272,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.4 Mini | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.4 Nano | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.4 Pro | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`medium,high,xhigh`) | Responses |
+| GPT-5.5 | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| GPT-5.5 Pro | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`medium,high,xhigh`) | Responses |
 | GPT 5.6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | GPT 5.6 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | GPT 5.6 Terra | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
-
-> **Note**: GPT models use the **Responses API** route (`/responses`). GPT 5.6 models have a 400K context window and are treated as thinking models (`THINKING_MODELS`) for output budget purposes.
-
-### Grok Series (xAI)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
+| GPT-6 Astra | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6.1 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | Grok 4.5 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
 | Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
-
-> **Note**: Grok models use the **Responses API** route (`/responses`). They internally reason, so they are treated as thinking models (`THINKING_MODELS`) for output budget purposes.
-
-### Kimi Series (Moonshot AI)
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
+| Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
+| Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
+| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
-
-> **Note**: Kimi models use `fixedTemperature: 1` for optimal performance and require `REASONING_CONTENT_WORKAROUND_MODELS` (all Kimi except K2.5) for correct streaming output.
-
-### Free Models
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✓ | OpenAI |
-| MiMo V2.5 Free | 200,000 | 32,000 | ✓ | ✗ | ✓ | OpenAI |
-| Nemotron 3 Ultra Free | 1,000,000 | 128,000 | ✗ | ✗ | ✓ | OpenAI |
-| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ | OpenAI |
-
-> **Note**: These free models do not support tool/function calling. They still declare `toolCalling` capability so they appear in the model picker, but the provider strips tools from requests before sending to the API (`NO_TOOL_MODEL_IDS`). The free-tier additions below DO support tools/vision despite their `-free` suffix.
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
-| Muse Spark 1.2 Contributor Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
-
-> **Muse Spark 1.2 Contributor Free**: contributor variant — request data may be used by upstream for model training. Uses the Responses API like Muse Spark 1.2.
-
-### MiniMax Series
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ | OpenAI |
+| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ | OpenAI |
+| MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ | OpenAI |
-
-### Muse Series
-
-| Model | Context | Max Output | Vision | Tools | Thinking | API |
-|-------|---------|------------|--------|-------|----------|-----|
+| MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
+| Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
+| Muse Spark 1.3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
+| Muse Wonder | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
+| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ | OpenAI |
+| Nemotron 3.5 Super VL Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
+| Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
+| Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
+| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ | Anthropic |
+| Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ | OpenAI |
 
-> **Note**: Muse Spark 1.2 uses the **Responses API** route (`/responses`) and is treated as a thinking model (`THINKING_MODELS`) for output budget purposes.
+Family notes (the table above cannot carry them, so they live here):
 
-## Removed from the API (2026-08-22)
+- **DeepSeek V4+** require `REASONING_CONTENT_WORKAROUND_MODELS` for correct streaming output.
+  System prompts are sanitized to replace "Claude"/"Anthropic" references.
+- **Gemini** use the model-specific route (`/models/{id}`) — the API column reads "OpenAI"
+  because that is the request format, not the endpoint.
+- **GPT** and **Grok** use the **Responses API** route (`/responses`) and internally reason, so
+  they count as thinking models (`THINKING_MODELS`) for output budget purposes.
+- **Kimi** use `fixedTemperature: 1` and require `REASONING_CONTENT_WORKAROUND_MODELS` (all but
+  K2.5) for correct streaming output.
+- **Muse Spark 1.2** uses the Responses route and counts as a thinking model.
+- **Tool-less models** (`NO_TOOL_MODEL_IDS`: Big Pickle, Nemotron 3.5 Lightning Free) declare
+  `toolCalling` so they appear in the picker, but the provider strips tools before sending.
+  Other `-free` models do support tools and vision.
 
-The following previously listed models now return "Model is disabled" and were dropped from the catalog: all Claude models (Fable 5, Haiku 4.5, Sonnet 4/4.5/4.6/5, Opus 4.5–4.8/5), Gemini 3.1 Pro / 3.5 Flash, GPT 5 / 5.1 series / 5.2 series / 5.3 Codex / Spark / 5.4 series / 5.5 / 5.5 Pro, GLM 5 / 5.1, Kimi K2.5 / K2.6 / K2.7 Code, MiniMax M2.5 / M2.7, Qwen3.5 Plus / Qwen3.6 Plus. The Anthropic Messages conversion path is retained in the codebase for when Anthropic-format models return to the lineup.
+## Removed from the API
 
-Three further entries — `hy3-free`, `laguna-s-2.1-free` and `x-preview-f-free` — were retired on 2026-09-16: neither Pi's catalog nor Zen's live model list carries them any more, so a picker entry could only fail at request time.
+The catalog mirrors `GET https://opencode.ai/zen/v1/models`: an id appears in the table above if
+and only if Zen lists it, minus the two ids that are not pickable models (`test`, a reachability
+probe, and `claude-opus-5-5-backup`, a failover copy of `claude-opus-5-5`). `bun run sync:pi`
+reports any difference in either direction as drift, and `sync:pi:write` retires what Zen
+dropped and appends what it added.
+
+Currently unserved, and therefore absent: `claude-opus-4-1`, `ling-3.0-flash-free`,
+`north-mini-code-free`, `hy3-free`, `laguna-s-2.1-free`, `x-preview-f-free`.
+
+> **Why the earlier list here was wrong.** Until 2026-10-21 this section named the Claude,
+> Gemini 3.1 Pro / 3.5 Flash, GPT-5.x, GLM-5/5.1, Kimi K2.5–K2.7 Code, MiniMax M2.5/M2.7 and
+> Qwen3.5/3.6 Plus families as removed, and `tests/model-catalog.test.ts` asserted their
+> absence. Zen serves all of them again. Because the test and this document agreed with each
+> other, nothing noticed that the catalog itself had fallen 60 models behind the API. Do not
+> restore per-id absence assertions here — the mirror gate in `scripts/sync-from-pi.ts` is what
+> keeps this section honest.
 
 ## Model Quirks & Workarounds
 
@@ -127,7 +157,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 |------------|-----------|-------|
 | `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
 | Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6, Grok, Muse Spark 1.2 + Contributor Free (`routeKind: "responses"`) | `api.ts` |
-| Anthropic Messages API instead of OpenAI format | Anthropic-format models (`apiFormat: "anthropic"`, none currently live) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
+| Anthropic Messages API instead of OpenAI format | Anthropic-format models (`apiFormat: "anthropic"`: every Claude entry, and the Qwen3.x Plus/Flash family) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `model-catalog.ts` |
 | System prompt sanitization and provider identity guidance | Model-specific (`guidance.ts`) | `guidance.ts` |
 | Tool-use grounding guidance injected into the system prompt | All models, when tools are present | `guidance.ts` |
@@ -163,7 +193,7 @@ For non-vision models, the `opencode_zen_analyze_image` language model tool prov
 
 ### Tools (Function Calling)
 
-All models except the tool-less free models (Big Pickle, MiMo V2.5 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free, DeepSeek V4 Flash Free) support tool/function calling. The extension:
+All models except those in `NO_TOOL_MODEL_IDS` (Big Pickle, Nemotron 3.5 Lightning Free) support tool/function calling. The extension:
 - Parses tool calls from streaming text output (`tool-parser.ts`)
 - Deduplicates repeated tool calls (`tool-repair.ts`)
 - Repairs missing/invalid arguments using `inputSchema` and chat context
@@ -179,12 +209,19 @@ Each model's `contextWindow` is used to:
 
 ## Adding Models
 
-To add a new model, add an entry to `ZEN_MODEL_CATALOG` in `src/model-catalog.ts`:
+Most of the time you do not edit the catalog by hand — run `bun run sync:pi:write`. It retires
+the ids Zen dropped, appends the ones it added, and regenerates the table above. Metadata comes
+from Pi's `opencode` provider data, falling back to models.dev for a model Pi has not picked up
+yet (see `scripts/sync-from-pi.ts`). A model neither source describes is reported and left out,
+so add it by hand:
 
 1. Choose the correct `routeKind` (`responses` / `messages` / `chat_completions` / `model_specific`).
+   Pick `responses` when the model is served by the OpenAI client in Responses mode — the body
+   differs from `/chat/completions`, so a wrong guess fails every request.
 2. Choose the `apiFormat` (`openai` / `anthropic`).
 3. Set `contextWindow` and `maxOutput` from the model's spec sheet.
 4. Set `supportsTools`, `supportsVision`, `supportsThinking` from the model's capabilities.
 5. If the model emits `reasoning_content` in its stream (Kimi K2.6+ / DeepSeek V4+ style), add it to the `REASONING_CONTENT_WORKAROUND_MODELS` static set or rely on the dynamic prefix detection.
 6. If the model is free and does not support tools, add it to `NO_TOOL_MODEL_IDS`.
-7. Update `tests/model-catalog.test.ts` to cover the new model.
+7. Run `bun run sync:pi` — it fails if the catalog and the Zen model list disagree in either direction.
+8. Update `tests/model-catalog.test.ts` to cover the new model.

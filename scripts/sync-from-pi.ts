@@ -1,24 +1,20 @@
 #!/usr/bin/env bun
 /**
- * Sync from Pi's opencode.json to opencode-zen-provider.
- * - Compares Pi's provider data (contextWindow/maxTokens/vision/api/thinkingLevelMap)
- *   with ZEN_MODEL_CATALOG in src/model-catalog.ts and docs/models.md tables.
- * - Also reports catalog ids that Pi does not contain: those entries are skipped by
- *   syncCatalog, so the live Zen model list is the only thing that can tell a lagging Pi
- *   (model still served) from a dead entry left behind in the picker.
- * - Warn-only: also compares every docs row with the catalog entry it documents, since
- *   syncDocs only reaches rows whose model Pi knows and syncCatalog cannot rewrite a block
- *   its regex does not match.
- * - models.dev is deliberately not a third source (measured 2026-09-15 against
- *   https://models.dev/api.json, provider `opencode`): it disagrees with the catalog on 8 of
- *   25 entries, and 5 of those (Gemini 3.x, grok-build-0.1: `reasoning: true` while the
- *   catalog and docs say Thinking ✗) are entries the two existing sources agree on, so the
- *   flag means something else. For the 4 entries Pi cannot check it would add 6 lines that
- *   Zen's id-only list cannot arbitrate: `limit.context` / `limit.output` disagree with both
- *   the catalog and docs for deepseek-v4-flash-free (200,000/128,000) and laguna-s-2.1-free,
- *   and side with docs only for x-preview-f-free (the latter two retired 2026-09-16, so only
- *   deepseek-v4-flash-free is left to arbitrate). Revisit only if a human wants that opinion.
- * - Default: --check (report diff). With --write, updates src/model-catalog.ts and docs/models.md.
+ * Mirror the OpenCode Zen catalog against what Zen actually serves.
+ *
+ * - The mirror: `GET https://opencode.ai/zen/v1/models` decides which ids belong in the
+ *   catalog. A model Zen serves but the catalog omits, and an id the catalog keeps after Zen
+ *   dropped it, are both drift — neither is visible from field comparison, which is how 67
+ *   served models stayed unlisted while this gate reported "in sync with Pi" every morning
+ *   (measured 2026-10-21: catalog 22, Zen 86).
+ * - Field comparison against Pi's opencode.json still runs (`syncCatalog` / `syncDocs`): Pi is
+ *   the metadata source for the ids it knows, and its values win over models.dev.
+ * - models.dev covers the gap Pi leaves: a model Zen has just released, which Pi has not
+ *   picked up yet (`loadModelsDev`). It is only consulted for ids Pi does not describe — the
+ *   earlier note that it disagreed on 8 of 25 entries still holds, so it never overrides Pi.
+ *   A model neither source describes is reported and left out rather than guessed.
+ * - Default: --check (report drift, exit 1). With --write, retires dropped ids, appends the
+ *   missing ones, and regenerates the docs `## Model List` table from the catalog.
  *
  * Pi source: the latest published pi-ai from npm/CDN, falling back to the newest local
  * copy when offline (see scripts/pi-ai-source.ts).
@@ -34,12 +30,24 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
+  appendCatalogBlocks,
+  catalogIds,
+  catalogIdsMissingFromPi,
+  entryFromModelsDev,
+  entryFromPi,
   flattenPi,
+  mirrorDrift,
+  parseCatalog,
+  servableIds,
+  splitUnaddable,
+  removeCatalogEntry,
+  renderCatalogBlock,
+  renderModelListSection,
+  replaceModelListSection,
   syncCatalog,
   syncDocs,
-  catalogIdsMissingFromPi,
-  catalogDocsDiffs,
   unverifiedEfforts,
+  type ModelsDevModel,
   type PiData,
 } from "./sync-from-pi-core";
 import { loadDecisions } from "./effort-decisions";
@@ -49,6 +57,7 @@ const WRITE = process.argv.includes("--write");
 const VERBOSE = process.argv.includes("--verbose");
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ZEN_MODELS_URL = "https://opencode.ai/zen/v1/models";
+const MODELS_DEV_URL = "https://models.dev/api.json";
 
 function log(...args: unknown[]) {
   console.log(...args);
@@ -75,6 +84,32 @@ async function loadZenModelIds(): Promise<Set<string> | null> {
     return ids.length > 0 ? new Set(ids) : null;
   } catch (e) {
     vlog(`Zen model list fetch failed: ${e}`);
+    return null;
+  }
+}
+
+/**
+ * models.dev's `opencode` provider, keyed by model id. Zen's own endpoint returns ids only, so
+ * this is the second metadata source when Pi does not carry a model Zen has just released.
+ * `null` means it could not be read; the caller then refuses to invent an entry.
+ */
+async function loadModelsDev(): Promise<Map<string, ModelsDevModel> | null> {
+  try {
+    const res = await fetch(MODELS_DEV_URL, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) {
+      vlog(`models.dev returned ${res.status}`);
+      return null;
+    }
+    const body = (await res.json()) as {
+      opencode?: { models?: Record<string, ModelsDevModel> };
+    };
+    const models = body.opencode?.models;
+    if (!models) return null;
+    const map = new Map<string, ModelsDevModel>();
+    for (const [id, m] of Object.entries(models)) map.set(m.id || id, { ...m, id: m.id || id });
+    return map.size > 0 ? map : null;
+  } catch (e) {
+    vlog(`models.dev fetch failed: ${e}`);
     return null;
   }
 }
@@ -117,35 +152,106 @@ async function main() {
   }
   if (!WRITE && allDiffs.length > 0) process.exit(1);
 
-  const catalogContent = fs.readFileSync(catalogPath, "utf8");
+  let catalogContent = fs.readFileSync(catalogPath, "utf8");
 
-  // Warn-only: dropping a model is a product decision (the free tier in particular moves
-  // without Pi), so this stays out of the diffs and cannot fail --check.
-  const catalogOnly = catalogIdsMissingFromPi(catalogContent, piMap);
-  if (catalogOnly.length > 0) {
-    const zenIds = await loadZenModelIds();
-    log(
-      `\n⚠️  ${catalogOnly.length} catalog entries are absent from Pi, so Pi cannot check any field in them:`,
-    );
-    if (!zenIds) log(`  (could not read ${ZEN_MODELS_URL} — reporting ids only)`);
-    for (const id of catalogOnly) {
-      if (!zenIds) log(`  - ${id}`);
-      else if (zenIds.has(id)) log(`  - ${id}: still served by Zen (Pi data lags behind)`);
-      else
-        log(`  - ${id}: NOT served by Zen — retire it from src/model-catalog.ts, docs/models.md`);
+  // The mirror: what Zen serves versus what the catalog lists. Both directions are drift —
+  // a model Zen serves but the extension omits is one the user cannot pick, and an id Zen
+  // has dropped is one the picker offers and every request fails on. Comparing field values
+  // can never catch either, which is how 67 models accumulated unlisted while the gate
+  // reported "in sync with Pi" every morning (measured 2026-10-21: catalog 22, Zen 86).
+  const zenIds = await loadZenModelIds();
+  let mirrorMissing: string[] = [];
+  let mirrorRetired: string[] = [];
+  let modelsDev: Map<string, ModelsDevModel> | null = null;
+  if (!zenIds) {
+    log(`\n⚠️  could not read ${ZEN_MODELS_URL} — the served-vs-catalog check is skipped`);
+  } else {
+    const drift = mirrorDrift(servableIds(zenIds), catalogIds(catalogContent));
+    // Classify the served-but-unlisted ids before calling any of them drift. Two groups can
+    // never be mirrored automatically — a transport with no client here, and an id that
+    // neither Pi nor models.dev describes (Zen's list is ids only, so its limits are unknown).
+    // Reporting those as drift would wake the daily updater every morning over work no run
+    // can finish.
+    const { addable, unaddable } = splitUnaddable(drift.missing, piMap);
+    if (addable.length > 0) modelsDev = await loadModelsDev();
+    const described: string[] = [];
+    const undescribed: string[] = [];
+    for (const id of addable) {
+      if (piMap.has(id) || modelsDev?.has(id)) described.push(id);
+      else undescribed.push(id);
+    }
+    mirrorMissing = described;
+    mirrorRetired = drift.retired;
+
+    if (mirrorMissing.length === 0 && mirrorRetired.length === 0) {
+      log(`\n✅ Catalog lists every model Zen serves that this extension can speak`);
+    } else {
+      log(`\nCatalog is not a mirror of ${ZEN_MODELS_URL}:`);
+      if (mirrorMissing.length > 0) {
+        log(`  ${mirrorMissing.length} served by Zen but missing from the catalog:`);
+        log(`    ${mirrorMissing.join(", ")}`);
+      }
+      if (mirrorRetired.length > 0) {
+        log(`  ${mirrorRetired.length} in the catalog but no longer served (retire them):`);
+        log(`    ${mirrorRetired.join(", ")}`);
+      }
+    }
+    if (unaddable.length > 0) {
+      log(
+        `\nℹ️  ${unaddable.length} served model(s) cannot be mirrored — no client for their Pi transport: ${unaddable.join(", ")}`,
+      );
+    }
+    if (undescribed.length > 0) {
+      log(
+        `\nℹ️  ${undescribed.length} served model(s) cannot be mirrored — neither Pi nor models.dev describes them: ${undescribed.join(", ")}`,
+      );
     }
   }
 
-  // Warn-only: nothing can pick a winner. `syncDocs` only reaches rows whose model Pi knows
-  // and `syncCatalog` cannot reach a commented block, while Zen returns ids alone, so the
-  // catalog and its own docs row drift apart with no side clearly right.
-  const docsDiffs = catalogDocsDiffs(catalogContent, fs.readFileSync(docsPath, "utf8"));
-  if (docsDiffs.size > 0) {
-    log(`\n⚠️  ${docsDiffs.size} catalog entries disagree with their docs row in docs/models.md:`);
-    for (const [id, diffs] of docsDiffs) for (const d of diffs) log(`  - ${id}: ${d}`);
+  if (WRITE && zenIds) {
+    // Retire first: a model Zen dropped must not keep a row, and its block has to go before
+    // the new ones are appended.
+    for (const id of mirrorRetired) {
+      catalogContent = removeCatalogEntry(catalogContent, id);
+    }
+    // Metadata for each missing id: Pi when it has the model, models.dev when it does not.
+    const newBlocks: string[] = [];
+    for (const id of mirrorMissing) {
+      const pi = piMap.get(id);
+      if (pi) {
+        newBlocks.push(renderCatalogBlock(entryFromPi(pi)));
+        continue;
+      }
+      const md = modelsDev?.get(id);
+      if (md) newBlocks.push(renderCatalogBlock(entryFromModelsDev(md)));
+    }
+    catalogContent = appendCatalogBlocks(catalogContent, newBlocks);
+    fs.writeFileSync(catalogPath, catalogContent, "utf8");
+    log(`\n✅ Catalog updated: retired ${mirrorRetired.length}, added ${newBlocks.length}`);
+
+    // Regenerate the model list from the catalog that was just written.
+    const docsContent = fs.readFileSync(docsPath, "utf8");
+    const section = renderModelListSection(parseCatalog(catalogContent));
+    const nextDocs = replaceModelListSection(docsContent, section);
+    if (nextDocs !== docsContent) {
+      fs.writeFileSync(docsPath, nextDocs, "utf8");
+      log(`Updated ${path.relative(path.resolve(HERE, ".."), docsPath)} (Model List section)`);
+    }
   }
 
-  // Warn-only, like the sections above: Pi carries only its generic reasoning default for these
+  const mirrorOk = zenIds && mirrorMissing.length === 0 && mirrorRetired.length === 0;
+
+  // Warn-only: Pi cannot describe a model the catalog lists, but Zen may still serve it (the
+  // mirror above settles that), so this only says which fields Pi cannot vouch for.
+  const catalogOnly = catalogIdsMissingFromPi(catalogContent, piMap);
+  if (catalogOnly.length > 0 && !mirrorOk) {
+    log(
+      `\nℹ️  ${catalogOnly.length} catalog entries are absent from Pi, so only the Zen list vouches for them:`,
+    );
+    log(`  ${catalogOnly.join(", ")}`);
+  }
+
+  // Warn-only, like the section above: Pi carries only its generic reasoning default for these
   // models and no decision records a ladder, so their picker is unverified. Research one model
   // at a time (see docs/models.md "Thinking efforts") rather than failing the gate over all of them.
   const unverified = unverifiedEfforts(catalogContent, piMap, decisions);
@@ -155,6 +261,8 @@ async function main() {
     );
     log(`  ${unverified.join(", ")}`);
   }
+
+  if (!WRITE && !mirrorOk) process.exit(1);
 }
 
 await main();
