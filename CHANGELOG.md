@@ -1,4 +1,12 @@
 # Change Log
+## [0.1.57] - 2026-10-21
+
+### Fixed
+
+- **Reverted 8 thinking-effort ladders that had been copied from a different gateway.** `longcat-2.5-preview-free`, `minimax-m2.5`, `minimax-m2.7`, `minimax-m3`, `nemotron-3.5-lightning-free`, `qwen3.5-plus`, `qwen3.6-plus` and `qwen3.8-max` had been given ladders from commandcode-goat-provider's research. Each gateway accepts its own set of `reasoning_effort` rungs, so that was a guess rather than evidence; those entries now keep whatever Pi implies and carry no decision. `qwen3.8-flash` takes `low,medium,xhigh` from models.dev's `opencode` catalog.
+- **`mimo-v2.6-flash-free` now records an empty ladder, on the vendor's own spec.** Xiaomi's API reference (`/docs/en-US/api/chat/openai-api`, and the anthropic-api page) defines `thinking: { type: enabled | disabled }` and never mentions `reasoning_effort` — a full-text search of both pages returns zero occurrences. The previous `low,medium,high` came from another gateway. If OpenCode maps `reasoning_effort` onto thinking depth internally, that mapping is undocumented and cannot be measured from outside OpenCode.
+- **An unverified ladder no longer fails the gate.** It went to exit 1 in 0.1.56 on the reasoning that a warning had been ignored for months. That was wrong here: the free tier refuses every request made outside OpenCode (`FreeTierError`), the paid models need credit, and OpenCode's own `#variant` list is built from models.dev — so a gap in models.dev cannot be arbitrated from this side. The nine remaining ids stay listed as a warning.
+
 ## [0.1.56] - 2026-10-21
 
 ### Fixed

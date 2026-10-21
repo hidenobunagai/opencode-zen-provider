@@ -6,92 +6,47 @@
   },
   "claude-opus-4-5": {
     "efforts": ["low", "medium", "high"],
-    "source": "Anthropic Effort docs: 'On Claude Opus 4.5, the only extended-thinking-only model that supports effort, it works alongside budget_tokens'. The level table lists max/xhigh as model-gated and high as the default on every effort-capable model except Opus 5.5 and Haiku 5.5, which leaves low/medium/high for Opus 4.5; models.dev provider opencode independently lists effort values low/medium/high for this model.",
+    "source": "Anthropic Effort docs: 'On Claude Opus 4.5, the only extended-thinking-only model that supports effort'; the level table gates max/xhigh per model and leaves low/medium/high for Opus 4.5. models.dev provider opencode independently lists low/medium/high for this id.",
     "decided": "2026-10-21"
   },
   "claude-sonnet-4-5": {
     "efforts": [],
-    "source": "Anthropic Effort docs (docs.claude.com/en/docs/build-with-claude/effort): Sonnet 4.5 is absent from the effort 'Supported models' list (Sonnet 4.6/5/5.5 are listed). It reasons with a budget_tokens ceiling, so the picker stays off. models.dev provider opencode also shows only budget_tokens for it, no effort values.",
-    "decided": "2026-10-21"
-  },
-  "qwen3.5-plus": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Alibaba Model Studio deep-thinking docs (help.aliyun.com/zh/model-studio/deep-thinking): qwen3.5-plus is hybrid thinking, on by default; length is steered with enable_thinking / thinking_budget and reasoning_effort is named without a published rung list. Conservative low/medium/high, the same ladder commandcode-goat-provider records for the Qwen3.x Plus line.",
-    "decided": "2026-10-21"
-  },
-  "qwen3.6-plus": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Same Qwen3.x Plus line as qwen3.5-plus: Alibaba deep-thinking docs list qwen3.6-plus as hybrid thinking with thinking on by default; no published rung enumeration, so low/medium/high as recorded in commandcode-goat-provider for Qwen/Qwen3.6-Plus.",
-    "decided": "2026-10-21"
-  },
-  "qwen3.8-flash": {
-    "efforts": ["low", "medium", "high", "xhigh"],
-    "source": "Alibaba deep-thinking docs list qwen3.8-flash as hybrid thinking; pi-ai openrouter:qwen/qwen3.8-max-0902 carries an explicit thinkingLevelMap low/medium/high/xhigh (max:null) for the Qwen3.8 line. models.dev provider opencode shows low/medium/xhigh — missing 'high' for the high:null data-entry reason commandcode-goat-provider documented.",
-    "decided": "2026-10-21"
-  },
-  "qwen3.8-max": {
-    "efforts": ["low", "medium", "high", "xhigh"],
-    "source": "Same Qwen3.8 line: pi-ai openrouter:qwen/qwen3.8-max-0902 explicit thinkingLevelMap low/medium/high/xhigh; Alibaba docs list qwen3.8-max as hybrid thinking. models.dev provider opencode exposes a toggle only, so it offered no ladder to copy.",
-    "decided": "2026-10-21"
-  },
-  "big-pickle": {
-    "efforts": [],
-    "source": "OpenCode's own free stealth model: pi-ai opencode:big-pickle has reasoning:true with no map, models.dev provider opencode lists no reasoning options, and there is no vendor documentation to consult. Recording an empty ladder rather than guessing — revisiting needs a live probe against the Zen API with an API key.",
+    "source": "Anthropic Effort docs: Sonnet 4.5 is absent from the effort 'Supported models' list (Sonnet 4.6/5/5.5 are listed). It reasons with a budget_tokens ceiling, so there is no ladder to expose. models.dev provider opencode also shows only budget_tokens for it.",
     "decided": "2026-10-21"
   },
   "glm-5": {
     "efforts": [],
-    "source": "Z.AI thinking docs (docs.z.ai/guides/capabilities/thinking): reasoning_effort control is 'only supported by GLM-5.2 and above'; GLM-5 has deep thinking with thinking.type enabled/disabled but no effort parameter. Recorded identically in commandcode-goat-provider for zai-org/GLM-5.",
+    "source": "Z.AI thinking docs (docs.z.ai/guides/capabilities/thinking): reasoning_effort control is 'only supported by GLM-5.2 and above'; GLM-5 has deep thinking with thinking.type enabled/disabled but no effort parameter.",
     "decided": "2026-10-21"
   },
   "glm-5.1": {
     "efforts": [],
-    "source": "Z.AI thinking docs: reasoning_effort is 'only supported by GLM-5.2 and above' — GLM-5.1 exposes thinking.type enabled/disabled but no effort parameter. Recorded identically in commandcode-goat-provider for zai-org/GLM-5.1.",
+    "source": "Z.AI thinking docs: reasoning_effort is 'only supported by GLM-5.2 and above' — GLM-5.1 exposes thinking.type enabled/disabled but no effort parameter.",
     "decided": "2026-10-21"
   },
   "kimi-k2.5": {
     "efforts": [],
-    "source": "Moonshot Kimi API docs (platform.kimi.ai/docs/guide/use-kimi-k2-thinking-model): reasoning_effort is kimi-k3 only; kimi-k2.6 and kimi-k2.5 take thinking.type enabled/disabled with no effort rungs. Recorded identically in commandcode-goat-provider for moonshotai/Kimi-K2.5.",
+    "source": "Moonshot Kimi API docs (platform.kimi.ai/docs/guide/use-kimi-k2-thinking-model): reasoning_effort is kimi-k3 only; kimi-k2.5 takes thinking.type enabled/disabled with no effort rungs.",
     "decided": "2026-10-21"
   },
   "kimi-k2.6": {
     "efforts": [],
-    "source": "Moonshot Kimi API docs: kimi-k2.6 has thinking on by default and can be disabled, but its reasoning_effort column reads 'Not supported' (K3-only). No ladder to expose, recorded identically in commandcode-goat-provider for moonshotai/Kimi-K2.6.",
+    "source": "Moonshot Kimi API docs: kimi-k2.6 has thinking on by default and can be disabled, but its reasoning_effort column reads 'Not supported' (K3-only).",
     "decided": "2026-10-21"
   },
   "kimi-k2.7-code": {
     "efforts": [],
-    "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'. Recorded identically in commandcode-goat-provider.",
-    "decided": "2026-10-21"
-  },
-  "longcat-2.5-preview-free": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Preview build in the LongCat 2.5 line; Meituan publishes no rung list and models.dev provider opencode exposes a reasoning toggle only. Carrying the LongCat 2.0 family ladder low/medium/high that commandcode-goat-provider recorded.",
+    "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'.",
     "decided": "2026-10-21"
   },
   "mimo-v2.6-flash-free": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Free serving tier of mimo-v2.6-flash; same Xiaomi MiMo ladder (vendor docs reasoning.effort low/medium/high, none closes thinking) as the paid id, which the owner curated in DSH plugin commit df6c41d and commandcode-goat-provider records for xiaomi/mimo-v2.6-flash.",
+    "efforts": [],
+    "source": "Xiaomi MiMo API reference (platform.xiaomimimo.com/docs/en-US/api/chat/openai-api, and the anthropic-api page): the request schema defines thinking: { type: enabled | disabled } and nowhere mentions reasoning_effort — a full-text search of both pages returns zero occurrences. Set this empty ladder to match the vendor spec rather than the low/medium/high that had been copied from another gateway. If OpenCode's gateway maps reasoning_effort onto thinking depth itself, that mapping is undocumented and unmeasurable here (the free tier refuses out-of-OpenCode requests).",
     "decided": "2026-10-21"
   },
-  "minimax-m2.5": {
-    "efforts": ["low", "medium", "high"],
-    "source": "MiniMax family ladder recorded in commandcode-goat-provider for MiniMaxAI/MiniMax-M2.5 (probe 2026-10-02 there: reasons by default, off rejected; MiniMax platform docs); pi-ai opencode:minimax-m2.5 has reasoning:true with no map and models.dev opencode shows no effort options.",
-    "decided": "2026-10-21"
-  },
-  "minimax-m2.7": {
-    "efforts": ["low", "medium", "high"],
-    "source": "Same MiniMax family ladder as M2.5/M3, recorded identically in commandcode-goat-provider for MiniMaxAI/MiniMax-M2.7; pi-ai opencode:minimax-m2.7 is reasoning:true with no map.",
-    "decided": "2026-10-21"
-  },
-  "minimax-m3": {
-    "efforts": ["low", "medium", "high"],
-    "source": "MiniMax family ladder recorded in commandcode-goat-provider for MiniMaxAI/MiniMax-M3 (probe there 2026-10-02: high rung reacted, off rejected); MiniMax docs describe 'tunable thinking depth' only for M3.1-Flash, so the wider low..max ladder is not claimed here. pi-ai opencode:minimax-m3 is reasoning:true with no map.",
-    "decided": "2026-10-21"
-  },
-  "nemotron-3.5-lightning-free": {
-    "efforts": ["low", "medium", "high"],
-    "source": "NVIDIA Nemotron reasoning parameters (OpenRouter supported_parameters includes reasoning with low/medium/high effort); commandcode-goat-provider records the same low/medium/high for nvidia/nemotron-3.5-super-vl. pi-ai opencode:nemotron-3.5-lightning-free is reasoning:true with no map.",
+  "qwen3.8-flash": {
+    "efforts": ["low", "medium", "xhigh"],
+    "source": "models.dev provider opencode — the gateway's own published catalog — lists effort values low/medium/xhigh for this id; pi-ai has no thinkingLevelMap here. Replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
   }
 }

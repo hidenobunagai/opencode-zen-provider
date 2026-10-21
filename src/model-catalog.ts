@@ -1017,8 +1017,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 32000,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
-    supportedReasoningEfforts: ["low", "medium", "high"],
+    supportsThinking: false,
   },
   {
     id: "minimax-m2.5",
@@ -1158,7 +1157,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
-    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
+    supportedReasoningEfforts: ["low", "medium", "xhigh"],
   },
   {
     id: "qwen3.8-max",

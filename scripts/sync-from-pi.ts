@@ -251,11 +251,13 @@ async function main() {
     log(`  ${catalogOnly.join(", ")}`);
   }
 
-  // Drift, the way commandcode-goat-provider's gate treats it: a reasoning model whose ladder is
-  // neither a recorded decision nor an explicit pi-ai map has an unverified picker. Leaving this
-  // as a warning is why all 19 of them went unresearched — the daily job exited 0 and moved on.
-  // `--write` cannot fix it (the rungs have to come from the vendor's docs), so the agent
-  // researches, records the decision, and re-runs.
+  // Warning only, unlike the mirror check above. A ladder that neither pi-ai nor models.dev states
+  // cannot be measured from here: the Zen free tier refuses every request made outside OpenCode
+  // (`FreeTierError`), the paid models need credit this account does not hold, and OpenCode's own
+  // "#variant" list is built from models.dev, so it cannot arbitrate a gap in models.dev
+  // (verified 2026-10-21: accepted variants equalled models.dev's effort values on every model
+  // tried). Failing the gate would wake the daily agent every morning for work it cannot finish.
+  // Keep the list visible, and leave shipped ladders alone rather than replacing them with guesses.
   const unverified = unverifiedEfforts(catalogContent, piMap, decisions);
   if (unverified.length > 0) {
     log(
@@ -263,12 +265,11 @@ async function main() {
     );
     log(`  ${unverified.join(", ")}`);
     log(
-      `  Research each one (vendor docs; scripts/probe-efforts.ts corroborates where a key is available), then record { efforts, source, decided } in docs/effort-decisions.json.`,
+      `  Left as they are: measuring them needs a funded Zen key. Record { efforts, source, decided } only when vendor docs state a ladder, and only from this gateway.`,
     );
-    log(`  "efforts": [] is a valid decision when the vendor exposes no effort parameter.`);
   }
 
-  if (!WRITE && (!mirrorOk || unverified.length > 0)) process.exit(1);
+  if (!WRITE && !mirrorOk) process.exit(1);
 }
 
 await main();

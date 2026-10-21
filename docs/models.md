@@ -16,11 +16,16 @@ in this order:
 2. **Pi's explicit `thinkingLevelMap`** (`opencode.json` in the pi-ai install) — the levels the
    vendor's own provider file declares; `sync:pi` copies them.
 3. **Pi's generic default** (`reasoning: true`, no map) — nothing states the rungs. The sync
-   leaves such an entry alone and lists it under `no ladder evidence`. That list fails
-   `bun run sync:pi` (exit 1) on purpose: a warning was ignored for months, so every unverified
-   ladder is now treated as drift. Research the model (vendor docs first; `bun scripts/probe-efforts.ts <id>`
-   corroborates with a live key when one is available), then record a decision — `--write` cannot
-   fix this, because the rungs have to come from the vendor.
+   leaves such an entry alone and lists it under `no ladder evidence`. That list is a **warning,
+   not drift**: the Zen free tier refuses every request made outside OpenCode, the paid models need
+   credit, and OpenCode's `#variant` list is itself built from models.dev — so a gap in models.dev
+   cannot be arbitrated from here.
+
+   Record a decision only when a primary source states the ladder, and only **this** gateway's.
+   A ladder published for Command Code, OpenRouter, or a vendor's raw API does not transfer: each
+   gateway accepts its own set of rungs. Xiaomi, for instance, documents only
+   `thinking: { type: enabled | disabled }` — no `reasoning_effort` at all — which is why
+   `mimo-v2.6-flash-free` records an empty ladder.
 
 `efforts: []` does not mean "does not think": it means the vendor exposes no effort parameter
 (Sonnet 4.5, Haiku 4.5, GLM-5/5.1, Kimi K2.5–K2.7 Code think on/off with no ladder), so the
@@ -104,7 +109,7 @@ rather than the table.
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
 | LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✗ | OpenAI |
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
@@ -117,7 +122,7 @@ rather than the table.
 | Nemotron 3.5 Super VL Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
 | Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
 | Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
-| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Anthropic |
+| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
 | Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
 
 Family notes (the table above cannot carry them, so they live here):
