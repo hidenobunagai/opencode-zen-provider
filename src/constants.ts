@@ -42,6 +42,10 @@ export const REQUEST_TIMEOUT_MS = 60000;
 export const REASONING_CONTENT_WORKAROUND_STATIC_SET = new Set([
   "deepseek-v4-pro",
   "deepseek-v4-flash",
+  // Flint returns its reasoning in `reasoning_content` (models.dev `interleaved.field`) and its
+  // serving kit asks for the field to be kept on assistant history, so it needs the same
+  // placeholder the DeepSeek/Kimi families get.
+  "flint-40b-free",
 ]);
 
 /**

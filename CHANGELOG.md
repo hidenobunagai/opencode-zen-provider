@@ -1,4 +1,20 @@
 # Change Log
+## [0.1.59] - 2026-10-22
+
+### Added
+
+- **`flint-40b-free` (Flint 40B Free) joins the catalog — the one model Zen serves that the mirror was missing.** Recursive's open-weights model is served on the OpenAI-compatible chat-completions route with a 262,144-token context, 65,536-token output, tools but no vision. models.dev's `opencode` provider — the gateway's own published catalog — lists `low,medium,high,xhigh,max`, while Recursive's serving kit documents no effort switch at all (the checkpoint decides per turn), so the ladder is recorded as Zen's mapping rather than a vendor reasoning enum. Flint also joins the `reasoning_content` workaround: models.dev marks its reasoning as arriving in that field, and the serving kit asks for it to be kept on assistant history.
+
+### Fixed
+
+- **Seven models no longer show a Thinking Effort picker offering rungs their vendors do not define.** `longcat-2.5-preview-free`, `qwen3.5-plus` and `qwen3.6-plus` document only a thinking toggle (plus `thinking_budget` for Qwen); MiniMax accepts `reasoning_effort` only on M3.1-Flash; `nemotron-3.5-lightning-free` uses `thinking_token_budget`. The `low,medium,high` they still carried came from Pi's generic default, not from the vendor — 0.1.57 removed the borrowed decision but left the implied ladder on screen. These seven, plus `big-pickle`, now record an empty ladder. They still think; there is simply no rung to choose.
+- **`qwen3.8-max` offers `low,medium,xhigh`, not four rungs.** QwenCloud's OpenAI-chat and Anthropic-compatible references both define exactly those three (default `xhigh`), with `high` mapped onto `xhigh`; models.dev agrees. The fourth rung was a duplicate under a different name.
+
+### Changed
+
+- **The model lists now agree with the catalog.** `docs/models.md` records the 2026-10-22 sync and Flint's row; the README drops Qwen 3.7 Plus/Max and 3.8 Plus along with the retired `space-bunny-free`, `step-5-preview-free`, `hy3`/`hy4` entries, and lists Flint and `longcat-2.5-preview-free` instead.
+- **`bun run sync:pi` is green again: 83 models, every served id mirrored, every ladder decided.** The only ids it still reports are `jev-1.13` and `jev-1.13-free`, which Zen serves but this extension cannot speak.
+
 ## [0.1.58] - 2026-10-21
 
 ### Fixed

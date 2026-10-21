@@ -1,4 +1,9 @@
 {
+  "big-pickle": {
+    "efforts": [],
+    "source": "OpenCode's own free stealth model: pi-ai opencode:big-pickle has reasoning:true with no level map, models.dev provider opencode lists no reasoning options, and there is no vendor documentation to consult. Recording an empty ladder rather than guessing; revisiting needs a live probe against the Zen API with an API key.",
+    "decided": "2026-10-22"
+  },
   "claude-haiku-4-5": {
     "efforts": [],
     "source": "Anthropic Effort docs (docs.claude.com/en/docs/build-with-claude/effort): the 'Supported models' list for effort is Fable 5/5.1, Mythos 5/5.1/Preview, Opus 4.5-4.8/5/5.5, Sonnet 4.6/5/5.5 and Haiku 5.5 — Haiku 4.5 is not on it, so it has no effort parameter. It still reasons (adaptive budget_tokens), which is why the picker must stay off rather than offer guessed rungs.",
@@ -17,6 +22,17 @@
     "efforts": [],
     "source": "Anthropic Effort docs: Sonnet 4.5 is absent from the effort 'Supported models' list (Sonnet 4.6/5/5.5 are listed). It reasons with a budget_tokens ceiling, so there is no ladder to expose. models.dev provider opencode also shows only budget_tokens for it.",
     "decided": "2026-10-21"
+  },
+  "flint-40b-free": {
+    "efforts": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "source": "models.dev provider opencode — the gateway's own published catalog — lists reasoning_options effort low/medium/high/xhigh/max for flint-40b-free, and the Zen console docs (opencode.ai/docs/zen) serve it on the OpenAI-compatible chat-completions endpoint. Recursive's own serving kit (huggingface.co/RecursiveSI/flint, sglang/README.md) states the checkpoint decides on each turn whether to reason and has no switch or budget, so this ladder is the gateway's mapping rather than a vendor reasoning_effort enum.",
+    "decided": "2026-10-22"
   },
   "glm-5": {
     "efforts": [],
@@ -43,6 +59,11 @@
     "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'.",
     "decided": "2026-10-21"
   },
+  "longcat-2.5-preview-free": {
+    "efforts": [],
+    "source": "LongCat API docs (longcat.ai/platform/docs/open-code): LongCat-2.5-Preview controls thinking only through thinking: { type: enabled | disabled }, on by default. No reasoning_effort is documented, and models.dev provider opencode lists only a toggle for the same id.",
+    "decided": "2026-10-22"
+  },
   "mimo-v2.6-flash-free": {
     "efforts": [
       "low",
@@ -52,6 +73,36 @@
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, with minimal mapped to low and xhigh/max/ultra mapped to high. The page also states intensity is not differentiated yet (none disables, every other level enables), but low/medium/high are all accepted values, so they are the rungs this gateway can send. Corrects the empty ladder recorded earlier from reading only the chat-completions and anthropic pages, which document thinking.enabled|disabled and no effort at all.",
     "decided": "2026-10-21"
   },
+  "minimax-m2.5": {
+    "efforts": [],
+    "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M2.x exposes thinking: { type: enabled | adaptive | disabled } — disabled is accepted but ignored, thinking stays on — and no effort ladder. models.dev provider opencode lists no reasoning options for this id.",
+    "decided": "2026-10-22"
+  },
+  "minimax-m2.7": {
+    "efforts": [],
+    "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M2.x exposes thinking: { type: enabled | adaptive | disabled } — disabled is accepted but ignored, thinking stays on — and no effort ladder. models.dev provider opencode lists no reasoning options for this id.",
+    "decided": "2026-10-22"
+  },
+  "minimax-m3": {
+    "efforts": [],
+    "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M3 controls thinking with thinking: { type: adaptive | disabled } (on by default) and documents no effort parameter. models.dev provider opencode lists only a toggle for this id.",
+    "decided": "2026-10-22"
+  },
+  "nemotron-3.5-lightning-free": {
+    "efforts": [],
+    "source": "NVIDIA NIM docs for Nemotron 3.5 Lightning (docs.nvidia.com/nim/large-language-models/2.0.10/get-started/advanced/get-started-nemotron-3.5-lightning.html): reasoning is controlled by chat_template_kwargs.enable_thinking and thinking_token_budget. No reasoning_effort enum is documented, and models.dev provider opencode lists no reasoning options for this id.",
+    "decided": "2026-10-22"
+  },
+  "qwen3.5-plus": {
+    "efforts": [],
+    "source": "QwenCloud API references: the Anthropic-compatible Messages API (docs.qwencloud.com/api-reference/chat/anthropic) documents output_config.effort only for glm-5.3, glm-5.2, deepseek-v4-pro, deepseek-v4-flash-0731, qwen3.8-max and qwen3.8-flash, and the OpenAI-chat reasoning_effort table (docs.qwencloud.com/api-reference/chat/openai-chat) names the qwen3.8 family only. qwen3.5-plus thinks through enable_thinking plus thinking_budget, which is also what models.dev provider opencode lists (toggle + budget_tokens).",
+    "decided": "2026-10-22"
+  },
+  "qwen3.6-plus": {
+    "efforts": [],
+    "source": "QwenCloud API references: the Anthropic-compatible Messages API (docs.qwencloud.com/api-reference/chat/anthropic) documents output_config.effort only for glm-5.3, glm-5.2, deepseek-v4-pro, deepseek-v4-flash-0731, qwen3.8-max and qwen3.8-flash, and the OpenAI-chat reasoning_effort table (docs.qwencloud.com/api-reference/chat/openai-chat) names the qwen3.8 family only. qwen3.6-plus thinks through enable_thinking plus thinking_budget, which is also what models.dev provider opencode lists (toggle + budget_tokens).",
+    "decided": "2026-10-22"
+  },
   "qwen3.8-flash": {
     "efforts": [
       "low",
@@ -60,5 +111,14 @@
     ],
     "source": "models.dev provider opencode — the gateway's own published catalog — lists effort values low/medium/xhigh for this id; pi-ai has no thinkingLevelMap here. Replaces the low/medium/high/xhigh that had been borrowed from Command Code's gateway, which was a guess for a different gateway rather than evidence for this one.",
     "decided": "2026-10-21"
+  },
+  "qwen3.8-max": {
+    "efforts": [
+      "low",
+      "medium",
+      "xhigh"
+    ],
+    "source": "QwenCloud OpenAI-chat reference (docs.qwencloud.com/api-reference/chat/openai-chat): qwen3.8-max reasoning_effort options are low, medium and xhigh (default xhigh); high maps to xhigh, so it is not a separate rung. The Anthropic-compatible page (docs.qwencloud.com/api-reference/chat/anthropic) lists the same three for output_config.effort, and models.dev provider opencode agrees. Replaces low/medium/high/xhigh, which offered a rung the vendor does not define.",
+    "decided": "2026-10-22"
   }
 }

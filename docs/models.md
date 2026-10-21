@@ -2,7 +2,7 @@
 
 The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` that mirrors the models served by the OpenCode Zen API (`https://opencode.ai/zen/v1`). Each model entry specifies its route kind (`responses` / `messages` / `chat_completions` / `model_specific`), API format (`openai` / `anthropic`), context window, max output, vision/tool/thinking support, and any fixed temperature.
 
-Catalog last synced with the API on 2026-08-22.
+Catalog last synced with the API on 2026-10-22.
 
 ## Thinking efforts
 
@@ -70,6 +70,7 @@ rather than the table.
 | DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | DeepSeek V4.1 Flash | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4.1 Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| Flint 40B Free | 262,144 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.1 Pro Preview | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 3.5 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
@@ -116,22 +117,22 @@ rather than the table.
 | Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
-| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✗ | OpenAI |
 | MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✗ | OpenAI |
 | MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Spark 1.3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Wonder | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
-| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ (`low,medium,high`) | OpenAI |
+| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✗ | OpenAI |
 | Nemotron 3.5 Super VL Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
-| Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
-| Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
+| Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
+| Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
-| Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
+| Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | OpenAI |
 
 Family notes (the table above cannot carry them, so they live here):
 
@@ -173,7 +174,7 @@ The extension applies several model-behavior workarounds while streaming. This m
 
 | Workaround | Applies to | Where |
 |------------|-----------|-------|
-| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+ (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
+| `reasoning_content` field added to assistant history, and parsed from streaming deltas | Kimi (except K2.5), DeepSeek V4+, Flint (`REASONING_CONTENT_WORKAROUND_MODELS`) | `constants.ts`, `openai-conversion.ts` |
 | Responses API (`/responses`) instead of OpenAI chat.completions | GPT 5.6, Grok, Muse Spark 1.2 + Contributor Free (`routeKind: "responses"`) | `api.ts` |
 | Anthropic Messages API instead of OpenAI format | Anthropic-format models (`apiFormat: "anthropic"`: every Claude entry, and the Qwen3.x Plus/Flash family) | `anthropic-conversion.ts`, `streaming/anthropic.ts` |
 | `fixedTemperature: 1` sent on every request | Kimi | `model-catalog.ts` |
