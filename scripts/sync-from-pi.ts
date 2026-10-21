@@ -251,18 +251,24 @@ async function main() {
     log(`  ${catalogOnly.join(", ")}`);
   }
 
-  // Warn-only, like the section above: Pi carries only its generic reasoning default for these
-  // models and no decision records a ladder, so their picker is unverified. Research one model
-  // at a time (see docs/models.md "Thinking efforts") rather than failing the gate over all of them.
+  // Drift, the way commandcode-goat-provider's gate treats it: a reasoning model whose ladder is
+  // neither a recorded decision nor an explicit pi-ai map has an unverified picker. Leaving this
+  // as a warning is why all 19 of them went unresearched — the daily job exited 0 and moved on.
+  // `--write` cannot fix it (the rungs have to come from the vendor's docs), so the agent
+  // researches, records the decision, and re-runs.
   const unverified = unverifiedEfforts(catalogContent, piMap, decisions);
   if (unverified.length > 0) {
     log(
-      `\n⚠️  ${unverified.length} catalog models rest on no ladder evidence (Pi is generic, no decision) — record one in docs/effort-decisions.json (docs/models.md "Thinking efforts") when touching them:`,
+      `\n⚠️  ${unverified.length} catalog models rest on no ladder evidence (Pi is generic, no decision):`,
     );
     log(`  ${unverified.join(", ")}`);
+    log(
+      `  Research each one (vendor docs; scripts/probe-efforts.ts corroborates where a key is available), then record { efforts, source, decided } in docs/effort-decisions.json.`,
+    );
+    log(`  "efforts": [] is a valid decision when the vendor exposes no effort parameter.`);
   }
 
-  if (!WRITE && !mirrorOk) process.exit(1);
+  if (!WRITE && (!mirrorOk || unverified.length > 0)) process.exit(1);
 }
 
 await main();

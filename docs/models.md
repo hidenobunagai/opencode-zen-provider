@@ -16,10 +16,15 @@ in this order:
 2. **Pi's explicit `thinkingLevelMap`** (`opencode.json` in the pi-ai install) — the levels the
    vendor's own provider file declares; `sync:pi` copies them.
 3. **Pi's generic default** (`reasoning: true`, no map) — nothing states the rungs. The sync
-   leaves such an entry alone and `bun run sync:pi` ends with
-   `⚠️ … no ladder evidence: <ids>`. Research the model (vendor docs; probe the gateway's
-   `reasoning_effort` values if it has an endpoint that takes one) before changing its picker,
-   then record a decision. One model at a time is fine — the warning never fails `--check`.
+   leaves such an entry alone and lists it under `no ladder evidence`. That list fails
+   `bun run sync:pi` (exit 1) on purpose: a warning was ignored for months, so every unverified
+   ladder is now treated as drift. Research the model (vendor docs first; `bun scripts/probe-efforts.ts <id>`
+   corroborates with a live key when one is available), then record a decision — `--write` cannot
+   fix this, because the rungs have to come from the vendor.
+
+`efforts: []` does not mean "does not think": it means the vendor exposes no effort parameter
+(Sonnet 4.5, Haiku 4.5, GLM-5/5.1, Kimi K2.5–K2.7 Code think on/off with no ladder), so the
+picker stays off and the gateway default applies.
 
 The rungs are the gateway's own enum (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the
 provider drops a configured value that is not in `supportedReasoningEfforts` at request time.
@@ -33,18 +38,18 @@ rather than the table.
 | Model | Context | Max Output | Vision | Tools | Thinking | API |
 |-------|---------|------------|--------|-------|----------|-----|
 | Beam Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
-| Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✓ | OpenAI |
+| Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✗ | OpenAI |
 | Claude Fable 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Fable 5.1 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
-| Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✗ | Anthropic |
 | Claude Haiku 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
-| Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
 | Claude Opus 4.6 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
 | Claude Opus 4.7 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Opus 4.8 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Opus 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Opus 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
-| Claude Sonnet 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ | Anthropic |
+| Claude Sonnet 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✗ | Anthropic |
 | Claude Sonnet 4.6 | 1,000,000 | 64,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
 | Claude Sonnet 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Sonnet 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
@@ -60,8 +65,8 @@ rather than the table.
 | Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 3.8 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Argon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
-| GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
+| GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | GLM-5.3-Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
@@ -94,26 +99,26 @@ rather than the table.
 | Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
-| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✓ | OpenAI |
-| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✓ | OpenAI |
+| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
+| Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`max`) | OpenAI |
-| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ | OpenAI |
-| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ | OpenAI |
-| MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ | OpenAI |
-| MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ | OpenAI |
+| LongCat 2.5 Preview Free | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Spark 1.3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Wonder | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
-| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ | OpenAI |
+| Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✓ (`low,medium,high`) | OpenAI |
 | Nemotron 3.5 Super VL Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
-| Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
-| Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ | Anthropic |
-| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ | Anthropic |
-| Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ | OpenAI |
+| Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
+| Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
+| Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Anthropic |
+| Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
 
 Family notes (the table above cannot carry them, so they live here):
 

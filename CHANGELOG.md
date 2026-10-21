@@ -1,4 +1,21 @@
 # Change Log
+## [0.1.56] - 2026-10-21
+
+### Fixed
+
+- **All 19 bundled models with an unverified thinking-effort ladder are now researched and recorded, and an unresearched one fails the gate.** `docs/effort-decisions.json` was empty, so the picker showed whatever Pi's generic default implied and `bun run sync:pi` merely warned. Recorded now, with sources: `qwen3.8-flash`/`qwen3.8-max` `low,medium,high,xhigh`; `qwen3.5-plus`/`qwen3.6-plus` `low,medium,high`; `minimax-m2.5`/`m2.7`/`m3` and the MiMo, LongCat and Nemotron families `low,medium,high`; `claude-opus-4-5` `low,medium,high`.
+- **`claude-haiku-4-5` and `claude-sonnet-4-5` no longer show a Thinking Effort picker.** Anthropic's effort docs list the models that support `output_config.effort` (Opus 4.5–4.8/5/5.5, Sonnet 4.6/5/5.5, Haiku 5.5 and the Fable/Mythos lines) and neither of these is on it — they reason with a `budget_tokens` ceiling instead. An empty ladder records that; it does not mean the model cannot think.
+- **`glm-5`, `glm-5.1`, `kimi-k2.5`, `kimi-k2.6` and `kimi-k2.7-code` lose the picker for the same reason.** Z.AI's docs say `reasoning_effort` is "only supported by GLM-5.2 and above", and Moonshot's say it is K3-only. All five still think by default; there is simply no ladder to choose from, which is what the thinking-on/off switch in the picker used to misrepresent.
+- **`big-pickle` records an empty ladder rather than a guess.** OpenCode's own stealth model has no vendor documentation, no pi-ai map, and no models.dev reasoning options; deciding needs a live probe, so the gap is written down instead of invented.
+
+### Added
+
+- **`scripts/probe-efforts.ts`** — probes each `reasoning_effort` rung against the Zen gateway with a live key, as corroboration for vendor docs. It does not read OpenCode's credential store (no supported way to borrow the key) and says so plainly.
+
+### Changed
+
+- **`no ladder evidence` is drift, not a warning**, matching commandcode-goat-provider's `EFFORTS UNVERIFIED`. It exits 1 and is reported even when the mirror check already failed, so one agent run sees every gap.
+
 ## [0.1.55] - 2026-10-21
 
 ### Added

@@ -45,7 +45,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 32000,
     supportsTools: false,
     supportsVision: false,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "deepseek-v4-flash",
@@ -255,6 +255,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "muse-spark-1.2",
@@ -282,6 +283,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: false,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "beam-free",
@@ -336,7 +338,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "claude-haiku-5-5",
@@ -364,6 +366,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "claude-opus-4-6",
@@ -446,7 +449,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 64000,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "claude-sonnet-4-6",
@@ -585,7 +588,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "glm-5.1",
@@ -598,7 +601,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 131072,
     supportsTools: true,
     supportsVision: false,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "glm-5.3",
@@ -961,7 +964,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "kimi-k2.6",
@@ -974,7 +977,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 65536,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "kimi-k2.7-code",
@@ -987,7 +990,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     maxOutput: 262144,
     supportsTools: true,
     supportsVision: true,
-    supportsThinking: true,
+    supportsThinking: false,
   },
   {
     id: "longcat-2.5-preview-free",
@@ -1001,6 +1004,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "mimo-v2.6-flash-free",
@@ -1014,6 +1018,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "minimax-m2.5",
@@ -1027,6 +1032,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "minimax-m2.7",
@@ -1040,6 +1046,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: false,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "minimax-m3.1-flash-free",
@@ -1123,6 +1130,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.6-plus",
@@ -1136,6 +1144,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high"],
   },
   {
     id: "qwen3.8-flash",
@@ -1149,6 +1158,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
   {
     id: "qwen3.8-max",
@@ -1162,5 +1172,6 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
 ];
