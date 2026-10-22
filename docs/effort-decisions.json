@@ -59,11 +59,6 @@
     "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'.",
     "decided": "2026-10-21"
   },
-  "longcat-2.5-preview-free": {
-    "efforts": [],
-    "source": "LongCat API docs (longcat.ai/platform/docs/open-code): LongCat-2.5-Preview controls thinking only through thinking: { type: enabled | disabled }, on by default. No reasoning_effort is documented, and models.dev provider opencode lists only a toggle for the same id.",
-    "decided": "2026-10-22"
-  },
   "mimo-v2.6-flash-free": {
     "efforts": [
       "low",

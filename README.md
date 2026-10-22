@@ -42,10 +42,10 @@ current OpenCode Zen API lineup — every id `GET https://opencode.ai/zen/v1/mod
 - GLM: 5, 5.1, 5.2, 5.3
 - Grok: Build 0.1, 4.5, 4.6, 4.7
 - Kimi: K2.5, K2.6, K2.7 Code, K3
-- MiniMax: M2.5, M2.7, M3, M3.1
+- MiniMax: M2.5, M2.7, M3
 - Qwen: 3.5 / 3.6 Plus, 3.8 Flash / Max
-- Others: Muse Spark / Wonder, LongCat, Nemotron, Flint
-- Free tier: Big Pickle, `beam-free`, `flint-40b-free`, `glm-5.3-flash-free`, `longcat-2.5-preview-free`, `minimax-m3.1-flash-free`, `nemotron-3.5-lightning-free`, and more
+- Others: Muse Spark / Wonder, Nemotron, Flint
+- Free tier: Big Pickle, `beam-free`, `flint-40b-free`, `glm-5.3-flash-free`, `nemotron-3.5-lightning-free`, and more
 
 For the full table of capabilities (context window, vision, tools, thinking, API format), see [docs/models.md](docs/models.md). The catalog and that table are generated — run `bun run sync:pi:write` to re-mirror them from the Zen API.
 

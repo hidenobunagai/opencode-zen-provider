@@ -1,4 +1,15 @@
 # Change Log
+## [0.1.60] - 2026-10-23
+
+### Changed
+
+- **`kimi-k3` offers `low,high,max` instead of `max` alone.** Pi's `opencode` catalog now carries an explicit `thinkingLevelMap` for K3 with `low`, `high` and `max` mapped and `medium`/`xhigh` null, and models.dev's `opencode` provider lists the same three effort values. Moonshot's API docs record `reasoning_effort` as K3-only, so these are the rungs the gateway can send. No decision entry was added: the explicit Pi map is the ladder source here, per `docs/models.md`.
+- **The catalog and docs record the 2026-10-23 sync: 81 models.** `docs/models.md`'s generated table follows — `kimi-k3`'s Thinking column reads `low,high,max`, and the two retired rows are gone. The README's family summary no longer names LongCat or MiniMax M3.1.
+
+### Removed
+
+- **`longcat-2.5-preview-free` and `minimax-m3.1-flash-free` are retired because Zen no longer lists them.** Three consecutive reads of `GET /zen/v1/models` on 2026-10-23 returned 85 ids, of which 81 are pickable models (`test`, `claude-opus-5-5-backup` and the two `jev-1.13` classifiers aside), and neither free model was among them. models.dev still describes both, but the gateway's own list is the mirror the catalog follows — a listed id that fails every request is worse than an absent one. LongCat's now-unused entry in `docs/effort-decisions.json` is removed with it.
+
 ## [0.1.59] - 2026-10-22
 
 ### Added
