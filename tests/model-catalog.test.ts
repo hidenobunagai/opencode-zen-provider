@@ -9,7 +9,7 @@ describe("ZEN_MODEL_CATALOG", () => {
     expect(ZEN_MODEL_CATALOG).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "deepseek-v4-flash",
+          id: "deepseek-v4-pro",
           routeKind: "chat_completions",
         }),
         expect.objectContaining({
@@ -33,8 +33,8 @@ describe("ZEN_MODEL_CATALOG", () => {
   });
 
   it("includes newly added models from the Zen API", () => {
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "deepseek-v4-flash")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "deepseek-v4-pro")).toBeDefined();
+    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "deepseek-v4.1-flash")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gemini-3.6-flash")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gemini-3.5-flash-lite")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "gpt-5.6-luna")).toBeDefined();

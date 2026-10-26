@@ -36,7 +36,7 @@ current OpenCode Zen API lineup — every id `GET https://opencode.ai/zen/v1/mod
 80 models. The main families:
 
 - Anthropic: Claude Fable 5, Haiku 4.5 / 5.5, Opus 4.5–5.5, Sonnet 4.5–5.5
-- DeepSeek: V4 Pro, V4 Flash, V4.1 Flash
+- DeepSeek: V4 Pro, V4.1 Flash
 - Gemini: 3 / 3.5 / 3.6 / 3.7 / 3.8 Flash, 3.x Pro, 4 Argon
 - GPT: 5 / 5.1 / 5.2 / 5.3 Codex / 5.4 / 5.5 / 5.6 series
 - GLM: 5, 5.1, 5.2, 5.3

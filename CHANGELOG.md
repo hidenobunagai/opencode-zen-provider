@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.61] - 2026-10-27
+
+### Removed
+
+- **`deepseek-v4-flash` is retired because Zen no longer serves it.** `GET /zen/v1/models` on 2026-10-27 drops `deepseek-v4-flash` while keeping `deepseek-v4-pro`, `deepseek-v4.1-flash`, and `deepseek-v4.1-flash-free`. The catalog entry, its row in `docs/models.md`, its id in `REASONING_CONTENT_WORKAROUND_STATIC_SET`, and the README family summary are updated to match (80 models total).
+
 ## [0.1.60] - 2026-10-23
 
 ### Changed
