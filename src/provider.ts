@@ -484,22 +484,19 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
   }
 
   provideTokenCount(
-    _model: LanguageModelChatInformation,
+    model: LanguageModelChatInformation,
     text: string | LanguageModelChatRequestMessage,
     _token: CancellationToken,
   ): Promise<number> {
     if (typeof text === "string") {
       return Promise.resolve(estimateTokens(text));
     }
-    const textParts: string[] = [];
-    for (const part of text.content) {
-      const textValue = getTextPartValue(part as vscode.LanguageModelInputPart | LegacyPart);
-      if (textValue !== undefined) textParts.push(textValue);
-    }
-    if (textParts.length === 0) {
-      return Promise.resolve(2 * text.content.length);
-    }
-    return Promise.resolve(estimateTokens(textParts.join(" ")));
+    return Promise.resolve(
+      estimateMessagesTokens(
+        [{ content: text.content as Array<vscode.LanguageModelInputPart | LegacyPart> }],
+        model.id,
+      ),
+    );
   }
 
   private async ensureApiKey(options: unknown, silent: boolean): Promise<string | undefined> {

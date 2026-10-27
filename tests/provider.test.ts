@@ -199,6 +199,63 @@ describe("ZenChatModelProvider", () => {
     ).rejects.toThrow("Message exceeds token limit");
   });
 
+  it("provideTokenCount estimates tokens for tool result message based on data volume instead of returning 2", async () => {
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const toolResultContent = "export function sample() { return 42; }\n".repeat(50);
+    const message = {
+      role: vscode.LanguageModelChatMessageRole.User,
+      content: [
+        new vscode.LanguageModelToolResultPart("call_1", [
+          new vscode.LanguageModelTextPart(toolResultContent),
+        ]),
+      ],
+    };
+
+    const count = await provider.provideTokenCount(
+      { id: "gpt-5.5" } as any,
+      message as any,
+      token as any,
+    );
+    expect(count).toBeGreaterThan(100);
+    expect(count).not.toBe(2);
+  });
+
+  it("rejects oversized tool results before API call and throws token limit error", async () => {
+    (secrets.get as jest.Mock).mockResolvedValue("test-key");
+
+    const progress = { report: jest.fn() };
+    const token = {
+      isCancellationRequested: false,
+      onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
+    };
+    const hugeToolOutput = "line of logs from bash command\n".repeat(5000);
+    const messages = [
+      {
+        role: vscode.LanguageModelChatMessageRole.User,
+        content: [
+          new vscode.LanguageModelToolResultPart("call_1", [
+            new vscode.LanguageModelTextPart(hugeToolOutput),
+          ]),
+        ],
+      },
+    ];
+
+    await expect(
+      provider.provideLanguageModelChatResponse(
+        { id: "kimi-k2.6", maxInputTokens: 500, maxOutputTokens: 65536 } as any,
+        messages as any,
+        { modelOptions: {} } as any,
+        progress,
+        token as any,
+      ),
+    ).rejects.toThrow("Message exceeds token limit");
+
+    expect(streamChatCompletion).not.toHaveBeenCalled();
+  });
+
   it("prompts for an API key during chat and continues the request when one is provided", async () => {
     (secrets.get as jest.Mock).mockResolvedValue(undefined);
     ((vscode as any).window.showInputBox as jest.Mock).mockResolvedValue("new-api-key");

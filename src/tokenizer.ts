@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { getDataPartTextValue, getTextPartValue, type LegacyPart } from "./message-parts";
+import {
+  extractImageData,
+  getDataPartTextValue,
+  getTextPartValue,
+  getToolCallInfo,
+  getToolResultEntries,
+  type LegacyPart,
+} from "./message-parts";
 
 /**
  * CJK and full-width characters.  Modern tokenizers typically encode these at
@@ -37,13 +44,46 @@ export function estimateMessagesTokens(
   modelId?: string,
 ): number {
   let total = 0;
-  void modelId;
 
   for (const message of messages) {
+    if (!message || !Array.isArray(message.content)) {
+      continue;
+    }
     for (const part of message.content) {
       const textValue = getTextPartValue(part) ?? getDataPartTextValue(part);
       if (textValue !== undefined) {
-        total += estimateTokens(textValue);
+        total += estimateTokens(textValue, modelId);
+        continue;
+      }
+
+      const toolCall = getToolCallInfo(part);
+      if (toolCall) {
+        if (toolCall.name) {
+          total += estimateTokens(toolCall.name, modelId);
+        }
+        if (toolCall.args !== undefined) {
+          try {
+            total += estimateTokens(JSON.stringify(toolCall.args), modelId);
+          } catch {
+            // Ignore serialization failure
+          }
+        }
+        continue;
+      }
+
+      const toolResults = getToolResultEntries([part]);
+      if (toolResults.length > 0) {
+        for (const entry of toolResults) {
+          if (entry.content) {
+            total += estimateTokens(entry.content, modelId);
+          }
+        }
+        continue;
+      }
+
+      if (extractImageData(part)) {
+        total += 1000;
+        continue;
       }
     }
   }
