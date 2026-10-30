@@ -4,12 +4,12 @@ import { ZenMcpClient } from "../src/mcp";
 
 jest.mock("../src/api", () => ({
   requestChatCompletion: jest.fn(),
-  resolveApiEndpoint: jest.fn(() => "https://opencode.ai/zen/v1/models/gemini-3-flash"),
+  resolveApiEndpoint: jest.fn(() => "https://opencode.ai/zen/v1/models/gemini-3.5-flash"),
 }));
 
-const VISION_MODEL = "gemini-3-flash";
+const VISION_MODEL = "gemini-3.5-flash";
 const IMAGE_DATA = "data:image/png;base64,AAAA";
-const ENDPOINT = "https://opencode.ai/zen/v1/models/gemini-3-flash";
+const ENDPOINT = "https://opencode.ai/zen/v1/models/gemini-3.5-flash";
 
 function createSecrets(storedValue?: string) {
   const get = jest.fn().mockResolvedValue(storedValue);

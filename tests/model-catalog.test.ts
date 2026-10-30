@@ -25,7 +25,7 @@ describe("ZEN_MODEL_CATALOG", () => {
           routeKind: "responses",
         }),
         expect.objectContaining({
-          id: "gemini-3-flash",
+          id: "gemini-3.5-flash",
           routeKind: "model_specific",
         }),
       ]),

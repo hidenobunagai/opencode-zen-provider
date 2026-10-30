@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.62] - 2026-10-31
+
+### Changed
+
+- **The image-analysis fallback now defaults to `gemini-3.5-flash`.** `ZenMcpClient.analyzeImage` (behind the `opencode_zen_analyze_image` tool) and the provider's vision fallback for non-vision models both pinned `gemini-3-flash`, which Zen no longer serves. They now pick `gemini-3.5-flash`, the oldest Flash still listed, with the same `model_specific` route and image input.
+- **Dependency and CI housekeeping since 0.1.61.** `@azure/msal-node`, `fast-uri`, `undici` and `qs` are bumped to clear the OSV scan (the dev-only `deepmerge` advisory, which has no fix, is ignored), and CI gains a format/lint gate (oxfmt/oxlint) over changed files.
+
+### Removed
+
+- **`gemini-3-flash` and `gemini-3.1-pro` are retired because Zen no longer serves them.** `GET /zen/v1/models` on 2026-10-31 lists only `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash` and `gemini-4-argon` in the Gemini family. Pi's `opencode` catalog had no other differences. The catalog entries, their rows in `docs/models.md`, and the README family summary are updated to match (78 models total).
 ## [0.1.61] - 2026-10-27
 
 ### Removed

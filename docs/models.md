@@ -2,7 +2,7 @@
 
 The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` that mirrors the models served by the OpenCode Zen API (`https://opencode.ai/zen/v1`). Each model entry specifies its route kind (`responses` / `messages` / `chat_completions` / `model_specific`), API format (`openai` / `anthropic`), context window, max output, vision/tool/thinking support, and any fixed temperature.
 
-Catalog last synced with the API on 2026-10-27.
+Catalog last synced with the API on 2026-10-31.
 
 ## Thinking efforts
 
@@ -70,8 +70,6 @@ rather than the table.
 | DeepSeek V4.1 Flash | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4.1 Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | Flint 40B Free | 262,144 | 65,536 | ✗ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
-| Gemini 3 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
-| Gemini 3.1 Pro Preview | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 3.5 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.5 Flash Lite | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |
 | Gemini 3.6 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | OpenAI |

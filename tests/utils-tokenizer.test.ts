@@ -9,7 +9,7 @@ describe("tokenizer", () => {
       // 100 Latin chars / 2 = 50 tokens
       expect(estimateTokens("a".repeat(100), "claude-opus-4-7")).toBe(50);
       expect(estimateTokens("a".repeat(100), "gpt-5.4")).toBe(50);
-      expect(estimateTokens("a".repeat(100), "gemini-3-flash")).toBe(50);
+      expect(estimateTokens("a".repeat(100), "gemini-3.5-flash")).toBe(50);
     });
   });
 

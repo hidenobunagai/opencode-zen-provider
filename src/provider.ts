@@ -116,7 +116,7 @@ export class ZenChatModelProvider implements LanguageModelChatProvider {
   }
 
   private getVisionFallbackModelId(): string | undefined {
-    const gemini = this._modelMap.get("gemini-3-flash");
+    const gemini = this._modelMap.get("gemini-3.5-flash");
     if (gemini && gemini.supportsVision) return gemini.id;
     for (const m of this._modelMap.values()) {
       if (m.supportsVision) return m.id;

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { ZenMcpClient } from "./mcp";
 
 /**
- * Tool for analyzing images using the OpenCode Zen Vision model (gemini-3-flash).
+ * Tool for analyzing images using the OpenCode Zen Vision model (gemini-3.5-flash).
  * Non-vision models can delegate image content to this tool for analysis.
  */
 export class ZenAnalyzeImageTool implements vscode.LanguageModelTool<{

@@ -22,7 +22,7 @@ export class ZenMcpClient {
   }
 
   /**
-   * Analyze an image using an OpenCode Zen Vision model (default: gemini-3-flash).
+   * Analyze an image using an OpenCode Zen Vision model (default: gemini-3.5-flash).
    * Used to add image processing capabilities for non-vision models.
    *
    * @param imageData Base64-encoded image in data URL format (e.g. "data:image/png;base64,...")
@@ -40,7 +40,7 @@ export class ZenMcpClient {
       throw new Error("OpenCode Zen API key not found");
     }
 
-    const defaultVisionModel = "gemini-3-flash";
+    const defaultVisionModel = "gemini-3.5-flash";
     const modelInfo = ZEN_MODEL_CATALOG.find((m) => m.id === defaultVisionModel);
     const routeKind = modelInfo?.routeKind ?? "model_specific";
     const endpoint = resolveApiEndpoint(routeKind, defaultVisionModel);

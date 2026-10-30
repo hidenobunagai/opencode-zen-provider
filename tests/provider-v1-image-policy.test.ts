@@ -69,7 +69,7 @@ describe("OpenCode Zen V1 image policy", () => {
       token as any,
     );
 
-    // Should switch to fallback (gemini-3-flash or other vision model)
+    // Should switch to fallback (gemini-3.5-flash or other vision model)
     // and report the switch to progress, then invoke streamChatCompletion.
     expect(progress.report).toHaveBeenCalledWith(
       expect.objectContaining({
