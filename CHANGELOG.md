@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.63] - 2026-11-04
+
+### Added
+
+- **`crouton-alpha-free` and `pulse-alpha-free` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-04 lists both OpenCode stealth models (80 pickable models in total). Pi's `opencode` catalog does not carry them yet and had no other differences, so their metadata comes from models.dev's `opencode` provider: OpenAI-compatible chat completions, 1,048,576-token context, vision and tool calling, with 270,000 / 131,072 max output respectively. The catalog entries, their rows in `docs/models.md`, and the README model count and free-tier list are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** As stealth models they have no vendor API documentation, so — as with `flint-40b-free` — the decision cites the gateway's own published catalog: `minimal,low,medium,high,xhigh,max` for Crouton Alpha and `low,high,max` for Pulse Alpha. A live `reasoning_effort` probe from the sync host got no response, so the ladders are the gateway's published mapping rather than measured ones.
+
+### Changed
+
+- **`src/provider.ts` formatting no longer fights between the two formatters.** Since 0.1.62, the multi-line `modelConfig` cast is written in the one wrap that both oxfmt (the CI Format gate) and eslint-plugin-prettier accept, so any change touching that file passes both. No behavior change.
 ## [0.1.62] - 2026-10-31
 
 ### Changed
