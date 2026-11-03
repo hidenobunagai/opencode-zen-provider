@@ -12,3 +12,11 @@ reason = "Transitive dev dependency from istanbuljs/argparse via sprintf-js 1.0.
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"
 reason = "Transitive dev dependency from jest via jest-config -> deepmerge 4.3.1 (test tooling only, not shipped in the extension); no fixed version published (CVE-2026-93753)"
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+reason = "Dev-only: glob 13.0.6 comes from @vscode/vsce (packaging tool, not shipped in the extension, which has no runtime dependencies); the fix exists only in glob 14.0.2, outside the ^13 range vsce declares (CVE-2026-118773)"
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+reason = "Dev-only: minimatch 10.2.6 (eslint, @vscode/vsce, typescript-eslint) and 3.1.5 (jest via glob 7 / test-exclude) are lint, packaging and test tooling, not shipped in the extension; the fix exists only in minimatch 11.0.1, a major its dependents do not accept (CVE-2026-118764)"
