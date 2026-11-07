@@ -2,7 +2,7 @@
 
 The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` that mirrors the models served by the OpenCode Zen API (`https://opencode.ai/zen/v1`). Each model entry specifies its route kind (`responses` / `messages` / `chat_completions` / `model_specific`), API format (`openai` / `anthropic`), context window, max output, vision/tool/thinking support, and any fixed temperature.
 
-Catalog last synced with the API on 2026-11-04.
+Catalog last synced with the API on 2026-11-08.
 
 ## Thinking efforts
 
@@ -111,6 +111,8 @@ rather than the table.
 | Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
+| Iceman Free | 262,144 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
+| Inkling 2 Small Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,max`) | OpenAI |
 | Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
@@ -125,7 +127,6 @@ rather than the table.
 | Muse Wonder | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
 | Nemotron 3.5 Lightning Free | 262,144 | 262,144 | ✗ | ✗ | ✗ | OpenAI |
 | Nemotron 3.5 Super VL Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
-| Pulse Alpha Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | Qwen3.5 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |

@@ -1,4 +1,18 @@
 # Change Log
+## [0.1.64] - 2026-11-08
+
+### Added
+
+- **`iceman-free` and `inkling-2-small-free` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-08 lists both free models (81 pickable models in total). Pi's `opencode` catalog does not carry them yet and had no other differences, so their metadata comes from models.dev's `opencode` provider, both on OpenAI-compatible chat completions: Iceman (an OpenCode stealth model) is text-only with a 262,144-token context and 131,072 max output; Inkling 2 Small (Thinking Machines Lab) takes images, with a 1,048,576-token context and 131,072 max output. The catalog entries, their rows in `docs/models.md`, and the README model count and free-tier list are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** Inkling 2 Small gets `minimal,low,medium,high,max`: Thinking Machines documents effort as a numeric level rather than a `reasoning_effort` enum, so the ladder is the gateway's published mapping from models.dev, minus `none` (which turns reasoning off and is not a picker rung, nor a value the extension's effort type accepts). Iceman records an empty ladder: models.dev publishes no effort options for it, so the picker stays off and the gateway default applies. A live `reasoning_effort` probe from the sync host was refused with `FreeUsageLimitError`, so neither ladder is measured.
+
+### Removed
+
+- **`pulse-alpha-free` is retired because Zen stopped serving it.** The stealth model added in 0.1.63 no longer appears in `GET /zen/v1/models`, so its catalog entry, its `docs/models.md` row, its README free-tier mention, and its effort decision are removed.
+
+### Changed
+
+- **The OSV scan ignores the dev-only `glob` and `minimatch` advisories** (packaging, lint and test tooling only, not shipped in the extension; their fixes sit in majors the dependents do not accept). No change to the extension itself.
 ## [0.1.63] - 2026-11-04
 
 ### Added
