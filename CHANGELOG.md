@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.65] - 2026-11-10
+
+### Added
+
+- **`claude-fable-5-2`, `muse-ember-1.0` and `longcat-2.5-free` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-10 lists all three (84 pickable models in total). Pi's `opencode` catalog does not carry them yet and had no other differences, so their metadata comes from models.dev's `opencode` provider: Claude Fable 5.2 (Anthropic Messages, 1,000,000-token context, 128,000 max output, images), Muse Ember 1.0 (Meta's efficient Muse model on the Responses API, 1,048,576-token context, 270,000 max output, images), and LongCat 2.5 Free (Meituan, OpenAI-compatible chat completions, 1,000,000-token context, 262,144 max output, images). The catalog entries, their rows in `docs/models.md`, and the README model count, family list and free-tier list are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** Claude Fable 5.2 gets `low,medium,high,xhigh,max`: Anthropic's effort docs say it supports all five levels, and models.dev publishes the same mapping for the gateway. Muse Ember 1.0 gets `minimal,low,medium,high,xhigh,max`: Meta's model page gives "minimal" to "max" and its reasoning page confirms `max` for `muse-ember-1.0`. LongCat 2.5 Free gets `minimal,low,medium,high,xhigh`: LongCat's chat-completions and Anthropic pages document only a thinking on/off switch, but its Responses API page documents `reasoning.effort` up to `xhigh` for LongCat-2.5, so the ladder follows the vendor's enum minus `none` (models.dev lists only a toggle). None of the three ladders is measured: the paid models need gateway credit, and free-tier probes from the sync host are refused.
 ## [0.1.64] - 2026-11-08
 
 ### Added

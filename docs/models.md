@@ -2,7 +2,7 @@
 
 The extension bundles a static `ZEN_MODEL_CATALOG` in `src/model-catalog.ts` that mirrors the models served by the OpenCode Zen API (`https://opencode.ai/zen/v1`). Each model entry specifies its route kind (`responses` / `messages` / `chat_completions` / `model_specific`), API format (`openai` / `anthropic`), context window, max output, vision/tool/thinking support, and any fixed temperature.
 
-Catalog last synced with the API on 2026-11-08.
+Catalog last synced with the API on 2026-11-10.
 
 ## Thinking efforts
 
@@ -54,6 +54,7 @@ rather than the table.
 | Big Pickle | 200,000 | 32,000 | ✗ | ✗ | ✗ | OpenAI |
 | Claude Fable 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Fable 5.1 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
+| Claude Fable 5.2 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Anthropic |
 | Claude Haiku 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✗ | Anthropic |
 | Claude Haiku 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Opus 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Anthropic |
@@ -117,11 +118,13 @@ rather than the table.
 | Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
+| LongCat 2.5 Free | 1,000,000 | 262,144 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
 | MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✗ | OpenAI |
 | Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
+| Muse Ember 1.0 | 1,048,576 | 270,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Spark 1.3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
 | Muse Wonder | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |

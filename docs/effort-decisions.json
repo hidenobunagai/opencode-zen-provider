@@ -4,6 +4,11 @@
     "source": "OpenCode's own free stealth model: pi-ai opencode:big-pickle has reasoning:true with no level map, models.dev provider opencode lists no reasoning options, and there is no vendor documentation to consult. Recording an empty ladder rather than guessing; revisiting needs a live probe against the Zen API with an API key.",
     "decided": "2026-10-22"
   },
+  "claude-fable-5-2": {
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "source": "Anthropic effort docs (platform.claude.com/docs/en/build-with-claude/effort): 'Claude Fable 5.2 supports all five effort levels' (low, medium, high, xhigh, max; API default high), and the xhigh and max rows both list Claude Fable 5.2. models.dev provider opencode — the gateway's own published mapping — lists reasoning_options effort low/medium/high/xhigh/max on the Anthropic-compatible endpoint (opencode.ai/inference/anthropic/v1). Pi's opencode catalog does not carry the model yet. Not probed: the paid model needs gateway credit.",
+    "decided": "2026-11-10"
+  },
   "claude-haiku-4-5": {
     "efforts": [],
     "source": "Anthropic Effort docs (docs.claude.com/en/docs/build-with-claude/effort): the 'Supported models' list for effort is Fable 5/5.1, Mythos 5/5.1/Preview, Opus 4.5-4.8/5/5.5, Sonnet 4.6/5/5.5 and Haiku 5.5 — Haiku 4.5 is not on it, so it has no effort parameter. It still reasons (adaptive budget_tokens), which is why the picker must stay off rather than offer guessed rungs.",
@@ -64,6 +69,11 @@
     "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'.",
     "decided": "2026-10-21"
   },
+  "longcat-2.5-free": {
+    "efforts": ["minimal", "low", "medium", "high", "xhigh"],
+    "source": "LongCat API reference, read on every protocol page (the mimo-v2.6-flash-free lesson): Chat Completions (longcat.ai/platform/docs/api/chat) and Anthropic Messages (longcat.ai/platform/docs/api/messages) document only thinking: { type: enabled | disabled }, and Model Parameters adds thinking_budget, but the Responses API page (longcat.ai/platform/docs/api/responses), which 'currently supports LongCat-2.5', documents reasoning.effort none/minimal/low/medium/high/xhigh. 'none' disables reasoning and is not a picker rung, so the ladder is minimal/low/medium/high/xhigh (no max). Zen serves the model on chat completions and models.dev provider opencode lists only a toggle option, so this is the vendor's enum, not a gateway-published or measured one; free-tier probes from the sync host are refused with FreeUsageLimitError.",
+    "decided": "2026-11-10"
+  },
   "mimo-v2.6-flash-free": {
     "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, with minimal mapped to low and xhigh/max/ultra mapped to high. The page also states intensity is not differentiated yet (none disables, every other level enables), but low/medium/high are all accepted values, so they are the rungs this gateway can send. Corrects the empty ladder recorded earlier from reading only the chat-completions and anthropic pages, which document thinking.enabled|disabled and no effort at all.",
@@ -83,6 +93,11 @@
     "efforts": [],
     "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M3 controls thinking with thinking: { type: adaptive | disabled } (on by default) and documents no effort parameter. models.dev provider opencode lists only a toggle for this id.",
     "decided": "2026-10-22"
+  },
+  "muse-ember-1.0": {
+    "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],
+    "source": "Meta Model API docs: the Muse Ember page (dev.meta.ai/docs/muse-ember) gives reasoning effort 'minimal' to 'max' (default 'max') on the Responses, Chat Completions and Messages endpoints, and the reasoning page (dev.meta.ai/docs/reasoning) lists minimal/low/medium/high/xhigh/max, with 'max' supported by muse-ember-1.0 and 'none' returning HTTP 400 for the Muse models. models.dev provider opencode lists the same minimal..max effort values on the OpenAI-compatible endpoint. Not probed: the paid model needs gateway credit.",
+    "decided": "2026-11-10"
   },
   "nemotron-3.5-lightning-free": {
     "efforts": [],
