@@ -24,15 +24,15 @@
     "source": "Anthropic Effort docs: Sonnet 4.5 is absent from the effort 'Supported models' list (Sonnet 4.6/5/5.5 are listed). It reasons with a budget_tokens ceiling, so there is no ladder to expose. models.dev provider opencode also shows only budget_tokens for it.",
     "decided": "2026-10-21"
   },
-  "crouton-alpha-free": {
-    "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],
-    "source": "OpenCode's own free stealth model (models.dev describes it only as a 'stealth reasoning model', so there is no vendor API documentation to consult). models.dev provider opencode — the gateway's own published catalog, and the source OpenCode's #variant list is built from — lists reasoning_options effort minimal/low/medium/high/xhigh/max and serves it on the OpenAI-compatible endpoint (opencode.ai/inference/openai/v1). A live probe of reasoning_effort on opencode.ai/zen/v1/chat/completions on 2026-11-04 got no response from this VM, so the ladder is the gateway's published mapping, not a measured one.",
-    "decided": "2026-11-04"
-  },
   "flint-40b-free": {
     "efforts": ["low", "medium", "high", "xhigh", "max"],
     "source": "models.dev provider opencode — the gateway's own published catalog — lists reasoning_options effort low/medium/high/xhigh/max for flint-40b-free, and the Zen console docs (opencode.ai/docs/zen) serve it on the OpenAI-compatible chat-completions endpoint. Recursive's own serving kit (huggingface.co/RecursiveSI/flint, sglang/README.md) states the checkpoint decides on each turn whether to reason and has no switch or budget, so this ladder is the gateway's mapping rather than a vendor reasoning_effort enum.",
     "decided": "2026-10-22"
+  },
+  "gemini-4-carbon": {
+    "efforts": ["low", "medium", "high"],
+    "source": "Gemini API docs, thinking page (ai.google.dev/gemini-api/docs/generate-content/thinking): thinkingLevel is required for Gemini 4, and gemini-4-carbon (like gemini-4-argon) supports low, medium (default) and high; minimal is an error and thinking cannot be disabled. models.dev provider opencode lists the same low/medium/high effort values and serves it on the gateway's Google route (opencode.ai/inference/google/v1beta), matching Pi's thinkingLevelMap for gemini-4-argon. Not probed: the paid model needs gateway credit.",
+    "decided": "2026-11-11"
   },
   "glm-5": {
     "efforts": [],
@@ -93,6 +93,11 @@
     "efforts": [],
     "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M3 controls thinking with thinking: { type: adaptive | disabled } (on by default) and documents no effort parameter. models.dev provider opencode lists only a toggle for this id.",
     "decided": "2026-10-22"
+  },
+  "minimax-m3.1-flash-free": {
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "source": "MiniMax API docs: the Create Response page (platform.minimax.io/docs/api-reference/responses-create) says MiniMax-M3.1-Flash always reasons and its effort accepts low, medium, high, xhigh or max (default max; none returns HTTP 400), and the OpenAI-compatible chat page (platform.minimax.io/docs/api-reference/text-openai-api) says reasoning_effort is effective for MiniMax-M3.1-Flash. models.dev provider opencode lists the same low..max effort values on the OpenAI-compatible endpoint. Not probed: free-tier requests from the sync host are refused.",
+    "decided": "2026-11-11"
   },
   "muse-ember-1.0": {
     "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],

@@ -67,7 +67,6 @@ rather than the table.
 | Claude Sonnet 4.6 | 1,000,000 | 64,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
 | Claude Sonnet 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Sonnet 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
-| Crouton Alpha Free | 1,048,576 | 270,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | OpenAI |
 | DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | DeepSeek V4.1 Flash | 1,000,000 | 384,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | DeepSeek V4.1 Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
@@ -78,6 +77,7 @@ rather than the table.
 | Gemini 3.7 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 3.8 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Argon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Gemini 4 Carbon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
@@ -123,6 +123,7 @@ rather than the table.
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✗ | OpenAI |
+| MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Muse Ember 1.0 | 1,048,576 | 270,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |

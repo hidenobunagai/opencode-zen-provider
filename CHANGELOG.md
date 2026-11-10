@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.66] - 2026-11-11
+
+### Added
+
+- **`gemini-4-carbon` and `minimax-m3.1-flash-free` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-11 lists both (85 pickable models in total). Pi's `opencode` catalog had no other differences. Gemini 4 Carbon, Google's new top reasoning model built on Gemini 4 Argon, is not in Pi yet, so its metadata comes from models.dev's `opencode` provider: the gateway's Google route, 1,048,576-token context, 65,536 max output, images and tool calling. MiniMax M3.1 Flash Free returns after being retired in 0.1.59, with Pi's metadata: OpenAI-compatible chat completions, 1,000,000-token context, 512,000 max output, images and tool calling. The catalog entries, their rows in `docs/models.md`, and the README model count, Gemini family line and free-tier list are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** Gemini 4 Carbon gets `low,medium,high`: Google's thinking docs say `thinkingLevel` is required for Gemini 4 and that `gemini-4-carbon`, like `gemini-4-argon`, supports low, medium (default) and high, with `minimal` rejected. MiniMax M3.1 Flash Free gets `low,medium,high,xhigh,max`: MiniMax's API docs say the model always reasons, its effort accepts low through max (default max), and `reasoning_effort` takes effect for M3.1 Flash on the OpenAI-compatible endpoint. models.dev publishes the same ladders for the gateway. Neither is measured: the paid model needs gateway credit, and free-tier probes from the sync host are refused.
+
+### Removed
+
+- **`crouton-alpha-free` is retired because Zen stopped serving it.** The stealth model added in 0.1.63 no longer appears in `GET /zen/v1/models`, so its catalog entry, its `docs/models.md` row, its README free-tier mention, and its effort decision are removed.
 ## [0.1.65] - 2026-11-10
 
 ### Added
