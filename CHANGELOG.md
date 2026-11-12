@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.67] - 2026-11-13
+
+### Added
+
+- **`gemini-4-hydrogen` joins the catalog because Zen now serves it.** `GET /zen/v1/models` on 2026-11-13 lists it (86 pickable models in total). Pi's `opencode` catalog had no other differences. Gemini 4 Hydrogen, Google's new Gemini 4 model for everyday coding and agentic work, is not in Pi yet, so its metadata comes from models.dev's `opencode` provider: the gateway's Google route, 1,048,576-token context, 65,536 max output, images and tool calling. The catalog entry, its row in `docs/models.md`, and the README model count and Gemini family line are updated to match.
+- **Its thinking ladder is recorded in `docs/effort-decisions.json`.** Gemini 4 Hydrogen gets `low,medium,high,xhigh`: Google's thinking docs say `thinkingLevel` is required for Gemini 4 and that `gemini-4-hydrogen` supports low, medium, high (the default) and the new xhigh, with `minimal` unsupported and thinking always on. models.dev publishes the same ladder for the gateway. It is not measured, because the paid model needs gateway credit.
 ## [0.1.66] - 2026-11-11
 
 ### Added

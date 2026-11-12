@@ -78,6 +78,7 @@ rather than the table.
 | Gemini 3.8 Flash | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Argon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Carbon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
+| Gemini 4 Hydrogen | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
 | GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |

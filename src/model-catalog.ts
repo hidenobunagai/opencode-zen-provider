@@ -1209,4 +1209,18 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsThinking: true,
     supportedReasoningEfforts: ["low", "medium", "high", "xhigh", "max"],
   },
+  {
+    id: "gemini-4-hydrogen",
+    requestModelId: "gemini-4-hydrogen",
+    name: "Gemini 4 Hydrogen",
+    displayName: "Gemini 4 Hydrogen",
+    routeKind: "model_specific",
+    apiFormat: "openai",
+    contextWindow: 1048576,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
+  },
 ];
