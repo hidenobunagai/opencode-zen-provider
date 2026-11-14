@@ -42,6 +42,90 @@ describe("fetchWithRetry", () => {
     expect(result.status).toBe(401);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it("returns a 429 response immediately when Retry-After exceeds the limit", async () => {
+    const response = {
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: new Headers({ "retry-after": "3600" }),
+    } as any;
+    const fetchMock = jest.fn().mockResolvedValue(response);
+    global.fetch = fetchMock;
+    jest.useFakeTimers();
+
+    try {
+      let result: Response | undefined;
+      let rejection: unknown;
+      const observedRequest = fetchWithRetry(`${BASE_URL}/models`, { method: "GET" }).then(
+        (value) => {
+          result = value;
+        },
+        (error: unknown) => {
+          rejection = error;
+        },
+      );
+
+      await jest.advanceTimersByTimeAsync(0);
+      const timerCount = jest.getTimerCount();
+      jest.clearAllTimers();
+
+      expect(timerCount).toBe(0);
+      await observedRequest;
+      expect(result).toBe(response);
+      expect(rejection).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
+
+  it("aborts an in-progress Retry-After wait without retrying", async () => {
+    const response = {
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: new Headers({ "retry-after": "60" }),
+    } as any;
+    const fetchMock = jest.fn().mockResolvedValue(response);
+    global.fetch = fetchMock;
+    const controller = new AbortController();
+    const abortError = new Error("Request aborted");
+    abortError.name = "AbortError";
+    jest.useFakeTimers();
+
+    try {
+      const requestOutcome = fetchWithRetry(`${BASE_URL}/models`, {
+        method: "GET",
+        signal: controller.signal,
+      }).then(
+        (value) => ({ status: "resolved" as const, value }),
+        (error: unknown) => ({ status: "rejected" as const, error }),
+      );
+
+      await jest.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(1);
+
+      controller.abort(abortError);
+      const abortDeadline = new Promise<{ status: "pending" }>((resolve) => {
+        setTimeout(() => resolve({ status: "pending" }), 0);
+      });
+      await jest.advanceTimersByTimeAsync(0);
+      const outcome = await Promise.race([requestOutcome, abortDeadline]);
+
+      expect(jest.getTimerCount()).toBe(0);
+      expect(outcome.status).toBe("rejected");
+      if (outcome.status === "rejected") {
+        expect(outcome.error).toBe(abortError);
+      }
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe("streamChatCompletion", () => {
@@ -121,8 +205,7 @@ describe("streamChatCompletion", () => {
   });
 
   it("retries on 429 and eventually throws after exhausting retries", async () => {
-    const originalSetTimeout = global.setTimeout;
-    global.setTimeout = ((cb: () => void) => cb()) as any;
+    jest.spyOn(Math, "random").mockReturnValue(0);
 
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
@@ -132,18 +215,14 @@ describe("streamChatCompletion", () => {
       text: async () => "Rate limited",
     } as any);
 
-    try {
-      const endpoint = `${BASE_URL}/chat/completions`;
-      const gen = streamChatCompletion(
-        "key",
-        { model: "kimi-k2.6", messages: [], stream: true },
-        endpoint,
-      );
-      await expect(gen.next()).rejects.toThrow("HTTP 429");
-      expect(fetch).toHaveBeenCalledTimes(5);
-    } finally {
-      global.setTimeout = originalSetTimeout;
-    }
+    const endpoint = `${BASE_URL}/chat/completions`;
+    const gen = streamChatCompletion(
+      "key",
+      { model: "kimi-k2.6", messages: [], stream: true },
+      endpoint,
+    );
+    await expect(gen.next()).rejects.toThrow("HTTP 429");
+    expect(fetch).toHaveBeenCalledTimes(5);
   });
 
   it("retries on network failure and succeeds", async () => {
