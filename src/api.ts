@@ -1,6 +1,7 @@
 import {
   BASE_RETRY_DELAY_MS,
   BASE_URL,
+  MAX_RETRY_AFTER_MS,
   MAX_RETRY_DELAY_MS,
   REQUEST_TIMEOUT_MS,
   SSE_CHUNK_TIMEOUT_MS,
@@ -49,6 +50,42 @@ function calculateRetryDelay(attempt: number, retryAfter?: number): number {
   return Math.round(Math.random() * cappedDelay);
 }
 
+function createAbortError(signal: AbortSignal): Error {
+  if (signal.reason instanceof Error) {
+    return signal.reason;
+  }
+
+  const error = new Error("The operation was aborted");
+  error.name = "AbortError";
+  return error;
+}
+
+function sleepWithAbort(delay: number, signal?: AbortSignal | null): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(createAbortError(signal));
+  }
+
+  return new Promise((resolve, reject) => {
+    function onAbort() {
+      clearTimeout(timeoutId);
+      if (signal) {
+        signal.removeEventListener("abort", onAbort);
+        reject(createAbortError(signal));
+      }
+    }
+
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delay);
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    if (signal?.aborted) {
+      onAbort();
+    }
+  });
+}
+
 export async function fetchWithRetry(
   url: string,
   init: RequestInit,
@@ -61,20 +98,28 @@ export async function fetchWithRetry(
       if (response.ok || !isRetryableHttpError(response.status)) {
         return response;
       }
+
+      const retryAfter = getRetryAfterMs(response);
+      if (retryAfter !== undefined && retryAfter > MAX_RETRY_AFTER_MS) {
+        return response;
+      }
+
       lastError = new Error(`HTTP ${response.status} ${response.statusText}`);
       if (i < retries - 1) {
-        const retryAfter = getRetryAfterMs(response);
         const delay = calculateRetryDelay(i, retryAfter);
         debugLog(
           "fetchWithRetry",
           `Attempt ${i + 1} failed with ${response.status}, retrying after ${delay}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleepWithAbort(delay, init.signal);
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       if (lastError.name === "AbortError") {
         throw lastError;
+      }
+      if (init.signal?.aborted) {
+        throw createAbortError(init.signal);
       }
       if (i < retries - 1) {
         const delay = calculateRetryDelay(i);
@@ -82,7 +127,7 @@ export async function fetchWithRetry(
           "fetchWithRetry",
           `Attempt ${i + 1} failed with network error, retrying after ${delay}ms`,
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await sleepWithAbort(delay, init.signal);
       }
     }
   }

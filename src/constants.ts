@@ -22,6 +22,9 @@ export const DEFAULT_MAX_OUTPUT_TOKENS = 65536;
 /** Maximum retry delay in milliseconds */
 export const MAX_RETRY_DELAY_MS = 30000;
 
+/** Maximum server-provided Retry-After delay in milliseconds */
+export const MAX_RETRY_AFTER_MS = 60000;
+
 /** Base retry delay in milliseconds */
 export const BASE_RETRY_DELAY_MS = 1000;
 
