@@ -113,6 +113,7 @@ rather than the table.
 | Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
+| Hy4 flash Free | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Iceman Free | 262,144 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | Inkling 2 Small Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,max`) | OpenAI |
 | Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |

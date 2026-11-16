@@ -49,6 +49,11 @@
     "source": "Z.AI thinking docs: reasoning_effort is 'only supported by GLM-5.2 and above' — GLM-5.1 exposes thinking.type enabled/disabled but no effort parameter.",
     "decided": "2026-10-21"
   },
+  "hy4-flash-free": {
+    "efforts": ["high"],
+    "source": "Tencent Cloud TokenHub deep-thinking docs (cloud.tencent.com/document/product/1823/131208): hy4-flash, hy4 and hy4-preview take reasoning_effort 'default high; supports high, no_think', and thinking.type enabled|disabled (default enabled). no_think turns reasoning off, so it is not a picker rung, which leaves high as the only rung. models.dev provider opencode (the gateway's published mapping, on opencode.ai/inference/openai/v1) lists effort none/high, the same switch under the gateway's name, minus none. The Hy4-preview chat template on Hugging Face also accepts only high or no_think. Pi's opencode catalog does not carry the model yet. Not probed: free-tier requests from the sync host are refused with FreeUsageLimitError.",
+    "decided": "2026-11-17"
+  },
   "iceman-free": {
     "efforts": [],
     "source": "OpenCode stealth model (models.dev describes it only as a 'Stealth model, free for a limited time', so there is no vendor API documentation to consult). models.dev provider opencode — the gateway's own published catalog, and the source OpenCode's #variant list is built from — marks it reasoning: true with an empty reasoning_options list and serves it on the OpenAI-compatible endpoint (opencode.ai/inference/openai/v1), so the gateway publishes no effort ladder. A live reasoning_effort probe on opencode.ai/zen/v1/chat/completions on 2026-11-08 was refused with FreeUsageLimitError (free models only answer inside OpenCode), so nothing could be measured; the picker stays off and the gateway default applies.",

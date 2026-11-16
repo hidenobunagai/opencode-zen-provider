@@ -1223,4 +1223,18 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     supportsThinking: true,
     supportedReasoningEfforts: ["low", "medium", "high", "xhigh"],
   },
+  {
+    id: "hy4-flash-free",
+    requestModelId: "hy4-flash-free",
+    name: "Hy4 flash Free",
+    displayName: "Hy4 flash Free",
+    routeKind: "chat_completions",
+    apiFormat: "openai",
+    contextWindow: 1048576,
+    maxOutput: 65536,
+    supportsTools: true,
+    supportsVision: true,
+    supportsThinking: true,
+    supportedReasoningEfforts: ["high"],
+  },
 ];

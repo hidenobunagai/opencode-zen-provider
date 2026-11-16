@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.68] - 2026-11-17
+
+### Added
+
+- **`hy4-flash-free` joins the catalog because Zen now serves it.** `GET /zen/v1/models` on 2026-11-17 lists it (87 pickable models in total). Pi's `opencode` catalog had no other differences. Hy4 flash, Tencent's lower-cost Hy4 tier for everyday coding and agent work, is not in Pi yet, so its metadata comes from models.dev's `opencode` provider: OpenAI-compatible chat completions, 1,048,576-token context, 65,536 max output, images and tool calling. The catalog entry, its row in `docs/models.md`, and the README model count, family list and free-tier list are updated to match.
+- **Its thinking ladder is recorded in `docs/effort-decisions.json`.** Hy4 flash Free gets `high` only. Tencent's TokenHub deep-thinking docs say `reasoning_effort` for `hy4-flash` defaults to `high` and accepts only `high` and `no_think`. `no_think` turns reasoning off, so it is not a picker rung. models.dev publishes the same switch for the gateway as `none,high`, and the generator's `none` is dropped. It is not measured, because free-tier probes from the sync host are refused.
+
+### Fixed
+
+- **Retry waits can now be cancelled, and long `Retry-After` values are no longer waited out.** Cancelling a request in Copilot Chat during a 429/5xx backoff now stops the wait at once, so the request no longer keeps sleeping before it fails. If the server asks for a `Retry-After` longer than 60 seconds, the extension now returns that response right away and does not block the chat for the full delay.
 ## [0.1.67] - 2026-11-13
 
 ### Added
