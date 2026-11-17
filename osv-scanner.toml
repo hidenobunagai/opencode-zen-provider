@@ -20,3 +20,7 @@ reason = "Dev-only: glob 13.0.6 comes from @vscode/vsce (packaging tool, not shi
 [[IgnoredVulns]]
 id = "GHSA-g3hv-75wg-m249"
 reason = "Dev-only: minimatch 10.2.6 (eslint, @vscode/vsce, typescript-eslint) and 3.1.5 (jest via glob 7 / test-exclude) are lint, packaging and test tooling, not shipped in the extension; the fix exists only in minimatch 11.0.1, a major its dependents do not accept (CVE-2026-118764)"
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+reason = "Dev-only: picomatch 2.3.2 (via micromatch 4.0.8 / jest-util) and 4.0.5 (via tinyglobby) are test and tooling dependencies, not shipped in the extension; no fixed version published (ReDoS)"
