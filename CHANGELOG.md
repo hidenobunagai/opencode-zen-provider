@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.69] - 2026-11-18
+
+### Added
+
+- **`gpt-6.2-astra` and `gpt-6.2-sol` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-18 lists both (88 pickable models in total). Pi's `opencode` catalog had no other differences. GPT-6.2 Astra (OpenAI's frontier reasoning model for coding, computer use and professional work) and GPT-6.2 Sol (its efficient everyday reasoning model) are not in Pi yet, so their metadata comes from models.dev's `opencode` provider: the gateway's Responses route, 1,050,000-token context, 128,000 max output, images and tool calling. The catalog entries, their rows in `docs/models.md`, and the README model count and GPT family line (which now also names the 6 and 6.1 series) are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** Both get `low,medium,high,xhigh,max`. OpenAI's model pages and reasoning guide say the GPT-6.2 models reject `none` with HTTP 400, and the GPT-6.2 guide tells callers who use `none` or `minimal` to use `low` instead, so `low` is the lowest rung. models.dev publishes `low` through `max` for the gateway, the same ladder as GPT-6.1 Sol. Neither ladder is measured, because the paid models need gateway credit.
+
+### Removed
+
+- **`minimax-m3.1-flash-free` is retired because Zen stopped serving it.** It no longer appears in `GET /zen/v1/models` (models.dev now marks it deprecated), so its catalog entry, its `docs/models.md` row, its README free-tier mention, and its effort decision are removed.
 ## [0.1.68] - 2026-11-17
 
 ### Added

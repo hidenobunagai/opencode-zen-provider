@@ -49,6 +49,16 @@
     "source": "Z.AI thinking docs: reasoning_effort is 'only supported by GLM-5.2 and above' — GLM-5.1 exposes thinking.type enabled/disabled but no effort parameter.",
     "decided": "2026-10-21"
   },
+  "gpt-6.2-astra": {
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "source": "OpenAI API docs: the GPT-6.2 Astra model page (developers.openai.com/api/docs/models/gpt-6.2-astra) and the reasoning guide (developers.openai.com/api/docs/guides/reasoning) say GPT-6.2 Astra and GPT-6.2 Sol reject reasoning effort none with HTTP 400, and the GPT-6.2 latest-model guide (developers.openai.com/api/docs/guides/latest-model) tells callers using none or minimal to use low instead, so low is the floor. models.dev provider opencode, the gateway's own published mapping, lists reasoning_options effort low/medium/high/xhigh/max on the Responses route, matching the GPT-6.1 Sol ladder (low..max, no none/minimal). Not probed: the paid model needs gateway credit.",
+    "decided": "2026-11-18"
+  },
+  "gpt-6.2-sol": {
+    "efforts": ["low", "medium", "high", "xhigh", "max"],
+    "source": "OpenAI API docs: the GPT-6.2 Sol model page (developers.openai.com/api/docs/models/gpt-6.2-sol) and the reasoning guide (developers.openai.com/api/docs/guides/reasoning) say GPT-6.2 Astra and GPT-6.2 Sol reject reasoning effort none with HTTP 400, and the GPT-6.2 latest-model guide (developers.openai.com/api/docs/guides/latest-model) tells callers using none or minimal to use low instead, so low is the floor. models.dev provider opencode, the gateway's own published mapping, lists reasoning_options effort low/medium/high/xhigh/max on the Responses route, matching the GPT-6.1 Sol ladder (low..max, no none/minimal). Not probed: the paid model needs gateway credit.",
+    "decided": "2026-11-18"
+  },
   "hy4-flash-free": {
     "efforts": ["high"],
     "source": "Tencent Cloud TokenHub deep-thinking docs (cloud.tencent.com/document/product/1823/131208): hy4-flash, hy4 and hy4-preview take reasoning_effort 'default high; supports high, no_think', and thinking.type enabled|disabled (default enabled). no_think turns reasoning off, so it is not a picker rung, which leaves high as the only rung. models.dev provider opencode (the gateway's published mapping, on opencode.ai/inference/openai/v1) lists effort none/high, the same switch under the gateway's name, minus none. The Hy4-preview chat template on Hugging Face also accepts only high or no_think. Pi's opencode catalog does not carry the model yet. Not probed: free-tier requests from the sync host are refused with FreeUsageLimitError.",
@@ -103,11 +113,6 @@
     "efforts": [],
     "source": "MiniMax API docs (platform.minimax.io/docs/api-reference/text-openai-api): reasoning_effort is effective for MiniMax-M3.1-Flash only. MiniMax-M3 controls thinking with thinking: { type: adaptive | disabled } (on by default) and documents no effort parameter. models.dev provider opencode lists only a toggle for this id.",
     "decided": "2026-10-22"
-  },
-  "minimax-m3.1-flash-free": {
-    "efforts": ["low", "medium", "high", "xhigh", "max"],
-    "source": "MiniMax API docs: the Create Response page (platform.minimax.io/docs/api-reference/responses-create) says MiniMax-M3.1-Flash always reasons and its effort accepts low, medium, high, xhigh or max (default max; none returns HTTP 400), and the OpenAI-compatible chat page (platform.minimax.io/docs/api-reference/text-openai-api) says reasoning_effort is effective for MiniMax-M3.1-Flash. models.dev provider opencode lists the same low..max effort values on the OpenAI-compatible endpoint. Not probed: free-tier requests from the sync host are refused.",
-    "decided": "2026-11-11"
   },
   "muse-ember-1.0": {
     "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],

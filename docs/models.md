@@ -109,6 +109,8 @@ rather than the table.
 | GPT-6 Luna | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | GPT-6 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | GPT-6.1 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6.2 Astra | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
+| GPT-6.2 Sol | 1,050,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | Responses |
 | Grok 4.5 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
 | Grok 4.6 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
 | Grok 4.7 | 500,000 | 500,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | Responses |
@@ -125,7 +127,6 @@ rather than the table.
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax M3 | 512,000 | 128,000 | ✓ | ✓ | ✗ | OpenAI |
-| MiniMax M3.1 Flash Free | 1,000,000 | 512,000 | ✓ | ✓ | ✓ (`low,medium,high,xhigh,max`) | OpenAI |
 | Mistral Large 4 | 524,288 | 262,144 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Muse Ember 1.0 | 1,048,576 | 270,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | Responses |
 | Muse Spark 1.2 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | Responses |
