@@ -1,4 +1,13 @@
 # Change Log
+## [0.1.70] - 2026-11-19
+
+### Removed
+
+- **`glm-5.3-flash-free` is retired because Zen stopped serving it.** It no longer appears in `GET /zen/v1/models` on 2026-11-19 (87 pickable models now), so its catalog entry, its `docs/models.md` row, and its README free-tier mention are removed, and the README model count drops to 87. The paid `glm-5.3-flash` stays. Pi's `opencode` catalog had no other differences.
+
+### Changed
+
+- **The OSV supply-chain scan ignores the picomatch ReDoS advisory GHSA-fc5q-39xc-vjpf.** picomatch reaches this repo only through dev and test tooling (micromatch, jest-util, tinyglobby) and is not shipped in the extension, and no fixed version is published yet, so the advisory no longer fails CI.
 ## [0.1.69] - 2026-11-18
 
 ### Added

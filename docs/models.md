@@ -84,7 +84,6 @@ rather than the table.
 | GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
 | GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | GLM-5.3-Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
-| GLM-5.3-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | GPT-5 | 400,000 | 128,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | Responses |
 | GPT-5 Codex | 400,000 | 128,000 | ✓ | ✓ | ✓ (`low,medium,high`) | Responses |
 | GPT-5 Nano | 400,000 | 128,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | Responses |
