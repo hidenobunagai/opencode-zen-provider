@@ -36,7 +36,7 @@ in this order:
    `mimo-v2.6-flash-free` records an empty ladder.
 
 `efforts: []` does not mean "does not think": it means the vendor exposes no effort parameter
-(Sonnet 4.5, Haiku 4.5, GLM-5/5.1, Kimi K2.5–K2.7 Code think on/off with no ladder), so the
+(Sonnet 4.5, Haiku 4.5, Kimi K2.7 Code think on/off with no ladder), so the
 picker stays off and the gateway default applies.
 
 The rungs are the gateway's own enum (`minimal`, `low`, `medium`, `high`, `xhigh`, `max`); the
@@ -79,9 +79,7 @@ rather than the table.
 | Gemini 4 Argon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Carbon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | Gemini 4 Hydrogen | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
-| GLM-5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
-| GLM-5.1 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
-| GLM 5.2 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |
+| Gemini 4 Neon | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`low,medium,high,xhigh`) | OpenAI |
 | GLM-5.3 | 1,000,000 | 131,072 | ✗ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | GLM-5.3-Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | GPT-5 | 400,000 | 128,000 | ✓ | ✓ | ✓ (`minimal,low,medium,high`) | Responses |
@@ -116,9 +114,6 @@ rather than the table.
 | Grok Build 0.1 | 256,000 | 256,000 | ✓ | ✓ | ✗ | Responses |
 | Hy4 flash Free | 1,048,576 | 65,536 | ✓ | ✓ | ✓ (`high`) | OpenAI |
 | Iceman Free | 262,144 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
-| Inkling 2 Small Free | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`minimal,low,medium,high,max`) | OpenAI |
-| Kimi K2.5 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
-| Kimi K2.6 | 262,144 | 65,536 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 131,072 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
 | LongCat 2.5 Free | 1,000,000 | 262,144 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
@@ -137,6 +132,7 @@ rather than the table.
 | Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
 | Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | OpenAI |
+| Tidepool Alpha Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | OpenAI |
 
 Family notes (the table above cannot carry them, so they live here):
 
@@ -146,8 +142,8 @@ Family notes (the table above cannot carry them, so they live here):
   because that is the request format, not the endpoint.
 - **GPT** and **Grok** use the **Responses API** route (`/responses`) and internally reason, so
   they count as thinking models (`THINKING_MODELS`) for output budget purposes.
-- **Kimi** use `fixedTemperature: 1` and require `REASONING_CONTENT_WORKAROUND_MODELS` (all but
-  K2.5) for correct streaming output.
+- **Kimi** use `fixedTemperature: 1` and require `REASONING_CONTENT_WORKAROUND_MODELS` for
+  correct streaming output.
 - **Muse Spark 1.2** uses the Responses route and counts as a thinking model.
 - **Tool-less models** (`NO_TOOL_MODEL_IDS`: Big Pickle, Nemotron 3.5 Lightning Free) declare
   `toolCalling` so they appear in the picker, but the provider strips tools before sending.

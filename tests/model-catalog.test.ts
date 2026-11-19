@@ -49,7 +49,7 @@ describe("ZEN_MODEL_CATALOG", () => {
     ).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "kimi-k3")).toBeDefined();
     expect(ZEN_MODEL_CATALOG.find((model) => model.id === "minimax-m3")).toBeDefined();
-    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "glm-5.2")).toBeDefined();
+    expect(ZEN_MODEL_CATALOG.find((model) => model.id === "glm-5.3")).toBeDefined();
   });
 
   it("does not include models served only by other Zen routes", () => {

@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.71] - 2026-11-20
+
+### Added
+
+- **`gemini-4-neon` and `tidepool-alpha-free` join the catalog because Zen now serves them.** `GET /zen/v1/models` on 2026-11-20 lists both. Pi's `opencode` catalog had no other differences. Neither is in Pi yet, so their metadata comes from models.dev's `opencode` provider: Gemini 4 Neon (Google's Gemini 4 model for fast coding, knowledge work and science) runs on the gateway's Google route with a 1,048,576-token context, 65,536 max output, images and tool calling; Tidepool Alpha Free (an OpenCode stealth reasoning model) is text-only on OpenAI-compatible chat completions with a 1,048,576-token context and 131,072 max output. The catalog entries, their rows in `docs/models.md`, and the README Gemini family line and free-tier list are updated to match.
+- **Their thinking ladders are recorded in `docs/effort-decisions.json`.** Gemini 4 Neon gets `low,medium,high,xhigh`: Google's thinking docs list exactly those levels for `gemini-4-neon` (default `high`), with `minimal` unsupported on Gemini 4 and thinking always on. models.dev publishes the same ladder for the gateway. Tidepool Alpha Free gets `minimal,low,medium,high,xhigh,max`, the gateway's published mapping from models.dev, since a stealth model has no vendor documentation. Neither ladder is measured: the paid model needs gateway credit, and a free-tier probe from the sync host was refused with `FreeUsageLimitError`.
+
+### Removed
+
+- **`glm-5`, `glm-5.1`, `glm-5.2`, `kimi-k2.5`, `kimi-k2.6` and `inkling-2-small-free` are retired because Zen stopped serving them.** None of them appears in `GET /zen/v1/models` on 2026-11-20, so their catalog entries, their `docs/models.md` rows, their README mentions, and their effort decisions are removed, and the README model count drops to 83. The GLM line is now 5.3 and 5.3 Flash, and Kimi is K2.7 Code and K3. A catalog test that used `glm-5.2` as a sample served id now uses `glm-5.3`.
 ## [0.1.70] - 2026-11-19
 
 ### Removed
