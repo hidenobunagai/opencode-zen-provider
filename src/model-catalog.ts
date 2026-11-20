@@ -194,7 +194,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     routeKind: "chat_completions",
     apiFormat: "openai",
     contextWindow: 1048576,
-    maxOutput: 131072,
+    maxOutput: 1048576,
     supportsTools: true,
     supportsVision: true,
     fixedTemperature: 1,

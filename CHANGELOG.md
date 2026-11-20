@@ -1,4 +1,9 @@
 # Change Log
+## [0.1.72] - 2026-11-21
+
+### Changed
+
+- **`kimi-k3` max output increases from 131,072 to 1,048,576 tokens.** Pi's `pi-ai@1.6.0` `opencode` catalog updated `kimi-k3`'s `maxOutput` to `1048576` (with no other catalog differences and no new or retired models in `GET /zen/v1/models`). `src/model-catalog.ts` and `docs/models.md` are updated to match.
 ## [0.1.71] - 2026-11-20
 
 ### Added
