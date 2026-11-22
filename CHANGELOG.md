@@ -1,4 +1,9 @@
 # Change Log
+## [0.1.73] - 2026-11-23
+
+### Removed
+
+- **`longcat-2.5-free` is retired because Zen stopped serving it.** Three consecutive reads of `GET /zen/v1/models` on 2026-11-23 returned 105 ids and none of them was `longcat-2.5-free` (82 pickable models now), so its catalog entry, its `docs/models.md` row, its `docs/effort-decisions.json` ladder, and its README mentions are removed, and the README model count drops to 82. Pi's `pi-ai@1.6.0` `opencode` catalog had no other differences.
 ## [0.1.72] - 2026-11-21
 
 ### Changed

@@ -116,7 +116,6 @@ rather than the table.
 | Iceman Free | 262,144 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | Kimi K2.7 Code | 262,144 | 262,144 | ✓ | ✓ | ✗ | OpenAI |
 | Kimi K3 | 1,048,576 | 1,048,576 | ✓ | ✓ | ✓ (`low,high,max`) | OpenAI |
-| LongCat 2.5 Free | 1,000,000 | 262,144 | ✓ | ✓ | ✓ (`minimal,low,medium,high,xhigh`) | OpenAI |
 | MiMo-V2.6-Flash Free | 200,000 | 32,000 | ✓ | ✓ | ✓ (`low,medium,high`) | OpenAI |
 | MiniMax-M2.5 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
 | MiniMax-M2.7 | 204,800 | 131,072 | ✗ | ✓ | ✗ | OpenAI |
