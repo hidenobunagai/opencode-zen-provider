@@ -1,4 +1,10 @@
 # Change Log
+## [0.1.74] - 2026-11-25
+
+### Added
+
+- **`kimi-k3.1-pro` joins the catalog because Zen now serves it.** `GET /zen/v1/models` on 2026-11-25 lists it, while Pi's `pi-ai@1.6.0` `opencode` catalog does not know it yet (and had no other differences), so its metadata comes from models.dev's `opencode` provider: Kimi K3.1 Pro (Moonshot's multimodal model for coding, 3D creation and financial research) runs on OpenAI-compatible chat completions with a 1,048,576-token context, 1,048,576 max output, images and tool calling. Moonshot fixes `temperature=1.0` for it, so the entry carries `fixedTemperature: 1` like `kimi-k3`. The catalog entry, its row in `docs/models.md`, and the README Kimi family line are updated, and the README model count rises to 83.
+- **Its thinking ladder is recorded in `docs/effort-decisions.json`.** `kimi-k3.1-pro` gets `low,high,max`: Moonshot's Reasoning Effort guide says it always reasons and accepts top-level `reasoning_effort` of `low`, `high` or `max` (default `max`), and models.dev publishes the same values. The ladder is not measured against the Zen gateway: a free-tier probe from the sync host is refused with `FreeUsageLimitError`.
 ## [0.1.73] - 2026-11-23
 
 ### Removed

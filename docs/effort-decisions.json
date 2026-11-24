@@ -69,6 +69,11 @@
     "source": "Moonshot Kimi API docs: kimi-k2.7-code has thinking always on (thinking.type accepts only \"enabled\") and reasoning_effort 'Not supported'.",
     "decided": "2026-10-21"
   },
+  "kimi-k3.1-pro": {
+    "efforts": ["low", "high", "max"],
+    "source": "Moonshot Kimi API docs (platform.kimi.ai/docs/guide/use-reasoning-effort): kimi-k3.1-pro always reasons and takes top-level reasoning_effort \"low\" | \"high\" | \"max\" (default \"max\"); matches models.dev reasoning_options effort values. Zen gateway not probed (free-tier probes return FreeUsageLimitError from the VM).",
+    "decided": "2026-11-25"
+  },
   "mimo-v2.6-flash-free": {
     "efforts": ["low", "medium", "high"],
     "source": "Xiaomi MiMo Responses API reference (mimo.mi.com/docs/en-US/api/chat/responses): reasoning.effort lists none/minimal/low/medium/high/xhigh/max/ultra, with minimal mapped to low and xhigh/max/ultra mapped to high. The page also states intensity is not differentiated yet (none disables, every other level enables), but low/medium/high are all accepted values, so they are the rungs this gateway can send. Corrects the empty ladder recorded earlier from reading only the chat-completions and anthropic pages, which document thinking.enabled|disabled and no effort at all.",
