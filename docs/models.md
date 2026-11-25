@@ -64,7 +64,7 @@ rather than the table.
 | Claude Opus 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Opus 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Sonnet 4.5 | 200,000 | 64,000 | ✓ | ✓ | ✗ | Anthropic |
-| Claude Sonnet 4.6 | 1,000,000 | 64,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
+| Claude Sonnet 4.6 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`max`) | Anthropic |
 | Claude Sonnet 5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | Claude Sonnet 5.5 | 1,000,000 | 128,000 | ✓ | ✓ | ✓ (`xhigh,max`) | Anthropic |
 | DeepSeek V4 Pro | 1,000,000 | 384,000 | ✗ | ✓ | ✓ (`high,max`) | OpenAI |

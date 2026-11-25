@@ -415,7 +415,7 @@ export const ZEN_MODEL_CATALOG: ZenModelInfo[] = [
     routeKind: "messages",
     apiFormat: "anthropic",
     contextWindow: 1000000,
-    maxOutput: 64000,
+    maxOutput: 128000,
     supportsTools: true,
     supportsVision: true,
     supportsThinking: true,

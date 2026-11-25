@@ -1,4 +1,9 @@
 # Change Log
+## [0.1.75] - 2026-11-26
+
+### Changed
+
+- **`claude-sonnet-4-6` max output increases from 64,000 to 128,000 tokens.** Pi's `pi-ai@1.6.1` `opencode` catalog updated `claude-sonnet-4-6`'s `maxOutput` to `128000` (with no other catalog differences and no new or retired models in `GET /zen/v1/models`). `src/model-catalog.ts` and `docs/models.md` are updated to match.
 ## [0.1.74] - 2026-11-25
 
 ### Added
