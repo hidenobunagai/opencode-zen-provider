@@ -1,4 +1,14 @@
 # Change Log
+## [0.1.76] - 2026-11-27
+
+### Added
+
+- **`seaglass-alpha-free` joins the catalog because Zen now serves it.** `GET /zen/v1/models` on 2026-11-27 lists it (three consecutive reads), while Pi's `pi-ai@1.6.1` `opencode` catalog does not know it, so its metadata comes from models.dev's `opencode` provider: Seaglass Alpha Free (an OpenCode stealth reasoning model, free for a limited time) is text-only on OpenAI-compatible chat completions with a 1,048,576-token context, 131,072 max output and tool calling. The catalog entry, its row in `docs/models.md`, and the README free-tier list are updated.
+- **Its thinking ladder is recorded in `docs/effort-decisions.json`.** `seaglass-alpha-free` gets `minimal,low,medium,high,xhigh,max`, the gateway's published mapping (models.dev and the effort list in `GET /zen/v1/models`); a stealth model has no vendor documentation. The ladder is not measured: a free-tier probe from the sync host was refused with `FreeUsageLimitError`.
+
+### Removed
+
+- **`tidepool-alpha-free` is retired because Zen stopped serving it.** Three consecutive reads of `GET /zen/v1/models` on 2026-11-27 returned 110 ids and none of them was `tidepool-alpha-free`, so its catalog entry, its `docs/models.md` row, its `docs/effort-decisions.json` ladder, and its README mention are removed (the README model count stays at 83: one added, one retired). Pi's `pi-ai@1.6.1` `opencode` catalog had no other differences.
 ## [0.1.75] - 2026-11-26
 
 ### Changed

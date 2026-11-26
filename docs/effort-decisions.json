@@ -124,9 +124,9 @@
     "source": "QwenCloud OpenAI-chat reference (docs.qwencloud.com/api-reference/chat/openai-chat): qwen3.8-max reasoning_effort options are low, medium and xhigh (default xhigh); high maps to xhigh, so it is not a separate rung. The Anthropic-compatible page (docs.qwencloud.com/api-reference/chat/anthropic) lists the same three for output_config.effort, and models.dev provider opencode agrees. Replaces low/medium/high/xhigh, which offered a rung the vendor does not define.",
     "decided": "2026-10-22"
   },
-  "tidepool-alpha-free": {
+  "seaglass-alpha-free": {
     "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"],
-    "source": "OpenCode stealth model (models.dev describes it only as a 'Stealth reasoning model, free for a limited time', so there is no vendor API documentation to consult). models.dev provider opencode — the gateway's own published catalog, and the source OpenCode's #variant list is built from — lists reasoning_options effort minimal/low/medium/high/xhigh/max on the OpenAI-compatible endpoint (opencode.ai/inference/openai/v1), so the ladder is the gateway's published mapping. A live reasoning_effort probe on opencode.ai/zen/v1/chat/completions on 2026-11-20 was refused with FreeUsageLimitError, so the ladder is not measured.",
-    "decided": "2026-11-20"
+    "source": "OpenCode stealth model (models.dev describes it only as a 'Stealth reasoning model, free for a limited time', so there is no vendor API documentation to consult). models.dev provider opencode — the gateway's own published catalog, and the source OpenCode's #variant list is built from — lists reasoning_options effort minimal/low/medium/high/xhigh/max on the OpenAI-compatible endpoint (opencode.ai/inference/openai/v1), and GET /zen/v1/models publishes the same effort list under capabilities.reasoning, so the ladder is the gateway's published mapping. A live reasoning_effort probe on opencode.ai/zen/v1/chat/completions on 2026-11-27 was refused with FreeUsageLimitError, so the ladder is not measured.",
+    "decided": "2026-11-27"
   }
 }

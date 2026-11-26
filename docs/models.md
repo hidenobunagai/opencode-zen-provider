@@ -132,7 +132,7 @@ rather than the table.
 | Qwen3.6 Plus | 262,144 | 65,536 | ✓ | ✓ | ✗ | Anthropic |
 | Qwen3.8 Flash | 1,000,000 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | Anthropic |
 | Qwen3.8 Max | 262,144 | 131,072 | ✓ | ✓ | ✓ (`low,medium,xhigh`) | OpenAI |
-| Tidepool Alpha Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | OpenAI |
+| Seaglass Alpha Free | 1,048,576 | 131,072 | ✗ | ✓ | ✓ (`minimal,low,medium,high,xhigh,max`) | OpenAI |
 
 Family notes (the table above cannot carry them, so they live here):
 
